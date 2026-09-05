@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR News — অ্যাডমিন প্যানেল</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fafafa;--ink:#151515;--muted:#6b6b6b;--line:#e3e3e3;--brand:#0f766e;--brand-ink:#0b3d38;--surface:#fff;--danger:#c0392b;--font-display:'Tiro Bangla',Georgia,serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hind Siliguri',system-ui,sans-serif}
+  a{color:inherit}
+
+  .ar-nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  .ar-brand{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:700;font-size:18px}
+  .ar-brand img{width:28px;height:28px;border-radius:7px}
+  .btn{border:0;border-radius:9px;padding:9px 14px;background:var(--brand);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+  .btn.secondary{background:#eef3f2;color:var(--brand-ink)}
+  .btn.danger{background:var(--danger)}
+
+  .shell{max-width:1080px;margin:0 auto;padding:26px 18px 60px}
+
+  /* ---- login / gate screens ---- */
+  .gate{max-width:380px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
+  .gate h2{font-family:var(--font-display);margin:0 0 6px;font-size:22px}
+  .gate p{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font:inherit;background:#fff}
+  .field textarea{min-height:150px;resize:vertical}
+  .error{background:#fdecea;color:var(--danger);font-size:13px;padding:9px 11px;border-radius:8px;margin-bottom:14px;display:none}
+  .error.show{display:block}
+
+  /* ---- dashboard ---- */
+  .grid{display:grid;grid-template-columns:1fr;gap:20px}
+  @media(min-width:860px){.grid{grid-template-columns:minmax(300px,380px) 1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .panel h2{font-family:var(--font-display);font-size:19px;margin:0 0 14px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+  .post-list{display:grid;gap:10px}
+  .post-item{border:1px solid var(--line);border-radius:11px;padding:13px;background:#fff}
+  .post-item img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-bottom:10px;background:#f2f2f2}
+  .post-item h3{font-family:var(--font-display);font-size:16px;margin:0 0 5px}
+  .post-item p{margin:5px 0;font-size:13.5px;color:var(--muted);overflow-wrap:anywhere}
+  .post-meta{font-size:12px;color:var(--muted)}
+  .item-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .empty{color:var(--muted);text-align:center;padding:24px}
+  .status-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:6px;background:#eef3f2;color:var(--brand-ink);margin-left:6px}
+
+  .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .tab-btn{border:1px solid var(--line);background:#fff;color:var(--muted);font:inherit;font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:10px;cursor:pointer}
+  .tab-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  .stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
+  .stat-card{border:1px solid var(--line);border-radius:12px;padding:14px;background:linear-gradient(135deg,#fff,#f4f9f8)}
+  .stat-card .label{display:block;color:var(--muted);font-size:12px}
+  .stat-card strong{display:block;color:var(--brand-ink);font-size:26px;margin-top:4px;font-family:var(--font-display)}
+  @media(min-width:500px){.stats-row{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+  <header class="ar-nav">
+    <a class="ar-brand" href="feed.html"><img src="logo.png" alt="AR News"><span>AR News</span></a>
+    <div id="nav-actions"></div>
+  </header>
+
+  <main class="shell" id="app">
+    <div class="empty">লোড হচ্ছে…</div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script src="config.js"></script>
+
+  <script>
+    const app = document.getElementById("app");
+    const navActions = document.getElementById("nav-actions");
+    let posts = {};
+    let editingId = null;
+
+    function esc(v) {
+      return String(v == null ? "" : v).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[ch]));
+    }
+    function fmtDate(v) {
+      if (!v) return "";
+      try { return new Intl.DateTimeFormat("bn-BD", { dateStyle: "medium", timeStyle: "short" }).format(new Date(v)); }
+      catch (_) { return ""; }
+    }
+
+    // ---------- লগইন স্ক্রিন ----------
+    function renderLogin() {
+      navActions.innerHTML = "";
+      app.innerHTML = `
+        <div class="gate">
+          <h2>অ্যাডমিন লগইন</h2>
+          <p>শুধুমাত্র অনুমোদিত অ্যাডমিন এখানে পোস্ট প্রকাশ করতে পারবেন।</p>
+          <div class="error" id="login-error"></div>
+          <form id="login-form">
+            <div class="field"><label for="email">ইমেইল</label><input id="email" type="email" required autocomplete="email"></div>
+            <div class="field"><label for="pass">পাসওয়ার্ড</label><input id="pass" type="password" required autocomplete="current-password" minlength="6"></div>
+            <button class="btn" type="submit" style="width:100%">লগইন করুন</button>
+          </form>
+        </div>`;
+      document.getElementById("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const errEl = document.getElementById("login-error");
+        errEl.classList.remove("show");
+        try {
+          await window.auth.signInWithEmailAndPassword(
+            document.getElementById("email").value.trim(),
+            document.getElementById("pass").value
+          );
+        } catch (err) {
+          errEl.textContent = "লগইন ব্যর্থ হয়েছে। ইমেইল বা পাসওয়ার্ড যাচাই করুন।";
+          errEl.classList.add("show");
+        }
+      });
+    }
+
+    function renderNoAccess(user) {
+      navActions.innerHTML = `<button class="btn secondary" id="logout-btn">লগআউট</button>`;
+      document.getElementById("logout-btn").onclick = () => window.auth.signOut();
+      app.innerHTML = `<div class="gate"><h2>অনুমতি নেই</h2><p>${esc(user.email || "")} — এই অ্যাকাউন্টের অ্যাডমিন অনুমতি নেই।</p></div>`;
+    }
+
+    // ---------- ড্যাশবোর্ড ----------
+    function renderDashboard(user) {
+      navActions.innerHTML = `<button class="btn secondary" id="logout-btn">লগআউট</button>`;
+      document.getElementById("logout-btn").onclick = () => window.auth.signOut();
+
+      app.innerHTML = `
+        <div class="tabs">
+          <button class="tab-btn active" id="tab-create" type="button">নতুন পোস্ট</button>
+          <button class="tab-btn" id="tab-list" type="button">সব পোস্ট</button>
+          <button class="tab-btn" id="tab-stats" type="button">পরিসংখ্যান</button>
+        </div>
+        <div class="grid">
+          <section class="panel" id="panel-create">
+            <h2 id="form-title">নতুন পোস্ট তৈরি করুন</h2>
+            <form id="post-form">
+              <div class="field"><label for="p-title">শিরোনাম</label><input id="p-title" required maxlength="180"></div>
+              <div class="field"><label for="p-category">ক্যাটাগরি</label><input id="p-category" maxlength="80" placeholder="সাধারণ"></div>
+              <div class="field"><label for="p-body">বিস্তারিত লেখা</label><textarea id="p-body" required maxlength="20000"></textarea></div>
+              <div class="field"><label for="p-image">ছবির লিংক (ঐচ্ছিক)</label><input id="p-image" placeholder="https://i.ibb.co/.../photo.jpg"></div>
+              <div class="field"><label for="p-status">স্ট্যাটাস</label>
+                <select id="p-status"><option value="published">প্রকাশিত</option><option value="draft">ড্রাফট</option></select>
+              </div>
+              <div class="actions">
+                <button class="btn" type="submit" id="save-btn">পোস্ট সংরক্ষণ করুন</button>
+                <button class="btn secondary" type="button" id="cancel-btn" hidden>বাতিল</button>
+              </div>
+            </form>
+          </section>
+          <section class="panel" id="panel-list" hidden>
+            <h2>সব পোস্ট</h2>
+            <div id="post-list"><div class="empty">লোড হচ্ছে…</div></div>
+          </section>
+          <section class="panel" id="panel-stats" hidden>
+            <h2>পরিসংখ্যান</h2>
+            <div class="stats-row">
+              <div class="stat-card"><span class="label">মোট ভিজিট</span><strong id="stat-total">—</strong></div>
+              <div class="stat-card"><span class="label">আজকের ভিজিট</span><strong id="stat-today">—</strong></div>
+              <div class="stat-card"><span class="label">মোট পোস্ট</span><strong id="stat-posts">—</strong></div>
+            </div>
+          </section>
+        </div>`;
+
+      document.getElementById("post-form").addEventListener("submit", savePost);
+      document.getElementById("cancel-btn").addEventListener("click", resetForm);
+
+      const tabCreate = document.getElementById("tab-create");
+      const tabList = document.getElementById("tab-list");
+      const tabStats = document.getElementById("tab-stats");
+      const panelCreate = document.getElementById("panel-create");
+      const panelList = document.getElementById("panel-list");
+      const panelStats = document.getElementById("panel-stats");
+
+      function showTab(which) {
+        tabCreate.classList.toggle("active", which === "create");
+        tabList.classList.toggle("active", which === "list");
+        tabStats.classList.toggle("active", which === "stats");
+        panelCreate.hidden = which !== "create";
+        panelList.hidden = which !== "list";
+        panelStats.hidden = which !== "stats";
+      }
+      tabCreate.addEventListener("click", () => showTab("create"));
+      tabList.addEventListener("click", () => showTab("list"));
+      tabStats.addEventListener("click", () => showTab("stats"));
+
+      window.rtdb.ref("posts").on("value", (snap) => {
+        posts = snap.val() || {};
+        document.getElementById("stat-posts").textContent = Object.keys(posts).length;
+        renderPostList();
+      });
+
+      const today = new Date().toISOString().slice(0, 10);
+      window.rtdb.ref("stats/totalVisits").on("value", (snap) => {
+        document.getElementById("stat-total").textContent = snap.val() || 0;
+      });
+      window.rtdb.ref(`stats/dailyVisits/${today}`).on("value", (snap) => {
+        document.getElementById("stat-today").textContent = snap.val() || 0;
+      });
+    }
+
+    function resetForm() {
+      editingId = null;
+      document.getElementById("post-form").reset();
+      document.getElementById("form-title").textContent = "নতুন পোস্ট তৈরি করুন";
+      document.getElementById("save-btn").textContent = "পোস্ট সংরক্ষণ করুন";
+      document.getElementById("cancel-btn").hidden = true;
+    }
+
+    function goToList() {
+      const tabList = document.getElementById("tab-list");
+      if (tabList) tabList.click();
+    }
+
+    async function savePost(e) {
+      e.preventDefault();
+      const user = window.auth.currentUser;
+      const data = {
+        title: document.getElementById("p-title").value.trim(),
+        category: document.getElementById("p-category").value.trim() || "সাধারণ",
+        description: document.getElementById("p-body").value.trim(),
+        imageUrl: document.getElementById("p-image").value.trim(),
+        status: document.getElementById("p-status").value,
+        authorId: user.uid,
+        authorName: user.displayName || user.email || "এডমিন",
+        updatedAt: Date.now(),
+      };
+      const id = editingId || window.rtdb.ref("posts").push().key;
+      if (!editingId) data.createdAt = Date.now();
+      try {
+        await window.rtdb.ref(`posts/${id}`).update(data);
+        resetForm();
+        goToList();
+      } catch (err) {
+        alert("সংরক্ষণ করা যায়নি: " + err.message);
+      }
+    }
+
+    function renderPostList() {
+      const list = document.getElementById("post-list");
+      if (!list) return;
+      const entries = Object.entries(posts).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+      if (!entries.length) { list.innerHTML = `<div class="empty">কোনো পোস্ট নেই।</div>`; return; }
+
+      list.innerHTML = `<div class="post-list">${entries.map(([id, p]) => `
+        <article class="post-item">
+          ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
+          <h3>${esc(p.title || "শিরোনামহীন")}<span class="status-tag">${p.status === "published" ? "প্রকাশিত" : "ড্রাফট"}</span></h3>
+          <div class="post-meta">${esc(p.category || "সাধারণ")} · ${fmtDate(p.createdAt)}</div>
+          <p>${esc((p.description || "").slice(0, 140))}${(p.description || "").length > 140 ? "…" : ""}</p>
+          <div class="item-actions">
+            <button class="btn secondary" data-action="edit" data-id="${esc(id)}">এডিট</button>
+            <button class="btn secondary" data-action="toggle" data-id="${esc(id)}">${p.status === "published" ? "ড্রাফট করুন" : "প্রকাশ করুন"}</button>
+            <button class="btn danger" data-action="delete" data-id="${esc(id)}">ডিলিট</button>
+          </div>
+        </article>`).join("")}</div>`;
+
+      list.querySelectorAll("[data-action]").forEach((btn) => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, action = btn.dataset.action, post = posts[id];
+          if (action === "edit") {
+            editingId = id;
+            document.getElementById("p-title").value = post.title || "";
+            document.getElementById("p-category").value = post.category || "";
+            document.getElementById("p-body").value = post.description || "";
+            document.getElementById("p-image").value = post.imageUrl || "";
+            document.getElementById("p-status").value = post.status || "draft";
+            document.getElementById("form-title").textContent = "পোস্ট এডিট করুন";
+            document.getElementById("save-btn").textContent = "আপডেট করুন";
+            document.getElementById("cancel-btn").hidden = false;
+            document.getElementById("tab-create").click();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          if (action === "toggle") {
+            await window.rtdb.ref(`posts/${id}/status`).set(post.status === "published" ? "draft" : "published");
+          }
+          if (action === "delete" && confirm("এই পোস্ট ডিলিট করবেন?")) {
+            await window.rtdb.ref(`posts/${id}`).remove();
+          }
+        };
+      });
+    }
+
+    // ---------- entry point ----------
+    if (!window.auth || !window.rtdb) {
+      app.innerHTML = `<div class="empty">Firebase সংযোগ পাওয়া যায়নি।</div>`;
+    } else {
+      window.auth.onAuthStateChanged(async (user) => {
+        if (!user) return renderLogin();
+        const allowed = await window.isAdmin(user);
+        if (!allowed) return renderNoAccess(user);
+        renderDashboard(user);
+      });
+    }
+  </script>
+</body>
+</html>
