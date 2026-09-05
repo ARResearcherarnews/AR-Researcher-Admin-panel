@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR News — অ্যাডমিন প্যানেল</title>
+  <link rel="icon" href="logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-shell{max-width:1120px;margin:0 auto;padding:24px 18px 60px}.admin-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.admin-header h1{margin:0;font-family:var(--font-display);font-size:28px}.admin-header p{margin:4px 0 0;color:var(--muted);font-size:13px}.admin-user{color:var(--muted);font-size:13px}.admin-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}.stat-card{border:1px solid var(--line);border-radius:12px;padding:15px;background:linear-gradient(135deg,#fff,#f5faf9)}.stat-label{display:block;color:var(--muted);font-size:12px}.stat-card strong{display:block;color:var(--brand-ink);font-size:27px;margin:4px 0}.stat-card small{color:var(--muted);font-size:11px}.admin-grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:22px}.admin-panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}.admin-panel h2{font-size:19px;margin:0 0 16px;font-family:var(--font-display)}.admin-form textarea{min-height:170px}.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.preview-heading{font-weight:700;color:var(--brand-ink);font-size:14px;margin:22px 0 8px;padding-top:14px;border-top:1px solid var(--line)}.ar-post-preview-card{border:1px solid var(--line);border-radius:11px;padding:14px;background:#fff}.ar-post-preview-card h3{font-family:var(--font-display);font-size:19px;line-height:1.4;margin:7px 0}.ar-post-preview-card p.body{font-size:14px;line-height:1.7;white-space:pre-line;margin:0}.preview-note{margin-top:12px;padding:7px 9px;border-radius:7px;background:var(--accent-soft);color:var(--brand-ink);font-size:11px}.admin-list{display:grid;gap:10px;max-height:650px;overflow:auto}.admin-item{border:1px solid var(--line);border-radius:11px;padding:13px;background:#fff}.admin-item h3{font-family:var(--font-display);font-size:17px;margin:0 0 5px}.admin-item p{margin:5px 0;line-height:1.55;overflow-wrap:anywhere}.admin-meta{color:var(--muted);font-size:12px}.admin-item-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.admin-btn{border:0;border-radius:8px;padding:8px 11px;background:var(--brand);color:#fff;cursor:pointer;font:inherit;font-weight:600}.admin-btn.secondary{background:#eef3f2;color:var(--brand-ink)}.admin-btn.danger{background:var(--danger)}.admin-empty,.admin-loading{color:var(--muted);padding:20px;text-align:center}.admin-tabs{display:flex;gap:8px;margin-bottom:14px}.admin-tab{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font:inherit}.admin-tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}.admin-alert{display:none;padding:10px 12px;border-radius:8px;background:var(--danger-soft);color:var(--danger);margin-bottom:14px;font-size:13px}.admin-alert.show{display:block}.report-card{border-left:4px solid var(--danger)}
+    @media(max-width:800px){.admin-grid{grid-template-columns:1fr}.admin-stats{grid-template-columns:repeat(2,1fr)}.admin-header{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header class="ar-topbar">
+    <a class="ar-brand" href="login.html"><img src="logo.png" alt="AR News"><span>AR News</span></a>
+    <button class="ar-login-btn" id="logout-btn" type="button">লগআউট</button>
+  </header>
+
+  <main class="admin-shell" id="admin-app">
+    <div class="admin-loading">অ্যাডমিন অ্যাক্সেস যাচাই হচ্ছে…</div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
