@@ -30,6 +30,11 @@
   .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
   .field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font:inherit;background:#fff}
   .field textarea{min-height:150px;resize:vertical}
+  .img-hint{display:block;font-size:12px;color:var(--muted);margin-top:6px}
+  .img-hint.ok{color:#178a5c}
+  .img-hint.bad{color:var(--danger)}
+  .img-preview-wrap{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#f7f7f7}
+  .img-preview{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
   .error{background:#fdecea;color:var(--danger);font-size:13px;padding:9px 11px;border-radius:8px;margin-bottom:14px;display:none}
   .error.show{display:block}
 
@@ -147,7 +152,14 @@
               <div class="field"><label for="p-title">শিরোনাম</label><input id="p-title" required maxlength="180"></div>
               <div class="field"><label for="p-category">ক্যাটাগরি</label><input id="p-category" maxlength="80" placeholder="সাধারণ"></div>
               <div class="field"><label for="p-body">বিস্তারিত লেখা</label><textarea id="p-body" required maxlength="20000"></textarea></div>
-              <div class="field"><label for="p-image">ছবির লিংক (ঐচ্ছিক)</label><input id="p-image" placeholder="https://i.ibb.co/.../photo.jpg"></div>
+              <div class="field">
+                <label for="p-image">ছবির লিংক (ঐচ্ছিক)</label>
+                <input id="p-image" placeholder="ibb.co-এর লিংক বা HTML/BBCode এম্বেড কোড এখানে পেস্ট করুন">
+                <small id="img-hint" class="img-hint">সরাসরি ছবির লিংক দিন, অথবা ibb.co-এর HTML/BBCode এম্বেড কোড কপি-পেস্ট করলেও চলবে — আমরা নিজে থেকেই লিংকটা বের করে নেব।</small>
+                <div id="img-preview-wrap" class="img-preview-wrap" hidden>
+                  <img id="img-preview" class="img-preview" alt="প্রিভিউ">
+                </div>
+              </div>
               <div class="field"><label for="p-status">স্ট্যাটাস</label>
                 <select id="p-status"><option value="published">প্রকাশিত</option><option value="draft">ড্রাফট</option></select>
               </div>
@@ -173,6 +185,7 @@
 
       document.getElementById("post-form").addEventListener("submit", savePost);
       document.getElementById("cancel-btn").addEventListener("click", resetForm);
+      bindImagePreview();
 
       const tabCreate = document.getElementById("tab-create");
       const tabList = document.getElementById("tab-list");
@@ -214,6 +227,62 @@
       document.getElementById("form-title").textContent = "নতুন পোস্ট তৈরি করুন";
       document.getElementById("save-btn").textContent = "পোস্ট সংরক্ষণ করুন";
       document.getElementById("cancel-btn").hidden = true;
+      const hint = document.getElementById("img-hint");
+      const wrap = document.getElementById("img-preview-wrap");
+      if (hint) { hint.textContent = "সরাসরি ছবির লিংক দিন, অথবা ibb.co-এর HTML/BBCode এম্বেড কোড কপি-পেস্ট করলেও চলবে — আমরা নিজে থেকেই লিংকটা বের করে নেব।"; hint.className = "img-hint"; }
+      if (wrap) wrap.hidden = true;
+    }
+
+    // ibb.co থেকে দেওয়া HTML/BBCode এম্বেড কোড থেকে আসল ছবির লিংক বের করে আনে
+    function extractImageUrl(raw) {
+      let s = (raw || "").trim();
+      if (!s) return "";
+      let m = s.match(/\[img\](.*?)\[\/img\]/i);
+      if (m) return m[1].trim();
+      m = s.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (m) return m[1].trim();
+      return s;
+    }
+
+    // ছবির লিংক টাইপ/পেস্ট করার সাথে সাথে লাইভ প্রিভিউ দেখায়, HTML/BBCode এম্বেড কোড দিলে অটো পরিষ্কার করে দেয়
+    function bindImagePreview() {
+      const input = document.getElementById("p-image");
+      const hint = document.getElementById("img-hint");
+      const wrap = document.getElementById("img-preview-wrap");
+      const img = document.getElementById("img-preview");
+      let timer = null;
+
+      function check() {
+        const cleaned = extractImageUrl(input.value);
+        if (cleaned && cleaned !== input.value.trim()) input.value = cleaned; // এম্বেড কোড দিলে শুধু লিংকটা রেখে বাকি অংশ মুছে দাও
+
+        const url = input.value.trim();
+        if (!url) {
+          wrap.hidden = true;
+          hint.textContent = "সরাসরি ছবির লিংক দিন, অথবা ibb.co-এর HTML/BBCode এম্বেড কোড কপি-পেস্ট করলেও চলবে — আমরা নিজে থেকেই লিংকটা বের করে নেব।";
+          hint.className = "img-hint";
+          return;
+        }
+        hint.textContent = "যাচাই করা হচ্ছে…";
+        hint.className = "img-hint";
+        img.onload = () => {
+          wrap.hidden = false;
+          hint.textContent = "✓ ছবি ঠিক আছে, ফিডে এভাবেই দেখাবে।";
+          hint.className = "img-hint ok";
+        };
+        img.onerror = () => {
+          wrap.hidden = true;
+          hint.textContent = "✗ এই লিংক থেকে ছবি লোড করা যায়নি। শুধু পেজ লিংক (ibb.co/xxxx) না দিয়ে HTML বা BBCode এম্বেড কোডটা পুরো কপি করে পেস্ট করুন — আমরা নিজে থেকেই আসল ছবির লিংক বের করে নেব।";
+          hint.className = "img-hint bad";
+        };
+        img.src = url;
+      }
+
+      input.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(check, 400);
+      });
+      if (input.value.trim()) check();
     }
 
     function goToList() {
@@ -228,7 +297,7 @@
         title: document.getElementById("p-title").value.trim(),
         category: document.getElementById("p-category").value.trim() || "সাধারণ",
         description: document.getElementById("p-body").value.trim(),
-        imageUrl: document.getElementById("p-image").value.trim(),
+        imageUrl: extractImageUrl(document.getElementById("p-image").value),
         status: document.getElementById("p-status").value,
         authorId: user.uid,
         authorName: user.displayName || user.email || "এডমিন",
@@ -273,6 +342,7 @@
             document.getElementById("p-category").value = post.category || "";
             document.getElementById("p-body").value = post.description || "";
             document.getElementById("p-image").value = post.imageUrl || "";
+            document.getElementById("p-image").dispatchEvent(new Event("input"));
             document.getElementById("p-status").value = post.status || "draft";
             document.getElementById("form-title").textContent = "পোস্ট এডিট করুন";
             document.getElementById("save-btn").textContent = "আপডেট করুন";
