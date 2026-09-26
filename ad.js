@@ -30,7 +30,7 @@
       '<p class="sub">টাইটেল, ডেসক্রিপশন আর একটা ছবি (16:9) দিয়ে বিজ্ঞাপন তৈরি করুন। লিংক দিলে কার্ডে ভিজিট/ওপেন বাটন দেখাবে।</p>' +
       '<form id="ad-form">' +
       '<div class="field"><label for="ad-title">টাইটেল</label><input id="ad-title" required maxlength="120"></div>' +
-      '<div class="field"><label for="ad-desc">ডেসক্রিপশন</label><textarea id="ad-desc" required maxlength="800"></textarea></div>' +
+      '<div class="field"><label for="ad-desc">ডেসক্রিপশন (ঐচ্ছিক)</label><textarea id="ad-desc" maxlength="800"></textarea></div>' +
       '<div class="field">' +
       '<label for="ad-image-file">ছবি আপলোড করুন (16:9)</label>' +
       '<input id="ad-image-file" type="file" accept="image/*">' +
@@ -312,6 +312,7 @@
             : '<span class="status-tag">সক্রিয়</span>';
         var dateStr = fmtDate(ad.createdAt);
         var metaRow = dateStr ? '<p class="post-meta">' + esc(dateStr) + "</p>" : "";
+        var descRow = ad.description ? "<p>" + esc(ad.description) + "</p>" : "";
         var linkRow = ad.link
           ? '<div class="item-actions"><a class="btn small secondary" href="' +
             esc(ad.link) +
@@ -323,7 +324,7 @@
           '<div class="post-item" data-id="' + esc(id) + '">' +
           (ad.imageUrl ? '<img src="' + esc(ad.imageUrl) + '" alt="">' : "") +
           '<h3><span class="status-tag ad-badge">বিজ্ঞাপন</span>' + esc(ad.title || "") + statusTag + "</h3>" +
-          "<p>" + esc(ad.description || "") + "</p>" +
+          descRow +
           metaRow +
           linkRow +
           '<div class="item-actions">' +
