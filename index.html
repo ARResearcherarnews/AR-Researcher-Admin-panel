@@ -1,167 +1,382 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AR News — অ্যাডমিন প্যানেল</title>
-<link rel="icon" href="logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Hind+Siliguri:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#f6f7f7; --ink:#151515; --muted:#6b6b6b; --line:#e3e3e3;
-    --brand:#0f766e; --brand-ink:#0b3d38; --brand-soft:#eef5f4;
-    --surface:#fff; --danger:#c0392b; --danger-soft:#fdecea; --warn:#b8860b;
-    --font-display:'Tiro Bangla',Georgia,serif;
-    --safe-b: env(safe-area-inset-bottom, 0px);
-    --safe-t: env(safe-area-inset-top, 0px);
-    --nav-h: 62px;
+/* AR News — contact.js : Admin Chat Panel (Chat Management)
+   এই ফাইলটি index.html-এর অন্য <script> ট্যাগগুলোর (বিশেষত config.js) পরে লোড করুন:
+     <script src="contact.js?v=1"></script>
+
+   কী করে:
+   - Admin লগইন থাকলে টপ নেভে একটা চ্যাট আইকন বসায় (মোট unread সংখ্যা badge সহ)।
+   - আইকনে চাপ দিলে একটা ফুল-স্ক্রিন প্যানেল খোলে, যেখানে রেজিস্টার করা সব ইউজারের
+     তালিকা দেখা যায়, প্রতিটার পাশে unread মেসেজ সংখ্যা।
+   - কোনো ইউজারে চাপ দিলে তার পুরো কথোপকথন খোলে, Admin সরাসরি রিপ্লাই দিতে পারে।
+
+   ডেটা স্ট্রাকচার (Firebase Realtime Database):
+     chats/
+       {uid}/
+         meta/
+           userName, userEmail   — ইউজারের নাম/ইমেইল (contact.html থেকে লেখা হয়)
+           lastMessage, lastMessageAt, lastSender
+           unreadByAdmin         — Admin এখনো পড়েনি এমন ইউজার-মেসেজের সংখ্যা
+           unreadByUser          — ইউজার এখনো পড়েনি এমন Admin-মেসেজের সংখ্যা
+         messages/
+           {pushId}/  { sender:"user"|"admin", text, at }
+
+   *** জরুরি — Firebase Realtime Database Rules ***
+   এই ফিচার নিরাপদ রাখতে Firebase কনসোলের Rules ট্যাবে এটি বসান, নাহলে
+   যে কেউ অন্যের চ্যাট পড়তে/লিখতে পারবে:
+
+   {
+     "rules": {
+       "users": { ".read": "auth != null" },
+       "chats": {
+         "$uid": {
+           ".read":  "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+           ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+         }
+       }
+     }
+   }
+*/
+(function () {
+  "use strict";
+
+  const state = {
+    usersRef: null,
+    metaRefs: {},      // uid -> ref (chats/{uid}/meta)
+    rosterUsers: {},   // uid -> {name,email,role,...} থেকে users/
+    rosterMeta: {},    // uid -> meta object থেকে chats/{uid}/meta
+    activeUid: null,
+    activeMsgsRef: null,
+    activeMsgsHandler: null,
+    navObserver: null,
+  };
+
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
   }
-  *{box-sizing:border-box}
-  html,body{margin:0}
-  body{background:var(--bg);color:var(--ink);font-family:'Hind Siliguri',system-ui,sans-serif;padding-bottom:calc(var(--nav-h) + var(--safe-b) + 10px)}
-  a{color:inherit}
-  button{-webkit-tap-highlight-color:transparent}
 
-  /* ---------- header ---------- */
-  .ar-nav{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(12px + var(--safe-t)) 16px 12px;background:#fff;border-bottom:1px solid var(--line)}
-  .ar-brand{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:700;font-size:17px;text-decoration:none;min-width:0}
-  .ar-brand img{width:28px;height:28px;border-radius:7px;flex-shrink:0}
-  .ar-brand small{display:block;font-family:'Hind Siliguri',sans-serif;font-weight:600;font-size:10.5px;color:var(--muted);letter-spacing:.03em}
-  #nav-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-  .who{font-size:12px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none}
-  @media(min-width:520px){.who{display:inline-block}}
+  ready(init);
 
-  /* ---------- buttons ---------- */
-  .btn{display:inline-block;text-align:center;text-decoration:none;border:0;border-radius:10px;padding:11px 16px;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .btn:active{opacity:.85}
-  .btn.secondary{background:var(--brand-soft);color:var(--brand-ink)}
-  .btn.danger{background:var(--danger)}
-  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
-  .btn.small{padding:8px 12px;font-size:12.5px;border-radius:8px}
-  .btn.icon{width:38px;height:38px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
-  .btn[disabled]{opacity:.55;cursor:default}
-  .btn svg{width:17px;height:17px}
+  function init() {
+    if (!window.auth || !window.rtdb) {
+      console.warn("[contact.js] window.auth / window.rtdb পাওয়া যায়নি — config.js এই স্ক্রিপ্টের আগে লোড হয়েছে কিনা দেখুন।");
+      return;
+    }
+    window.auth.onAuthStateChanged(async function (user) {
+      teardown();
+      if (!user) { console.info("[contact.js] কেউ লগইন নেই, তাই চ্যাট আইকন দেখানো হচ্ছে না।"); return; }
+      let admin = false;
+      try { admin = await window.isAdmin(user); } catch (err) { console.warn("[contact.js] isAdmin() চেক ব্যর্থ হয়েছে:", err); admin = false; }
+      if (!admin) {
+        console.info("[contact.js] এই ইউজার (" + user.uid + ") admin হিসেবে চিহ্নিত হয়নি — users/" + user.uid + "/role আসলেই 'admin' আছে কিনা Firebase কনসোলে যাচাই করুন।");
+        return;
+      }
+      injectStyle();
+      mountIcon();
+      buildPanel();
+      attachRoster();
+    });
+  }
 
-  /* ---------- shell / gate ---------- */
-  .shell{max-width:640px;margin:0 auto;padding:18px 14px 30px}
-  .gate{max-width:380px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px 24px}
-  .gate h2{font-family:var(--font-display);margin:0 0 6px;font-size:22px}
-  .gate p{color:var(--muted);font-size:13.5px;margin:0 0 18px;line-height:1.6}
-  .field{margin-bottom:14px}
-  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
-  .field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 13px;font:inherit;font-size:15px;background:#fff;color:var(--ink)}
-  .field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--brand);outline-offset:1px}
-  .field textarea{min-height:150px;resize:vertical;line-height:1.6}
-  .img-hint{display:block;font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
-  .img-hint.ok{color:#178a5c}
-  .img-hint.bad{color:var(--danger)}
-  .img-preview-wrap{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#f2f2f2}
-  .img-preview{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
-  .error{background:var(--danger-soft);color:var(--danger);font-size:13px;padding:10px 12px;border-radius:9px;margin-bottom:14px;display:none;line-height:1.5}
-  .error.show{display:block}
-  .msg{font-size:12.5px;margin-top:8px;min-height:16px}
-  .msg.ok{color:var(--brand)}
-  .msg.bad{color:var(--danger)}
-  .loading-line{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
+  function teardown() {
+    if (state.navObserver) { state.navObserver.disconnect(); state.navObserver = null; }
+    if (state.usersRef) { state.usersRef.off(); state.usersRef = null; }
+    Object.keys(state.metaRefs).forEach(function (uid) { state.metaRefs[uid].off(); });
+    state.metaRefs = {};
+    detachMessages();
+    state.rosterUsers = {};
+    state.rosterMeta = {};
+    state.activeUid = null;
+    const btn = document.getElementById("ar-chat-nav-btn");
+    if (btn) btn.remove();
+    const overlay = document.getElementById("ar-chat-overlay");
+    if (overlay) overlay.remove();
+  }
 
-  /* ---------- panels / cards ---------- */
-  .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
-  .panel h2{font-family:var(--font-display);font-size:19px;margin:0 0 4px}
-  .panel .sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
-  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .empty{color:var(--muted);text-align:center;padding:28px 10px;font-size:13.5px}
+  function injectStyle() {
+    if (document.getElementById("ar-chat-style")) return;
+    const css =
+      "#ar-chat-nav-btn{position:relative}" +
+      ".ar-chat-overlay{position:fixed;inset:0;z-index:200;background:#fff;display:flex;flex-direction:column}" +
+      ".ar-chat-overlay[hidden]{display:none}" +
+      ".ar-chat-head{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;border-bottom:1px solid var(--line);flex-shrink:0}" +
+      ".ar-chat-head h2{font-family:var(--font-display);font-size:17px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      ".ar-chat-list{flex:1;overflow-y:auto;padding:12px 14px}" +
+      ".ar-chat-row{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;margin-bottom:8px;cursor:pointer;text-align:left;width:100%;font:inherit}" +
+      ".ar-chat-row:active{background:var(--brand-soft)}" +
+      ".ar-chat-preview{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      ".ar-chat-count{flex-shrink:0;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}" +
+      ".ar-chat-convo{flex:1;min-height:0;display:flex;flex-direction:column}" +
+      ".ar-chat-convo[hidden]{display:none}" +
+      ".ar-chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}" +
+      ".ar-bubble{max-width:78%;padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}" +
+      ".ar-bubble.from-user{align-self:flex-start;background:#f1f1f1;color:var(--ink);border-bottom-left-radius:4px}" +
+      ".ar-bubble.from-admin{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px}" +
+      ".ar-bubble time{display:block;margin-top:4px;font-size:10px;opacity:.65}" +
+      ".ar-chat-form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);flex-shrink:0}" +
+      ".ar-chat-form input{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 15px;font:inherit;font-size:14px}" +
+      ".ar-chat-form input:focus{outline:2px solid var(--brand);outline-offset:1px}";
+    const style = document.createElement("style");
+    style.id = "ar-chat-style";
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
 
-  /* post list */
-  .post-list{display:grid;gap:10px}
-  .post-item{border:1px solid var(--line);border-radius:13px;padding:13px;background:#fff}
-  .post-item img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:9px;margin-bottom:10px;background:#f2f2f2;display:block}
-  .post-item h3{font-family:var(--font-display);font-size:16px;margin:0 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.4}
-  .post-item p{margin:5px 0;font-size:13.5px;color:var(--muted);overflow-wrap:anywhere;line-height:1.6}
-  .post-meta{font-size:12px;color:var(--muted)}
-  .post-engage{display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--muted)}
-  .post-engage span{display:inline-flex;align-items:center;gap:4px}
-  .post-engage svg{width:14px;height:14px}
-  .item-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
-  .status-tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;background:var(--brand-soft);color:var(--brand-ink)}
-  .status-tag.draft{background:#f2f2f2;color:var(--muted)}
-  .status-tag.ad-badge{background:#fdf3e0;color:var(--warn)}
-  .search-box{margin-bottom:14px}
-  .search-box input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:inherit;font-size:14px}
+  function mountIcon() {
+    const nav = document.getElementById("nav-actions");
+    if (!nav) {
+      // #nav-actions এখনো DOM-এ নেই (অন্য কোনো স্ক্রিপ্ট পরে বসাচ্ছে) — কিছুক্ষণ পর আবার চেষ্টা করা হচ্ছে।
+      console.warn("[contact.js] #nav-actions পাওয়া যায়নি, ৫০০ms পর আবার চেষ্টা করা হচ্ছে।");
+      setTimeout(mountIcon, 500);
+      return;
+    }
+    insertIconInto(nav);
 
-  /* stats */
-  .stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:6px}
-  .stat-card{border:1px solid var(--line);border-radius:13px;padding:14px;background:linear-gradient(135deg,#fff,#f4f9f8)}
-  .stat-card .label{display:block;color:var(--muted);font-size:11.5px}
-  .stat-card strong{display:block;color:var(--brand-ink);font-size:24px;margin-top:4px;font-family:var(--font-display)}
-  @media(min-width:460px){.stats-row{grid-template-columns:repeat(3,1fr)}}
-  .top-post-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-  .top-post-row:last-child{border-bottom:0}
-  .top-post-row .rank{font-family:var(--font-display);font-weight:800;color:var(--muted);width:20px;flex-shrink:0;text-align:center}
-  .top-post-row .ttl{flex:1;min-width:0;font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .top-post-row .sc{font-size:12px;color:var(--muted);flex-shrink:0}
+    // login.js/অন্য স্ক্রিপ্ট যদি পরে #nav-actions-এর innerHTML রিসেট করে দেয় (যেমন
+    // avatar/লগআউট বাটন বসানোর সময়), তাহলে আমাদের আইকনও মুছে যায়। এই observer সেটা
+    // ধরে আবার বসিয়ে দেয়, তাই আইকন সবসময় দৃশ্যমান থাকে।
+    if (state.navObserver) state.navObserver.disconnect();
+    state.navObserver = new MutationObserver(function () {
+      if (!document.getElementById("ar-chat-nav-btn")) insertIconInto(nav);
+    });
+    state.navObserver.observe(nav, { childList: true });
+  }
 
-  /* reports */
-  .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-  .filter-btn{border:1px solid var(--line);background:#fff;color:var(--muted);font:inherit;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:999px;cursor:pointer}
-  .filter-btn.active{background:var(--brand-ink);border-color:var(--brand-ink);color:#fff}
-  .report-list{display:grid;gap:10px}
-  .report-item{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
-  .report-item.status-pending{border-left:4px solid var(--danger)}
-  .report-item.status-reviewed{border-left:4px solid var(--brand)}
-  .report-item.status-dismissed{border-left:4px solid var(--line);opacity:.7}
-  .report-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
-  .reason-tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:3px 9px;border-radius:999px;background:var(--danger-soft);color:var(--danger)}
-  .report-status{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:6px;background:var(--brand-soft);color:var(--brand-ink);margin-left:auto}
-  .report-comment{background:#f7f7f7;border-radius:10px;padding:11px 13px;font-size:13.5px;margin:9px 0;overflow-wrap:anywhere;line-height:1.6}
-  .report-comment .by{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:700}
-  .report-meta{font-size:12px;color:var(--muted);margin-bottom:3px;line-height:1.6}
-  .report-meta a{color:var(--brand-ink);font-weight:700;text-decoration:none}
-  .report-meta a:hover{text-decoration:underline}
+  function insertIconInto(nav) {
+    if (document.getElementById("ar-chat-nav-btn")) return;
+    const btn = document.createElement("button");
+    btn.id = "ar-chat-nav-btn";
+    btn.className = "btn icon";
+    btn.type = "button";
+    btn.title = "ইউজার চ্যাট";
+    btn.setAttribute("aria-label", "ইউজার চ্যাট");
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+      '<span class="nav-badge" id="ar-chat-total-badge">0</span>';
+    btn.addEventListener("click", toggleOverlay);
+    nav.insertBefore(btn, nav.firstChild);
+    recomputeBadge();
+  }
 
-  /* users */
-  .user-list{display:grid;gap:8px}
-  .user-row{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff}
-  .user-avatar{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-transform:uppercase;overflow:hidden}
-  .user-avatar img{width:100%;height:100%;object-fit:cover}
-  .user-info{min-width:0;flex:1}
-  .user-name{font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .user-email{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .role-badge{font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--brand-soft);color:var(--brand-ink);flex-shrink:0}
-  .role-badge.admin{background:var(--brand-ink);color:#fff}
+  function buildPanel() {
+    if (document.getElementById("ar-chat-overlay")) return;
+    const overlay = document.createElement("div");
+    overlay.id = "ar-chat-overlay";
+    overlay.className = "ar-chat-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML =
+      '<div class="ar-chat-head">' +
+        '<button type="button" id="ar-chat-back" class="btn ghost small" hidden>← ফিরে যান</button>' +
+        '<h2 id="ar-chat-title">ইউজার চ্যাট</h2>' +
+        '<button type="button" id="ar-chat-close" class="btn ghost small">✕</button>' +
+      "</div>" +
+      '<div id="ar-chat-list" class="ar-chat-list"><div class="loading-line">লোড হচ্ছে…</div></div>' +
+      '<div id="ar-chat-convo" class="ar-chat-convo" hidden>' +
+        '<div id="ar-chat-msgs" class="ar-chat-msgs"></div>' +
+        '<form id="ar-chat-form" class="ar-chat-form">' +
+          '<input id="ar-chat-input" type="text" placeholder="উত্তর লিখুন…" autocomplete="off">' +
+          '<button type="submit" class="btn small">পাঠান</button>' +
+        "</form>" +
+      "</div>";
+    document.body.appendChild(overlay);
 
-  /* ---------- bottom nav ---------- */
-  .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:#fff;border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
-  .bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 8px;border:0;background:none;color:var(--muted);font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;position:relative}
-  .bottom-nav button.active{color:var(--brand)}
-  .bottom-nav svg{width:21px;height:21px}
-  .nav-badge{position:absolute;top:3px;right:22%;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:var(--danger);color:#fff;font-size:9.5px;font-weight:800;display:none;align-items:center;justify-content:center;line-height:1}
-  .nav-badge.show{display:flex}
-</style>
-</head>
-<body>
-  <header class="ar-nav">
-    <a class="ar-brand" href="feed.html"><img src="logo.png" alt="AR News"><span>AR News<small>অ্যাডমিন প্যানেল</small></span></a>
-    <div id="nav-actions"></div>
-  </header>
+    document.getElementById("ar-chat-close").addEventListener("click", function () {
+      overlay.hidden = true;
+    });
+    document.getElementById("ar-chat-back").addEventListener("click", showListView);
+    document.getElementById("ar-chat-form").addEventListener("submit", sendAdminMessage);
+  }
 
-  <main class="shell" id="app">
-    <div class="loading-line">লোড হচ্ছে…</div>
-  </main>
+  function toggleOverlay() {
+    const overlay = document.getElementById("ar-chat-overlay");
+    if (overlay) overlay.hidden = !overlay.hidden;
+  }
 
-  <nav class="bottom-nav" id="bottom-nav" hidden></nav>
+  function showListView() {
+    detachMessages();
+    state.activeUid = null;
+    document.getElementById("ar-chat-back").hidden = true;
+    document.getElementById("ar-chat-title").textContent = "ইউজার চ্যাট";
+    document.getElementById("ar-chat-convo").hidden = true;
+    document.getElementById("ar-chat-list").hidden = false;
+  }
 
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
-  <script src="config.js"></script>
+  function attachRoster() {
+    state.usersRef = window.rtdb.ref("users");
+    state.usersRef.on("value", function (snap) {
+      const val = snap.val() || {};
+      state.rosterUsers = val;
+      const uids = Object.keys(val).filter(function (uid) {
+        return val[uid] && val[uid].role !== "admin";
+      });
+      syncMetaListeners(uids);
+      renderList();
+    });
+  }
 
-  <script src="login.js?v=1"></script>
-  <script src="create.js?v=1"></script>
-  <script src="posts.js?v=1"></script>
-  <script src="reports.js?v=1"></script>
-  <script src="users.js?v=1"></script>
-  <script src="stats.js?v=1"></script>
-  <script src="ad.js?v=1"></script>
-</body>
-</html>
+  function syncMetaListeners(uids) {
+    Object.keys(state.metaRefs).forEach(function (uid) {
+      if (uids.indexOf(uid) === -1) {
+        state.metaRefs[uid].off();
+        delete state.metaRefs[uid];
+        delete state.rosterMeta[uid];
+      }
+    });
+    uids.forEach(function (uid) {
+      if (state.metaRefs[uid]) return;
+      const ref = window.rtdb.ref("chats/" + uid + "/meta");
+      ref.on("value", function (snap) {
+        state.rosterMeta[uid] = snap.val() || {};
+        recomputeBadge();
+        renderList();
+        if (state.activeUid === uid) updateConvoTitle(uid);
+      });
+      state.metaRefs[uid] = ref;
+    });
+  }
+
+  function recomputeBadge() {
+    let total = 0;
+    Object.keys(state.rosterMeta).forEach(function (uid) {
+      total += Number(state.rosterMeta[uid].unreadByAdmin || 0);
+    });
+    const badge = document.getElementById("ar-chat-total-badge");
+    if (!badge) return;
+    badge.textContent = String(total);
+    badge.classList.toggle("show", total > 0);
+  }
+
+  function displayName(uid) {
+    const u = state.rosterUsers[uid] || {};
+    const meta = state.rosterMeta[uid] || {};
+    return u.name || u.displayName || meta.userName || u.email || "ব্যবহারকারী";
+  }
+
+  function renderList() {
+    const box = document.getElementById("ar-chat-list");
+    if (!box) return;
+    const uids = Object.keys(state.rosterUsers).filter(function (uid) {
+      return state.rosterUsers[uid] && state.rosterUsers[uid].role !== "admin";
+    });
+    if (!uids.length) {
+      box.innerHTML = '<div class="empty">এখনো কোনো রেজিস্টার করা ইউজার নেই।</div>';
+      return;
+    }
+    uids.sort(function (a, b) {
+      const ma = state.rosterMeta[a] || {}, mb = state.rosterMeta[b] || {};
+      return Number(mb.lastMessageAt || 0) - Number(ma.lastMessageAt || 0);
+    });
+    box.innerHTML = "";
+    uids.forEach(function (uid) {
+      const meta = state.rosterMeta[uid] || {};
+      const name = displayName(uid);
+      const unread = Number(meta.unreadByAdmin || 0);
+
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "ar-chat-row";
+
+      const avatar = document.createElement("div");
+      avatar.className = "user-avatar";
+      avatar.textContent = name.trim().charAt(0) || "?";
+
+      const info = document.createElement("div");
+      info.className = "user-info";
+      const nameEl = document.createElement("div");
+      nameEl.className = "user-name";
+      nameEl.textContent = name;
+      const preview = document.createElement("div");
+      preview.className = "ar-chat-preview";
+      preview.textContent = meta.lastMessage
+        ? (meta.lastSender === "admin" ? "আপনি: " : "") + meta.lastMessage
+        : "নতুন কথোপকথন শুরু করুন";
+      info.appendChild(nameEl);
+      info.appendChild(preview);
+
+      row.appendChild(avatar);
+      row.appendChild(info);
+
+      if (unread > 0) {
+        const badge = document.createElement("span");
+        badge.className = "ar-chat-count";
+        badge.textContent = String(unread);
+        row.appendChild(badge);
+      }
+
+      row.addEventListener("click", function () { openConversation(uid); });
+      box.appendChild(row);
+    });
+  }
+
+  function updateConvoTitle(uid) {
+    document.getElementById("ar-chat-title").textContent = displayName(uid);
+  }
+
+  function openConversation(uid) {
+    state.activeUid = uid;
+    document.getElementById("ar-chat-back").hidden = false;
+    document.getElementById("ar-chat-title").textContent = displayName(uid);
+    document.getElementById("ar-chat-list").hidden = true;
+    document.getElementById("ar-chat-convo").hidden = false;
+
+    window.rtdb.ref("chats/" + uid + "/meta/unreadByAdmin").set(0);
+
+    detachMessages();
+    const box = document.getElementById("ar-chat-msgs");
+    box.innerHTML = "";
+    const msgsRef = window.rtdb.ref("chats/" + uid + "/messages").orderByKey();
+    const handler = msgsRef.on("child_added", function (snap) {
+      appendBubble(box, snap.val() || {});
+      box.scrollTop = box.scrollHeight;
+    });
+    state.activeMsgsRef = msgsRef;
+    state.activeMsgsHandler = handler;
+  }
+
+  function detachMessages() {
+    if (state.activeMsgsRef && state.activeMsgsHandler) {
+      state.activeMsgsRef.off("child_added", state.activeMsgsHandler);
+    }
+    state.activeMsgsRef = null;
+    state.activeMsgsHandler = null;
+  }
+
+  function appendBubble(box, data) {
+    const div = document.createElement("div");
+    div.className = "ar-bubble " + (data.sender === "admin" ? "from-admin" : "from-user");
+    const p = document.createElement("div");
+    p.textContent = data.text || "";
+    const t = document.createElement("time");
+    t.textContent = fmtTime(data.at);
+    div.appendChild(p);
+    div.appendChild(t);
+    box.appendChild(div);
+  }
+
+  function fmtTime(ts) {
+    if (!ts) return "";
+    try {
+      return new Intl.DateTimeFormat("bn-BD", { hour: "2-digit", minute: "2-digit" }).format(new Date(ts));
+    } catch (_) { return ""; }
+  }
+
+  function sendAdminMessage(e) {
+    e.preventDefault();
+    const uid = state.activeUid;
+    const input = document.getElementById("ar-chat-input");
+    const text = input.value.trim();
+    if (!uid || !text) return;
+    window.rtdb.ref("chats/" + uid + "/messages").push({
+      sender: "admin",
+      text: text,
+      at: firebase.database.ServerValue.TIMESTAMP,
+    });
+    window.rtdb.ref("chats/" + uid + "/meta").update({
+      lastMessage: text,
+      lastMessageAt: firebase.database.ServerValue.TIMESTAMP,
+      lastSender: "admin",
+    });
+    window.rtdb.ref("chats/" + uid + "/meta/unreadByUser").transaction(function (v) { return (v || 0) + 1; });
+    input.value = "";
+    input.focus();
+  }
+})();
