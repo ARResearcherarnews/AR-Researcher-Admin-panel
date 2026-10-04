@@ -19,6 +19,10 @@
          messages/
            {pushId}/  { sender:"user"|"admin", text, at }
 
+   সমস্যার ধরন (নতুন): contact.html-এ ইউজার ধরন বাছলে মেসেজের শুরুতে "[ধরন] " যোগ হয়
+   (যেমন "[বিজ্ঞাপন] প্যাকেজ রি-ওপেন করতে চাই")। ডেটাবেস স্ট্রাকচার বা Rules-এ কোনো পরিবর্তন নেই;
+   এই ফাইল শুধু সেই অংশটা আলাদা ট্যাগ হিসেবে দেখায় (তালিকার প্রিভিউ ও কথোপকথনের বাবলে)।
+
    *** জরুরি — Firebase Realtime Database Rules ***
    এই ফিচার নিরাপদ রাখতে Firebase কনসোলের Rules ট্যাবে এটি বসান, নাহলে
    যে কেউ অন্যের চ্যাট পড়তে/লিখতে পারবে:
@@ -92,29 +96,268 @@
     if (overlay) overlay.remove();
   }
 
+  /* ডিজাইন: রং ও ফন্ট index.html-এর :root ভ্যারিয়েবল থেকে আসে (ডার্ক মোডেও ঠিক থাকে)।
+     আগের মতো সাদা (#fff) রং আর শক্ত বসানো নেই। সব রুল .ar-chat-* ও #ar-chat-nav-btn-এ সীমাবদ্ধ। */
   function injectStyle() {
     if (document.getElementById("ar-chat-style")) return;
-    const css =
-      "#ar-chat-nav-btn{position:relative}" +
-      ".ar-chat-overlay{position:fixed;inset:0;z-index:200;background:#fff;display:flex;flex-direction:column}" +
-      ".ar-chat-overlay[hidden]{display:none}" +
-      ".ar-chat-head{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;border-bottom:1px solid var(--line);flex-shrink:0}" +
-      ".ar-chat-head h2{font-family:var(--font-display);font-size:17px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
-      ".ar-chat-list{flex:1;overflow-y:auto;padding:12px 14px}" +
-      ".ar-chat-row{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;margin-bottom:8px;cursor:pointer;text-align:left;width:100%;font:inherit}" +
-      ".ar-chat-row:active{background:var(--brand-soft)}" +
-      ".ar-chat-preview{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
-      ".ar-chat-count{flex-shrink:0;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}" +
-      ".ar-chat-convo{flex:1;min-height:0;display:flex;flex-direction:column}" +
-      ".ar-chat-convo[hidden]{display:none}" +
-      ".ar-chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}" +
-      ".ar-bubble{max-width:78%;padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}" +
-      ".ar-bubble.from-user{align-self:flex-start;background:#f1f1f1;color:var(--ink);border-bottom-left-radius:4px}" +
-      ".ar-bubble.from-admin{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px}" +
-      ".ar-bubble time{display:block;margin-top:4px;font-size:10px;opacity:.65}" +
-      ".ar-chat-form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);flex-shrink:0}" +
-      ".ar-chat-form input{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 15px;font:inherit;font-size:14px}" +
-      ".ar-chat-form input:focus{outline:2px solid var(--brand);outline-offset:1px}";
+    const css = `
+
+      /* ---------- হেডারের চ্যাট বাটন (বিজ্ঞাপন বাটনের সাথে মিল রেখে) ---------- */
+      #ar-chat-nav-btn {
+        position: relative;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: var(--nav-ink);
+      }
+
+      #ar-chat-nav-btn:hover { background: rgba(255, 255, 255, .16); }
+      #ar-chat-nav-btn svg { width: 18px; height: 18px; }
+
+      /* অপঠিত সংখ্যার ব্যাজ বাটনের ওপরের কোণে (ডেস্কটপ সাইডবারের .nav-badge রুল ছাপিয়ে) */
+      #ar-chat-nav-btn .nav-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        left: auto;
+        order: 0;
+        margin: 0;
+        box-shadow: 0 0 0 2px var(--nav-bg);
+      }
+
+      /* ---------- চ্যাট প্যানেল: মোবাইলে ফুল-স্ক্রিন, ডেস্কটপে ভাসমান উইন্ডো ---------- */
+      .ar-chat-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        color: var(--ink);
+      }
+
+      .ar-chat-overlay[hidden] { display: none; }
+
+      @media (min-width: 700px) {
+        .ar-chat-overlay {
+          inset: auto;
+          top: calc(var(--hh, 60px) + env(safe-area-inset-top, 0px) + 10px);
+          right: 16px;
+          width: 410px;
+          height: min(680px, calc(100vh - 90px));
+          height: min(680px, calc(100dvh - 90px));
+          overflow: hidden;
+          border: 1px solid var(--line);
+          border-radius: 18px;
+          box-shadow: 0 20px 60px rgba(8, 18, 17, .28);
+        }
+      }
+
+      .ar-chat-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+        padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 12px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+      }
+
+      @media (min-width: 700px) {
+        .ar-chat-head { padding-top: 14px; }
+      }
+
+      .ar-chat-head h2 {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: var(--font-display, Georgia, serif);
+        font-size: 18px;
+        font-weight: 400;
+      }
+
+      .ar-chat-head .btn { min-height: 36px; }
+      #ar-chat-close { width: 36px; padding: 0; }
+
+      /* ---------- ইউজার তালিকা ---------- */
+      .ar-chat-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 14px;
+        background: var(--bg);
+        overscroll-behavior: contain;
+      }
+
+      .ar-chat-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        margin-bottom: 8px;
+        padding: 11px 12px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        color: var(--ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .ar-chat-row:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--line)); }
+      .ar-chat-row:active { background: var(--brand-soft); }
+
+      /* অপঠিত মেসেজ থাকলে সারিটা আলাদা করে চেনা যায় */
+      .ar-chat-row:has(.ar-chat-count) {
+        border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+      }
+
+      .ar-chat-row:has(.ar-chat-count) .user-name { font-weight: 700; }
+
+      .ar-chat-row .user-info { flex: 1; min-width: 0; }
+
+      .ar-chat-preview {
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+
+      .ar-chat-count {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 999px;
+        background: var(--danger);
+        color: #fff;
+        font-size: 11.5px;
+        font-weight: 800;
+      }
+
+      /* ---------- কথোপকথন ---------- */
+      .ar-chat-convo {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+      }
+
+      .ar-chat-convo[hidden] { display: none; }
+
+      .ar-chat-msgs {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        overflow-y: auto;
+        padding: 14px;
+        overscroll-behavior: contain;
+      }
+
+      .ar-bubble {
+        max-width: 80%;
+        padding: 9px 13px 8px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+
+      .ar-bubble.from-user {
+        align-self: flex-start;
+        background: var(--surface);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-bottom-left-radius: 5px;
+      }
+
+      .ar-bubble.from-admin {
+        align-self: flex-end;
+        background: var(--brand);
+        color: #fff;
+        border-bottom-right-radius: 5px;
+      }
+
+      .ar-bubble time {
+        display: block;
+        margin-top: 3px;
+        font-size: 10.5px;
+        opacity: .65;
+        text-align: right;
+      }
+
+      /* ---------- সমস্যার ধরনের ট্যাগ ---------- */
+      .ar-topic-tag {
+        display: inline-block;
+        max-width: 100%;
+        margin-bottom: 4px;
+        padding: 1px 9px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-size: 11.5px;
+        font-weight: 700;
+        line-height: 1.6;
+        vertical-align: middle;
+      }
+
+      .ar-chat-preview .ar-topic-tag { margin: 0 6px 0 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ar-bubble .ar-topic-tag { display: block; width: fit-content; }
+      .ar-bubble.from-admin .ar-topic-tag { background: rgba(255, 255, 255, .2); color: #fff; }
+
+      /* ---------- উত্তর লেখার বার ---------- */
+      .ar-chat-form {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+      }
+
+      .ar-chat-form input {
+        flex: 1;
+        min-width: 0;
+        min-height: 42px;
+        padding: 0 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--ink);
+        font: inherit;
+        font-size: 16px; /* iOS জুম ঠেকায় */
+      }
+
+      @media (min-width: 700px) {
+        .ar-chat-form input { font-size: 14.5px; }
+      }
+
+      .ar-chat-form input:focus {
+        outline: none;
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+      }
+
+      .ar-chat-form .btn {
+        min-height: 42px;
+        padding: 0 20px;
+        border-radius: 999px;
+      }
+
+    `;
     const style = document.createElement("style");
     style.id = "ar-chat-style";
     style.textContent = css;
@@ -245,6 +488,19 @@
     badge.classList.toggle("show", total > 0);
   }
 
+  // "[ধরন] মেসেজ" থেকে ধরন ও মূল লেখা আলাদা করে
+  function splitTopic(text) {
+    const m = /^\[([^\]\n]{1,40})\]\s*([\s\S]*)$/.exec(String(text || ""));
+    return m ? { topic: m[1], body: m[2] } : { topic: "", body: String(text || "") };
+  }
+
+  function makeTag(label) {
+    const t = document.createElement("span");
+    t.className = "ar-topic-tag";
+    t.textContent = label;
+    return t;
+  }
+
   function displayName(uid) {
     const u = state.rosterUsers[uid] || {};
     const meta = state.rosterMeta[uid] || {};
@@ -286,9 +542,14 @@
       nameEl.textContent = name;
       const preview = document.createElement("div");
       preview.className = "ar-chat-preview";
-      preview.textContent = meta.lastMessage
-        ? (meta.lastSender === "admin" ? "আপনি: " : "") + meta.lastMessage
-        : "নতুন কথোপকথন শুরু করুন";
+      if (meta.lastMessage) {
+        const parts = splitTopic(meta.lastMessage);
+        if (meta.lastSender === "admin") preview.appendChild(document.createTextNode("আপনি: "));
+        if (parts.topic) preview.appendChild(makeTag(parts.topic));
+        preview.appendChild(document.createTextNode(parts.body));
+      } else {
+        preview.textContent = "নতুন কথোপকথন শুরু করুন";
+      }
       info.appendChild(nameEl);
       info.appendChild(preview);
 
@@ -343,8 +604,11 @@
   function appendBubble(box, data) {
     const div = document.createElement("div");
     div.className = "ar-bubble " + (data.sender === "admin" ? "from-admin" : "from-user");
+    const parts = splitTopic(data.text);
+    if (parts.topic) div.appendChild(makeTag(parts.topic));
     const p = document.createElement("div");
-    p.textContent = data.text || "";
+    p.style.whiteSpace = "pre-wrap";
+    p.textContent = parts.body;
     const t = document.createElement("time");
     t.textContent = fmtTime(data.at);
     div.appendChild(p);
