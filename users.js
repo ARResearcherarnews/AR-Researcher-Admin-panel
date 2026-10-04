@@ -1,13 +1,177 @@
-/* users.js — ইউজার তালিকা ও রোল ম্যানেজমেন্ট (panel-users)
-   users/{uid} থেকে সব ইউজার লোড করে দেখায় (শুধু admin পুরো তালিকা পড়তে পারে,
-   database.rules.json-এ users/.read নিয়ম অনুযায়ী)। এডমিন বানানো/বাদ দেওয়া যাবে,
-   নিজের একাউন্টের রোল নিজে বদলাতে পারবে না (ভুলে নিজেকে ডিমোট করা ঠেকাতে)। */
+/* users.js — ইউজার তালিকা ও রোল ম্যানেজমেন্ট (panel-users) */
 (function () {
   "use strict";
 
   var users = {};
   var currentUid = null;
   var searchTerm = "";
+
+  var stylesAdded = false;
+
+  /* ডিজাইন: রং ও ফন্ট index.html-এর :root ভ্যারিয়েবল থেকে আসে (ডার্ক মোডেও ঠিক থাকে);
+     সব রুল #panel-users-এর ভেতরে সীমাবদ্ধ। আগে এখানে inline <style> আর !important ছিল, সেগুলো আর লাগে না। */
+  function ensureStyles() {
+    if (stylesAdded || document.getElementById("ar-news-users-styles")) return;
+    stylesAdded = true;
+
+    var style = document.createElement("style");
+    style.id = "ar-news-users-styles";
+
+    style.textContent = `
+
+      #panel-users {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+      }
+
+      #panel-users > h2 {
+        margin: 0;
+        font-family: var(--font-display, Georgia, serif);
+        font-size: 26px;
+        line-height: 1.2;
+        font-weight: 400;
+      }
+
+      #panel-users > .sub {
+        margin: 3px 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      /* নিচের নোটটা */
+      #panel-users > .sub:last-child {
+        margin-bottom: 0;
+        font-size: 12.5px;
+        line-height: 1.7;
+      }
+
+      #panel-users .search-box { margin-bottom: 14px; }
+
+      /* ---------- ইউজার কার্ড ---------- */
+      #panel-users .user-list {
+        display: grid;
+        gap: 10px;
+        width: 100%;
+      }
+
+      #panel-users .user-row {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        min-width: 0;
+        padding: 13px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      #panel-users .user-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      #panel-users .user-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        overflow: hidden;
+        border-radius: 50%;
+        background: var(--brand-soft);
+        color: var(--brand-ink);
+        font-size: 17px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      #panel-users .user-avatar img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      #panel-users .user-info {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+
+      #panel-users .user-name {
+        font-size: 15px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #panel-users .user-meta {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* রোল ব্যাজ বাঁয়ে, বাটন ডানে */
+      #panel-users .user-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      #panel-users .role-badge {
+        padding: 3px 11px;
+        font-size: 12px;
+      }
+
+      #panel-users .user-actions .btn {
+        min-height: 36px;
+        padding: 6px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      /* ---------- বড় স্ক্রিন: এক সারিতে ---------- */
+      @media (min-width: 700px) {
+        #panel-users .user-row {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        #panel-users .user-main { flex: 1 1 0; }
+
+        #panel-users .user-actions {
+          flex-shrink: 0;
+          justify-content: flex-end;
+          gap: 12px;
+          padding-top: 0;
+          border-top: 0;
+        }
+      }
+
+    `;
+
+    document.head.appendChild(style);
+  }
 
   function esc(v) { return window.AdminUtil.esc(v); }
   function fmtDate(v) { return window.AdminUtil.fmtDate(v); }
@@ -50,20 +214,36 @@
           var name = u.name || (u.email ? u.email.split("@")[0] : "ব্যবহারকারী");
           var letter = name.trim().charAt(0).toUpperCase();
           var isSelf = uid === currentUid;
+
+          var joinDate = u.createdAt ? fmtDate(u.createdAt) : "অজানা";
+          var metaLine = u.email
+            ? esc(u.email) + " · যোগদান: " + joinDate
+            : "যোগদান: " + joinDate;
+
           return (
             '<div class="user-row">' +
-            '<div class="user-avatar">' + (u.photoURL ? '<img src="' + esc(u.photoURL) + '" alt="">' : esc(letter)) + "</div>" +
-            '<div class="user-info">' +
-            '<div class="user-name">' + esc(name) + (isSelf ? " (আপনি)" : "") + "</div>" +
-            '<div class="user-email">' + esc(u.email || "") + " · যোগদান: " + fmtDate(u.createdAt) + "</div>" +
-            "</div>" +
-            '<span class="role-badge' + (role === "admin" ? " admin" : "") + '">' + (role === "admin" ? "অ্যাডমিন" : "ইউজার") + "</span>" +
-            (isSelf
-              ? ""
-              : '<button class="btn small ' + (role === "admin" ? "ghost" : "secondary") + '" data-action="toggle-role" data-uid="' + esc(uid) + '" data-role="' + role + '" style="margin-left:8px;flex-shrink:0">' +
-                (role === "admin" ? "বাদ দিন" : "অ্যাডমিন করুন") +
-                "</button>") +
-            "</div>"
+              '<div class="user-main">' +
+                '<div class="user-avatar">' +
+                  (u.photoURL ? '<img src="' + esc(u.photoURL) + '" alt="">' : esc(letter)) +
+                '</div>' +
+                '<div class="user-info">' +
+                  '<div class="user-name">' + esc(name) + (isSelf ? " (আপনি)" : "") + '</div>' +
+                  '<div class="user-meta">' + metaLine + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="user-actions">' +
+                '<span class="role-badge' + (role === "admin" ? " admin" : "") + '">' +
+                  (role === "admin" ? "অ্যাডমিন" : "ইউজার") +
+                '</span>' +
+                (isSelf
+                  ? ""
+                  : '<button class="btn small ' + (role === "admin" ? "ghost" : "secondary") +
+                    '" data-action="toggle-role" data-uid="' + esc(uid) +
+                    '" data-role="' + role + '">' +
+                    (role === "admin" ? "বাদ দিন" : "অ্যাডমিন করুন") +
+                    '</button>') +
+              '</div>' +
+            '</div>'
           );
         })
         .join("") +
@@ -92,6 +272,8 @@
 
   document.addEventListener("admin:ready", function (e) {
     currentUid = e.detail.user.uid;
+    ensureStyles();
+
     var panel = document.getElementById("panel-users");
     if (!panel) return;
     panel.innerHTML = panelShellHtml();
