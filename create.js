@@ -7,36 +7,211 @@
   var editingId = null;
   var IMGBB_API_KEY = "aede02b305570da9ff878b94285d9623";
 
+  var stylesAdded = false;
+
+  /* ডিজাইন: রং ও ফন্ট index.html-এর :root ভ্যারিয়েবল থেকে আসে (ডার্ক মোডেও ঠিক থাকে);
+     সব রুল #panel-create-এর ভেতরে সীমাবদ্ধ। */
+  function ensureStyles() {
+    if (stylesAdded || document.getElementById("ar-news-create-styles")) return;
+    stylesAdded = true;
+
+    var style = document.createElement("style");
+    style.id = "ar-news-create-styles";
+
+    style.textContent = `
+
+      #panel-create {
+        margin-bottom: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+      }
+
+      #panel-create .create-wrap { max-width: 780px; }
+
+      /* ---------- পেজ হেডার ---------- */
+      #panel-create .create-header { margin-bottom: 14px; }
+
+      #panel-create .create-header h2 {
+        margin: 0;
+        font-family: var(--font-display, Georgia, serif);
+        font-size: 26px;
+        line-height: 1.2;
+        font-weight: 400;
+      }
+
+      #panel-create .create-header .sub {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      /* ---------- ফর্ম কার্ড ---------- */
+      #panel-create .create-form {
+        padding: 18px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      /* এডিট মোডে (বাতিল বাটন দেখা গেলে) কার্ডের মাথায় রঙিন দাগ */
+      #panel-create .create-form:has(#cancel-btn:not([hidden])) {
+        border-top: 3px solid var(--brand);
+      }
+
+      #panel-create .form-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        column-gap: 14px;
+      }
+
+      @media (min-width: 640px) {
+        #panel-create .form-grid { grid-template-columns: minmax(0, 1fr) 220px; }
+        #panel-create .create-form { padding: 22px; }
+      }
+
+      #panel-create .field { margin-bottom: 14px; }
+
+      #panel-create .field input:not([type="file"]),
+      #panel-create .field select,
+      #panel-create .field textarea {
+        font-size: 16px; /* iOS জুম ঠেকায় */
+      }
+
+      @media (min-width: 640px) {
+        #panel-create .field input:not([type="file"]),
+        #panel-create .field select,
+        #panel-create .field textarea { font-size: 14.5px; }
+      }
+
+      #panel-create #p-body {
+        min-height: 240px;
+        line-height: 1.7;
+      }
+
+      /* ---------- ফাইল বাছাই ---------- */
+      #panel-create input[type="file"] {
+        padding: 8px;
+        color: var(--muted);
+        font-size: 13.5px;
+        cursor: pointer;
+      }
+
+      #panel-create input[type="file"]::file-selector-button {
+        margin-right: 12px;
+        padding: 7px 14px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--brand-soft);
+        color: var(--brand-ink);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      #panel-create .img-preview-wrap { max-width: 420px; }
+
+      /* "অথবা ছবির লিংক দিন" ঘরটা স্ক্রিনে দেখানো হয় না।
+         ইনপুটটা DOM-এ থেকে যায়, তাই আপলোড করা ছবির লিংক, প্রিভিউ আর এডিট আগের মতোই কাজ করে।
+         আবার দেখাতে নিচের দুই রুল মুছে দিলেই হবে। */
+      #panel-create label[for="p-image"],
+      #panel-create #p-image { display: none; }
+
+      /* ডিফল্ট/"যাচাই হচ্ছে" লেখাটাও লুকানো; ✓ বা ✗ ফলাফল আগের মতো দেখায় */
+      #panel-create #img-hint:not(.ok):not(.bad) { display: none; }
+
+      /* ---------- বাটন ও বার্তা ---------- */
+      #panel-create .form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 6px;
+      }
+
+      #panel-create .form-actions .btn {
+        flex: 1 1 auto;
+        min-height: 46px;
+      }
+
+      #panel-create #save-btn { flex: 2 1 auto; }
+
+      @media (min-width: 640px) {
+        #panel-create .form-actions .btn,
+        #panel-create #save-btn {
+          flex: 0 0 auto;
+          min-height: 42px;
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+      }
+
+      #panel-create .msg {
+        margin-top: 12px;
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+
+    `;
+
+    document.head.appendChild(style);
+  }
+
   function esc(v) { return window.AdminUtil.esc(v); }
 
   function panelHtml() {
     return (
-      '<h2 id="form-title">নতুন পোস্ট তৈরি করুন</h2>' +
-      '<p class="sub">শিরোনাম, বিস্তারিত লেখা আর (ঐচ্ছিক) একটা ছবি দিয়ে পোস্ট প্রকাশ করুন।</p>' +
-      '<form id="post-form">' +
-      '<div class="field"><label for="p-title">শিরোনাম</label><input id="p-title" required maxlength="180"></div>' +
-      '<div class="field"><label for="p-category">ক্যাটাগরি</label><input id="p-category" maxlength="80" placeholder="সাধারণ"></div>' +
-      '<div class="field"><label for="p-body">বিস্তারিত লেখা</label><textarea id="p-body" required maxlength="20000"></textarea></div>' +
-      '<div class="field">' +
-      '<label for="p-image-file">ছবি আপলোড করুন</label>' +
-      '<input id="p-image-file" type="file" accept="image/*">' +
-      '<small id="upload-status" class="img-hint"></small>' +
-      "</div>" +
-      '<div class="field">' +
-      '<label for="p-image">অথবা ছবির লিংক দিন</label>' +
-      '<input id="p-image" placeholder="ibb.co-এর লিংক বা HTML/BBCode এম্বেড কোড এখানে পেস্ট করুন">' +
-      '<small id="img-hint" class="img-hint">উপরে ছবি আপলোড করলে এখানে লিংক নিজে থেকেই বসে যাবে। অথবা সরাসরি লিংক/এম্বেড কোড পেস্ট করতে পারেন।</small>' +
-      '<div id="img-preview-wrap" class="img-preview-wrap" hidden><img id="img-preview" class="img-preview" alt="প্রিভিউ"></div>' +
-      "</div>" +
-      '<div class="field"><label for="p-status">স্ট্যাটাস</label>' +
-      '<select id="p-status"><option value="published">প্রকাশিত</option><option value="draft">ড্রাফট</option></select>' +
-      "</div>" +
-      '<div class="actions">' +
-      '<button class="btn" type="submit" id="save-btn">পোস্ট সংরক্ষণ করুন</button>' +
-      '<button class="btn secondary" type="button" id="cancel-btn" hidden>বাতিল</button>' +
-      "</div>" +
-      '<p class="msg" id="form-msg"></p>' +
-      "</form>"
+      '<div class="create-wrap">' +
+        '<div class="create-header">' +
+          '<h2 id="form-title">নতুন পোস্ট তৈরি করুন</h2>' +
+          '<p class="sub">শিরোনাম, বিস্তারিত লেখা আর (ঐচ্ছিক) একটা ছবি দিয়ে পোস্ট প্রকাশ করুন।</p>' +
+        '</div>' +
+        '<form id="post-form" class="create-form">' +
+          '<div class="form-grid">' +
+            '<div class="field">' +
+              '<label for="p-title">শিরোনাম</label>' +
+              '<input id="p-title" required maxlength="180" placeholder="পোস্টের শিরোনাম লিখুন">' +
+            '</div>' +
+            '<div class="field">' +
+              '<label for="p-category">ক্যাটাগরি</label>' +
+              '<input id="p-category" maxlength="80" placeholder="সাধারণ">' +
+            '</div>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="p-body">বিস্তারিত লেখা</label>' +
+            '<textarea id="p-body" required maxlength="20000" placeholder="পোস্টের সম্পূর্ণ বিবরণ লিখুন..."></textarea>' +
+          '</div>' +
+          '<div class="form-grid form-grid-2">' +
+            '<div class="field">' +
+              '<label for="p-image-file">ছবি আপলোড করুন</label>' +
+              '<input id="p-image-file" type="file" accept="image/*">' +
+              '<small id="upload-status" class="img-hint"></small>' +
+            '</div>' +
+            '<div class="field">' +
+              '<label for="p-status">স্ট্যাটাস</label>' +
+              '<select id="p-status">' +
+                '<option value="published">প্রকাশিত</option>' +
+                '<option value="draft">ড্রাফট</option>' +
+              '</select>' +
+            '</div>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="p-image">অথবা ছবির লিংক দিন</label>' +
+            '<input id="p-image" placeholder="ibb.co-এর লিংক বা HTML/BBCode এম্বেড কোড এখানে পেস্ট করুন">' +
+            '<small id="img-hint" class="img-hint">উপরে ছবি আপলোড করলে এখানে লিংক নিজে থেকেই বসে যাবে। অথবা সরাসরি লিংক/এম্বেড কোড পেস্ট করতে পারেন।</small>' +
+            '<div id="img-preview-wrap" class="img-preview-wrap" hidden>' +
+              '<img id="img-preview" class="img-preview" alt="প্রিভিউ">' +
+            '</div>' +
+          '</div>' +
+          '<div class="form-actions">' +
+            '<button class="btn" type="submit" id="save-btn">পোস্ট সংরক্ষণ করুন</button>' +
+            '<button class="btn secondary" type="button" id="cancel-btn" hidden>বাতিল</button>' +
+          '</div>' +
+          '<p class="msg" id="form-msg"></p>' +
+        '</form>' +
+      '</div>'
     );
   }
 
@@ -183,10 +358,10 @@
       .ref("posts/" + id)
       .update(data)
       .then(function () {
+        var wasEditing = !!editingId;
+        resetForm(); // resetForm বার্তাটা মুছে দেয়, তাই সফলতার বার্তা এর পরে বসাই
         msg.textContent = "সফলভাবে সংরক্ষণ হয়েছে ✓";
         msg.className = "msg ok";
-        var wasEditing = !!editingId;
-        resetForm();
         if (wasEditing) window.AdminUtil.setActiveTab("posts");
       })
       .catch(function (err) {
@@ -214,6 +389,8 @@
 
   document.addEventListener("admin:ready", function (e) {
     var user = e.detail.user;
+    ensureStyles();
+
     var panel = document.getElementById("panel-create");
     if (!panel) return;
     panel.innerHTML = panelHtml();
