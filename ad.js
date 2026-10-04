@@ -10,6 +10,285 @@
   var IMGBB_API_KEY = "aede02b305570da9ff878b94285d9623";
   var ADS_REF = "ads";
 
+  var stylesAdded = false;
+
+  /* ডিজাইন: রং ও ফন্ট index.html-এর :root ভ্যারিয়েবল থেকে আসে (ডার্ক মোডেও ঠিক থাকে);
+     সব রুল #panel-ad-এর ভেতরে সীমাবদ্ধ, তাই পোস্ট বা অন্য প্যানেলে প্রভাব পড়ে না। */
+  function ensureStyles() {
+    if (stylesAdded || document.getElementById("ar-news-ad-styles")) return;
+    stylesAdded = true;
+
+    var style = document.createElement("style");
+    style.id = "ar-news-ad-styles";
+
+    style.textContent = `
+
+      #panel-ad {
+        max-width: 780px;
+        margin-bottom: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+      }
+
+      @media (min-width: 900px) {
+        #panel-ad { max-width: 780px; }
+      }
+
+      /* ---------- কার্ড ---------- */
+      #panel-ad .ad-box {
+        margin-bottom: 14px;
+        padding: 18px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      @media (min-width: 640px) {
+        #panel-ad .ad-box { padding: 22px; }
+      }
+
+      /* এডিট মোডে (বাতিল বাটন দেখা গেলে) ফর্ম-কার্ডের মাথায় রঙিন দাগ */
+      #panel-ad .ad-box:has(#ad-cancel-btn:not([hidden])) {
+        border-top: 3px solid var(--brand);
+      }
+
+      #panel-ad .ad-box h2 {
+        margin: 0;
+        font-family: var(--font-display, Georgia, serif);
+        font-size: 22px;
+        line-height: 1.25;
+        font-weight: 400;
+      }
+
+      #panel-ad .ad-box .sub {
+        margin: 3px 0 16px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      /* ---------- ফিডের ব্যবধান সেটিং ---------- */
+      #panel-ad .ad-interval label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.5;
+      }
+
+      #panel-ad .ad-interval select {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+        font-size: 16px;
+      }
+
+      #panel-ad .ad-interval select:focus {
+        outline: none;
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+      }
+
+      @media (min-width: 640px) {
+        #panel-ad .ad-interval select { width: auto; min-width: 260px; font-size: 14.5px; }
+      }
+
+      #panel-ad .ad-interval .msg { margin-top: 8px; min-height: 0; }
+      #panel-ad .ad-interval .msg:empty { display: none; }
+
+      /* ---------- ফর্ম ---------- */
+      #panel-ad .field { margin-bottom: 14px; }
+
+      #panel-ad .field input:not([type="file"]),
+      #panel-ad .field select,
+      #panel-ad .field textarea {
+        font-size: 16px; /* iOS জুম ঠেকায় */
+      }
+
+      @media (min-width: 640px) {
+        #panel-ad .field input:not([type="file"]),
+        #panel-ad .field select,
+        #panel-ad .field textarea { font-size: 14.5px; }
+      }
+
+      #panel-ad #ad-desc {
+        min-height: 96px;
+        line-height: 1.7;
+      }
+
+      #panel-ad input[type="file"] {
+        padding: 8px;
+        color: var(--muted);
+        font-size: 13.5px;
+        cursor: pointer;
+      }
+
+      #panel-ad input[type="file"]::file-selector-button {
+        margin-right: 12px;
+        padding: 7px 14px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--brand-soft);
+        color: var(--brand-ink);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      #panel-ad .img-preview-wrap { max-width: 420px; }
+
+      /* "অথবা ছবির লিংক দিন" ঘরটা স্ক্রিনে দেখানো হয় না।
+         ইনপুটটা DOM-এ থেকে যায়, তাই আপলোড করা ছবির লিংক, প্রিভিউ আর এডিট আগের মতোই কাজ করে।
+         আবার দেখাতে নিচের দুই রুল মুছে দিলেই হবে। */
+      #panel-ad label[for="ad-image"],
+      #panel-ad #ad-image { display: none; }
+
+      /* ডিফল্ট/"যাচাই হচ্ছে" লেখাটাও লুকানো; ✓ বা ✗ ফলাফল আগের মতো দেখায় */
+      #panel-ad #ad-img-hint:not(.ok):not(.bad) { display: none; }
+
+      /* "অথবা ছবির লিংক দিন" ঘরটা স্ক্রিনে দেখানো হয় না।
+         ইনপুটটা DOM-এ থেকে যায়, তাই আপলোড করা ছবির লিংক, প্রিভিউ আর এডিট আগের মতোই কাজ করে।
+         আবার দেখাতে নিচের দুই রুল মুছে দিলেই হবে। */
+      #panel-ad label[for="ad-image"],
+      #panel-ad #ad-image { display: none; }
+
+      /* ডিফল্ট/"যাচাই হচ্ছে" লেখাটাও লুকানো; ✓ বা ✗ ফলাফল আগের মতো দেখায় */
+      #panel-ad #ad-img-hint:not(.ok):not(.bad) { display: none; }
+
+      /* বাটনের লেখা + স্ট্যাটাস পাশাপাশি (বাটনের লেখা লুকানো থাকলে স্ট্যাটাস পুরো প্রস্থ নেয়) */
+      #panel-ad .ad-row2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        column-gap: 14px;
+      }
+
+      #panel-ad .ad-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 6px;
+      }
+
+      #panel-ad .ad-actions .btn {
+        flex: 1 1 auto;
+        min-height: 46px;
+      }
+
+      #panel-ad #ad-save-btn { flex: 2 1 auto; }
+
+      @media (min-width: 640px) {
+        #panel-ad .ad-actions .btn,
+        #panel-ad #ad-save-btn {
+          flex: 0 0 auto;
+          min-height: 42px;
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+      }
+
+      #panel-ad .msg {
+        margin-top: 12px;
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+
+      /* ---------- বিজ্ঞাপনের তালিকা ---------- */
+      #panel-ad .post-list { display: grid; gap: 10px; }
+
+      #panel-ad .ad-item {
+        padding: 12px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      #panel-ad .ad-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 13px;
+        min-width: 0;
+      }
+
+      #panel-ad .ad-thumb {
+        flex-shrink: 0;
+        display: block;
+        width: 112px;
+        height: 63px;
+        margin: 0;
+        object-fit: cover;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+      }
+
+      #panel-ad .ad-body { flex: 1 1 0; min-width: 0; }
+
+      #panel-ad .ad-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+
+      #panel-ad .ad-item h3 {
+        display: block;
+        margin: 0;
+        font-family: var(--font-display, Georgia, serif);
+        font-size: 16.5px;
+        font-weight: 400;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+      }
+
+      #panel-ad .ad-item p {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+
+      #panel-ad .ad-item .post-meta { margin-top: 5px; font-size: 12px; }
+
+      #panel-ad .ad-item .item-actions {
+        gap: 7px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      #panel-ad .ad-item .item-actions .btn {
+        flex: 1 1 auto;
+        min-height: 36px;
+        padding: 6px 12px;
+      }
+
+      @media (min-width: 640px) {
+        #panel-ad .ad-item .item-actions .btn { flex: 0 0 auto; padding: 6px 16px; }
+      }
+
+      @media (max-width: 380px) {
+        #panel-ad .ad-thumb { width: 88px; height: 50px; }
+      }
+
+    `;
+
+    document.head.appendChild(style);
+  }
+
   function esc(v) { return window.AdminUtil.esc(v); }
   function fmtDate(v) { return window.AdminUtil.fmtDate(v); }
 
@@ -17,8 +296,8 @@
 
   function panelHtml() {
     return (
-      '<div style="margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--line)">' +
-      '<label for="ad-interval" style="display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px">ফিডে কয়টি পোস্টের পর একটি বিজ্ঞাপন দেখাবে</label>' +
+      '<div class="ad-box ad-interval">' +
+      '<label for="ad-interval">ফিডে কয়টি পোস্টের পর একটি বিজ্ঞাপন দেখাবে</label>' +
       '<select id="ad-interval">' +
       '<option value="2">প্রতি ২টি পোস্টের পর</option>' +
       '<option value="3">প্রতি ৩টি পোস্টের পর</option>' +
@@ -26,6 +305,8 @@
       "</select>" +
       '<p class="msg" id="ad-interval-msg"></p>' +
       "</div>" +
+
+      '<div class="ad-box">' +
       '<h2 id="ad-form-title">নতুন বিজ্ঞাপন তৈরি করুন</h2>' +
       '<p class="sub">টাইটেল, ডেসক্রিপশন আর একটা ছবি (16:9) দিয়ে বিজ্ঞাপন তৈরি করুন। লিংক দিলে কার্ডে ভিজিট/ওপেন বাটন দেখাবে।</p>' +
       '<form id="ad-form">' +
@@ -43,6 +324,7 @@
       '<div id="ad-img-preview-wrap" class="img-preview-wrap" hidden><img id="ad-img-preview" class="img-preview" alt="প্রিভিউ"></div>' +
       "</div>" +
       '<div class="field"><label for="ad-link">লিংক (ঐচ্ছিক)</label><input id="ad-link" type="url" placeholder="https://example.com"></div>' +
+      '<div class="ad-row2">' +
       '<div class="field" id="ad-btn-label-wrap" hidden>' +
       '<label for="ad-btn-label">বাটনের লেখা</label>' +
       '<select id="ad-btn-label"><option value="ভিজিট করুন">ভিজিট করুন</option><option value="ওপেন করুন">ওপেন করুন</option></select>' +
@@ -50,14 +332,17 @@
       '<div class="field"><label for="ad-status">স্ট্যাটাস</label>' +
       '<select id="ad-status"><option value="active">সক্রিয়</option><option value="inactive">নিষ্ক্রিয়</option></select>' +
       "</div>" +
-      '<div class="actions">' +
+      "</div>" +
+      '<div class="actions ad-actions">' +
       '<button class="btn" type="submit" id="ad-save-btn">বিজ্ঞাপন সংরক্ষণ করুন</button>' +
       '<button class="btn secondary" type="button" id="ad-cancel-btn" hidden>বাতিল</button>' +
       "</div>" +
       '<p class="msg" id="ad-form-msg"></p>' +
       "</form>" +
-      '<div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--line)">' +
-      '<h2 style="margin-bottom:4px">সব বিজ্ঞাপন</h2>' +
+      "</div>" +
+
+      '<div class="ad-box">' +
+      "<h2>সব বিজ্ঞাপন</h2>" +
       '<p class="sub">এখান থেকে যেকোনো বিজ্ঞাপন এডিট বা মুছে ফেলা যাবে।</p>' +
       '<div class="post-list" id="ad-list"><div class="empty">লোড হচ্ছে…</div></div>' +
       "</div>"
@@ -254,9 +539,9 @@
       .ref(ADS_REF + "/" + id)
       .update(data)
       .then(function () {
+        resetForm(); // resetForm বার্তাটা মুছে দেয়, তাই সফলতার বার্তা এর পরে বসাই
         msg.textContent = "সফলভাবে সংরক্ষণ হয়েছে ✓";
         msg.className = "msg ok";
-        resetForm();
       })
       .catch(function (err) {
         msg.textContent = "সংরক্ষণ করা যায়নি: " + err.message;
@@ -313,21 +598,25 @@
         var dateStr = fmtDate(ad.createdAt);
         var metaRow = dateStr ? '<p class="post-meta">' + esc(dateStr) + "</p>" : "";
         var descRow = ad.description ? "<p>" + esc(ad.description) + "</p>" : "";
-        var linkRow = ad.link
-          ? '<div class="item-actions"><a class="btn small secondary" href="' +
+        var linkBtn = ad.link
+          ? '<a class="btn small secondary" href="' +
             esc(ad.link) +
             '" target="_blank" rel="noopener">' +
             esc(ad.buttonLabel || "ভিজিট করুন") +
-            "</a></div>"
+            "</a>"
           : "";
         return (
-          '<div class="post-item" data-id="' + esc(id) + '">' +
-          (ad.imageUrl ? '<img src="' + esc(ad.imageUrl) + '" alt="">' : "") +
-          '<h3><span class="status-tag ad-badge">বিজ্ঞাপন</span>' + esc(ad.title || "") + statusTag + "</h3>" +
+          '<div class="post-item ad-item" data-id="' + esc(id) + '">' +
+          '<div class="ad-main">' +
+          (ad.imageUrl ? '<img class="ad-thumb" src="' + esc(ad.imageUrl) + '" alt="">' : "") +
+          '<div class="ad-body">' +
+          '<div class="ad-tags"><span class="status-tag ad-badge">বিজ্ঞাপন</span>' + statusTag + "</div>" +
+          "<h3>" + esc(ad.title || "") + "</h3>" +
           descRow +
           metaRow +
-          linkRow +
+          "</div></div>" +
           '<div class="item-actions">' +
+          linkBtn +
           '<button class="btn small secondary" type="button" data-action="edit">এডিট</button>' +
           '<button class="btn small danger" type="button" data-action="delete">ডিলিট</button>' +
           "</div></div>"
@@ -360,6 +649,8 @@
 
   document.addEventListener("admin:ready", function (e) {
     var user = e.detail.user;
+    ensureStyles();
+
     var panel = document.getElementById("panel-ad");
     if (!panel) return;
     panel.innerHTML = panelHtml();
