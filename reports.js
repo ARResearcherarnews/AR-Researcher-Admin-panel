@@ -15,6 +15,126 @@
   };
   var STATUS_LABEL = { pending: "অপেক্ষমাণ", reviewed: "রিভিউড", dismissed: "খারিজ" };
 
+
+  var stylesAdded = false;
+
+  /* ডিজাইন: রং ও ফন্ট index.html-এর :root ভ্যারিয়েবল থেকে আসে; সব রুল #panel-reports-এর ভেতরে সীমাবদ্ধ */
+  function ensureStyles() {
+    if (stylesAdded || document.getElementById("ar-news-reports-styles")) return;
+    stylesAdded = true;
+
+    var style = document.createElement("style");
+    style.id = "ar-news-reports-styles";
+
+    style.textContent = `
+
+      #panel-reports {
+        margin-bottom: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+      }
+
+      #panel-reports > h2 {
+        margin: 0;
+        font-family: var(--font-display, Georgia, serif);
+        font-size: 26px;
+        line-height: 1.2;
+        font-weight: 400;
+      }
+
+      #panel-reports > .sub {
+        margin: 3px 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      /* ---------- ফিল্টার: এক সারিতে, দরকারে পাশে স্ক্রল ---------- */
+      #panel-reports .filter-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin-bottom: 14px;
+        scrollbar-width: none;
+      }
+
+      #panel-reports .filter-row::-webkit-scrollbar { display: none; }
+
+      #panel-reports .filter-btn { flex: 0 0 auto; }
+
+      /* ---------- রিপোর্ট কার্ড ---------- */
+      #panel-reports .report-item {
+        padding: 14px;
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      #panel-reports .report-top { margin-bottom: 10px; }
+
+      /* স্ট্যাটাস এখন একটা ছোট ট্যাগ */
+      #panel-reports .report-status {
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+
+      #panel-reports .status-pending .report-status   { background: var(--warn-soft);  color: var(--warn); }
+      #panel-reports .status-reviewed .report-status  { background: var(--brand-soft); color: var(--brand-ink); }
+      #panel-reports .status-dismissed .report-status { background: var(--line);       color: var(--muted); }
+
+      /* রিপোর্ট করা মন্তব্য — উদ্ধৃতির মতো */
+      #panel-reports .report-comment {
+        margin: 0 0 10px;
+        padding: 10px 12px 11px;
+        background: var(--bg);
+        border-left: 3px solid var(--line);
+        border-radius: 4px 10px 10px 4px;
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      #panel-reports .report-comment .by {
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      #panel-reports .status-pending .report-comment { border-left-color: var(--danger); }
+
+      #panel-reports .report-meta {
+        margin-bottom: 2px;
+        font-size: 12.5px;
+        line-height: 1.6;
+      }
+
+      /* ---------- বাটন ---------- */
+      #panel-reports .item-actions {
+        gap: 7px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      #panel-reports .item-actions .btn {
+        flex: 1 1 auto;
+        min-height: 38px;
+      }
+
+      @media (min-width: 700px) {
+        #panel-reports .item-actions .btn {
+          flex: 0 0 auto;
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+      }
+
+    `;
+
+    document.head.appendChild(style);
+  }
+
   function esc(v) { return window.AdminUtil.esc(v); }
   function fmtDate(v) { return window.AdminUtil.fmtDate(v); }
 
@@ -111,6 +231,8 @@
   }
 
   document.addEventListener("admin:ready", function () {
+    ensureStyles();
+
     var panel = document.getElementById("panel-reports");
     if (!panel) return;
     panel.innerHTML = panelShellHtml();
