@@ -5,7 +5,7 @@
   "use strict";
 
   var editingId = null;
-  var IMGBB_API_KEY = "aede02b305570da9ff878b94285d9623";
+  var IMGBB_API_KEY = "99e869a5e930f58f491beb611c8f1bcd";
 
   var stylesAdded = false;
 
