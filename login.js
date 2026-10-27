@@ -22,6 +22,17 @@
     { key: "stats", label: "স্ট্যাটস", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
   ];
 
+  // নতুন ডিজাইন: মোবাইলে নিচের বারে ৪টি প্রধান ট্যাব + "আরও"; বাকিগুলো "আরও" শিটে (ডেস্কটপ সাইডবারে সব)।
+  var PRIMARY = ["posts", "stats", "create", "reports"];
+  var SHEET_DESC = {
+    ad: "সব বিজ্ঞাপন দেখুন ও পরিচালনা করুন",
+    advertise: "বিজ্ঞাপনের অর্ডার ব্যবস্থাপনা",
+    users: "রোল পরিবর্তন করে কাউকে অ্যাডমিন বানান বা বাদ দিন",
+  };
+  var ICON_MORE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
+  var ICON_CHAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+  var ICON_CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+
   // ---------- শেয়ার্ড হেল্পার — বাকি সব js ফাইল window.AdminUtil থেকে এগুলো ব্যবহার করবে ----------
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (ch) {
@@ -40,8 +51,78 @@
       if (btn) btn.classList.toggle("active", t.key === key);
       if (panel) panel.hidden = t.key !== key;
     });
+    var more = document.getElementById("nav-more");
+    if (more) more.classList.toggle("active", PRIMARY.indexOf(key) === -1);
+    closeMore(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  // ---------- "আরও" শিট ----------
+  function openMore() {
+    var sheet = document.getElementById("more-sheet");
+    var back = document.getElementById("more-backdrop");
+    var list = document.getElementById("more-list");
+    var btn = document.getElementById("nav-more");
+    if (!sheet || !back || !list) return;
+
+    var rows = TABS.filter(function (t) { return PRIMARY.indexOf(t.key) === -1; }).map(function (t) {
+      return sheetRow('data-tab="' + t.key + '"', t.icon, t.label, SHEET_DESC[t.key] || "", "");
+    });
+    var chat = document.getElementById("ar-chat-nav-btn");
+    if (chat) {
+      var cb = document.getElementById("ar-chat-total-badge");
+      var unread = cb && cb.classList.contains("show") ? cb.textContent : "";
+      rows.push(sheetRow('data-chat="1"', ICON_CHAT, "ইউজার চ্যাট", "ইউজারদের মেসেজের উত্তর দিন", unread));
+    }
+    list.innerHTML = rows.join("");
+    list.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (b.getAttribute("data-chat")) {
+          closeMore(false);
+          chat.click();
+        } else {
+          setActiveTab(b.getAttribute("data-tab"));
+        }
+      });
+    });
+
+    back.hidden = false;
+    sheet.hidden = false;
+    if (btn) btn.setAttribute("aria-expanded", "true");
+    var first = list.querySelector("button");
+    if (first) first.focus();
+  }
+  function closeMore(restoreFocus) {
+    var sheet = document.getElementById("more-sheet");
+    var back = document.getElementById("more-backdrop");
+    var btn = document.getElementById("nav-more");
+    var wasOpen = sheet && !sheet.hidden;
+    if (sheet) sheet.hidden = true;
+    if (back) back.hidden = true;
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    if (wasOpen && restoreFocus && btn) btn.focus();
+  }
+  function sheetRow(attr, icon, label, desc, badge) {
+    return (
+      '<button type="button" class="sheet-row" ' + attr + ">" +
+      '<span class="sheet-ic">' + icon + "</span>" +
+      '<span class="sheet-txt"><b>' + label + "</b>" + (desc ? "<small>" + desc + "</small>" : "") + "</span>" +
+      (badge ? '<span class="sheet-badge">' + esc(badge) + "</span>" : "") +
+      '<span class="sheet-chev">' + ICON_CHEV + "</span>" +
+      "</button>"
+    );
+  }
+  var sheetWired = false;
+  function wireSheet() {
+    if (sheetWired) return;
+    sheetWired = true;
+    var back = document.getElementById("more-backdrop");
+    if (back) back.addEventListener("click", function () { closeMore(true); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeMore(true);
+    });
+  }
+
   function setNavBadge(key, count) {
     var el = document.getElementById("nav-badge-" + key);
     if (!el) return;
@@ -57,6 +138,7 @@
 
   // ---------- লগইন স্ক্রিন ----------
   function renderLogin() {
+    closeMore(false);
     bottomNav.hidden = true;
     navActions.innerHTML = "";
     app.innerHTML =
@@ -88,6 +170,7 @@
   }
 
   function renderNoAccess(user) {
+    closeMore(false);
     bottomNav.hidden = true;
     navActions.innerHTML = '<button class="btn secondary small" id="logout-btn">লগআউট</button>';
     document.getElementById("logout-btn").onclick = function () { window.auth.signOut(); };
@@ -114,18 +197,33 @@
     }).join("");
 
     bottomNav.hidden = false;
-    bottomNav.innerHTML = TABS.map(function (t) {
+    var byKey = {};
+    TABS.forEach(function (t) { byKey[t.key] = t; });
+    function navBtn(t) {
+      var fab = t.key === "create";
+      var secondary = PRIMARY.indexOf(t.key) === -1;
       return (
-        '<button type="button" id="nav-' + t.key + '" data-tab="' + t.key + '">' +
-        t.icon +
+        '<button type="button" id="nav-' + t.key + '" data-tab="' + t.key + '"' +
+        ' class="' + (fab ? "nav-fab" : "") + (secondary ? " nav-secondary" : "") + '">' +
+        (fab ? '<span class="fab-circle">' + t.icon + "</span>" : t.icon) +
         '<span class="nav-badge" id="nav-badge-' + t.key + '"></span>' +
         "<span>" + t.label + "</span>" +
         "</button>"
       );
-    }).join("");
+    }
+    bottomNav.innerHTML =
+      PRIMARY.map(function (k) { return navBtn(byKey[k]); }).join("") +
+      '<button type="button" id="nav-more" aria-haspopup="dialog" aria-expanded="false">' + ICON_MORE + "<span>আরও</span></button>" +
+      TABS.filter(function (t) { return PRIMARY.indexOf(t.key) === -1; }).map(navBtn).join("");
     bottomNav.querySelectorAll("button[data-tab]").forEach(function (btn) {
       btn.addEventListener("click", function () { setActiveTab(btn.dataset.tab); });
     });
+    document.getElementById("nav-more").addEventListener("click", function () {
+      var sheet = document.getElementById("more-sheet");
+      if (sheet && !sheet.hidden) closeMore(true);
+      else openMore();
+    });
+    wireSheet();
 
     setActiveTab("create");
     document.dispatchEvent(new CustomEvent("admin:ready", { detail: { user: user } }));

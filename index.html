@@ -5,37 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AR News — অ্যাডমিন প্যানেল</title>
 <link rel="icon" href="logo.png">
+<meta name="theme-color" content="#0b3d91">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Hind+Siliguri:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#eef2f2;
+    --bg:#f4f6fb;
     --surface:#fff;
     --ink:#14201f;
-    --muted:#5e6f6e;
-    --line:#dbe3e2;
-    --brand:#0f766e;
-    --brand-ink:#0a4d47;
-    --brand-soft:#e3f1ef;
-    --nav-bg:#0c2f2c;
-    --nav-ink:#e8f3f1;
-    --nav-muted:#8fb5b0;
+    --muted:#5e6a80;
+    --line:#e4e9f2;
+    --brand:#0b3d91;
+    --brand-ink:#0b3d91;
+    --brand-soft:#e6ecf7;
+    --nav-bg:#0b3d91;
+    --nav-ink:#fff;
+    --nav-muted:#c9d8f5;
     --danger:#b42318;
     --danger-soft:#fde8e6;
     --warn:#b45309;
     --warn-soft:#fdf0dc;
     --ok:#15803d;
-    --shadow:0 1px 2px rgba(12,47,44,.06),0 4px 14px rgba(12,47,44,.05);
+    --shadow:0 1px 2px rgba(11,61,145,.06),0 6px 18px rgba(11,61,145,.06);
     --font-display:'Tiro Bangla',Georgia,serif;
-    --hh:60px;
+    --hh:64px;
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-t: env(safe-area-inset-top, 0px);
   }
   /* ডার্ক মোড: সব ফাইলের ডিজাইন আপডেট শেষ হলে নিচের রুলটা @media(prefers-color-scheme:dark) এর ভেতরে বসিয়ে অটো চালু করা যাবে।
      এখন শুধু <html data-theme="dark"> দিলে চালু হয়। */
   :root[data-theme="dark"]{
-    --bg:#0b1514;--surface:#122120;--ink:#e6efee;--muted:#8fa3a1;--line:#223635;
-    --brand:#1a9d91;--brand-ink:#7fd8cd;--brand-soft:#16332f;--nav-bg:#081211;
+    --bg:#0a1228;--surface:#111b38;--ink:#e8edf8;--muted:#9aa8c6;--line:#22305a;
+    --brand:#6ea0ff;--brand-ink:#b9d0ff;--brand-soft:#192a55;--nav-bg:#0a1a3d;
     --danger:#f28b82;--danger-soft:#3a1a18;--warn:#f0b35a;--warn-soft:#33260f;--ok:#5fd08a;--shadow:none;
   }
   *{box-sizing:border-box}
@@ -45,7 +46,7 @@
     color:var(--ink);
     font-family:'Hind Siliguri',system-ui,sans-serif;
     line-height:1.5;
-    padding-bottom:calc(20px + var(--safe-b));
+    padding-bottom:calc(96px + var(--safe-b));
   }
   a{color:inherit}
   button{-webkit-tap-highlight-color:transparent}
@@ -60,6 +61,8 @@
     display:flex;align-items:center;justify-content:space-between;gap:12px;
     padding:var(--safe-t) 16px 0;
     background:var(--nav-bg);color:var(--nav-ink);
+    border-radius:0 0 22px 22px;
+    box-shadow:0 6px 18px rgba(11,61,145,.18);
   }
   .ar-brand{
     display:flex;align-items:center;gap:11px;
@@ -78,33 +81,42 @@
   }
   @media(min-width:520px){.who{display:inline-block}}
 
-  /* ---------- navigation ---------- */
+  /* ---------- navigation: মোবাইলে নিচের বার (৪টি প্রধান ট্যাব + মাঝে "নতুন" বাটন + "আরও") ---------- */
   .top-nav{
-    position:sticky;
-    top:calc(var(--hh) + var(--safe-t));
-    z-index:25;
-    display:flex;
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    display:flex;align-items:flex-end;
+    padding:10px 8px calc(8px + var(--safe-b));
     background:var(--surface);
-    border-bottom:1px solid var(--line);
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
+    border-top:1px solid var(--line);
+    box-shadow:0 -4px 18px rgba(11,61,145,.07);
   }
   .top-nav[hidden]{display:none !important}
-  .top-nav::-webkit-scrollbar{display:none}
   .top-nav button{
-    flex:1 0 auto;
+    flex:1 1 0;min-width:0;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    min-width:60px;padding:9px 6px 8px;
-    border:0;border-bottom:3px solid transparent;
-    background:none;color:var(--muted);
-    font:inherit;font-size:11.5px;font-weight:600;
+    min-height:52px;padding:4px 2px 0;
+    border:0;background:none;color:var(--muted);
+    font:inherit;font-size:12px;font-weight:600;
     cursor:pointer;position:relative;
   }
-  .top-nav button svg{width:20px;height:20px}
-  .top-nav button.active{color:var(--brand);border-bottom-color:var(--brand)}
+  .top-nav button svg{width:24px;height:24px}
+  .top-nav button.active{color:var(--brand);font-weight:700}
+  .top-nav button.active::before{
+    content:"";position:absolute;top:-10px;left:50%;width:28px;height:3px;margin-left:-14px;
+    border-radius:0 0 3px 3px;background:var(--brand);
+  }
+  .top-nav .nav-secondary{display:none}
+  .top-nav .nav-fab .fab-circle{
+    display:flex;align-items:center;justify-content:center;
+    width:56px;height:56px;margin-top:-30px;border-radius:50%;
+    background:var(--brand);color:#fff;border:4px solid var(--surface);
+    box-shadow:0 4px 14px rgba(11,61,145,.35);
+  }
+  .top-nav .nav-fab .fab-circle svg{width:26px;height:26px}
+  .top-nav .nav-fab.active::before{display:none}
+  :root[data-theme="dark"] .top-nav .nav-fab .fab-circle{color:#06143a}
   .nav-badge{
-    position:absolute;top:4px;left:calc(50% + 5px);
+    position:absolute;top:0;left:calc(50% + 6px);
     min-width:17px;height:17px;padding:0 5px;
     border-radius:999px;background:var(--danger);color:#fff;
     font-size:10.5px;font-weight:700;line-height:1;
@@ -112,11 +124,45 @@
   }
   .nav-badge.show{display:flex}
 
+  /* ---------- "আরও" শিট (মোবাইল) ---------- */
+  .sheet-backdrop{position:fixed;inset:0;z-index:55;background:rgba(8,20,52,.55)}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:60;
+    max-width:680px;margin:0 auto;max-height:82vh;overflow-y:auto;
+    background:var(--surface);border-radius:26px 26px 0 0;
+    padding:12px 18px calc(18px + var(--safe-b));
+    box-shadow:0 -10px 30px rgba(8,20,52,.25);
+  }
+  .sheet:not([hidden]){animation:sheet-up .22s ease-out}
+  @keyframes sheet-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+  @media(prefers-reduced-motion:reduce){.sheet:not([hidden]){animation:none}}
+  .sheet-grip{width:40px;height:4px;border-radius:999px;background:var(--line);margin:0 auto 12px}
+  .sheet h2{font-family:var(--font-display);font-weight:400;font-size:22px;margin:0 0 6px}
+  .sheet-row{
+    display:flex;align-items:center;gap:14px;width:100%;
+    min-height:68px;padding:8px 4px;border:0;border-top:1px solid var(--line);
+    background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;
+  }
+  .sheet-ic{
+    flex:none;display:inline-flex;align-items:center;justify-content:center;
+    width:46px;height:46px;border-radius:14px;background:var(--brand-soft);color:var(--brand-ink);
+  }
+  .sheet-ic svg{width:22px;height:22px}
+  .sheet-txt{flex:1;min-width:0}
+  .sheet-txt b{display:block;font-size:16px;font-weight:600}
+  .sheet-txt small{display:block;font-size:13px;color:var(--muted);line-height:1.4}
+  .sheet-chev{color:var(--muted);display:inline-flex}
+  .sheet-chev svg{width:20px;height:20px}
+  .sheet-badge{
+    min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--danger);color:#fff;
+    font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;
+  }
+
   /* ---------- buttons ---------- */
   .btn{
     display:inline-flex;align-items:center;justify-content:center;gap:7px;
     text-align:center;text-decoration:none;
-    border:0;border-radius:10px;padding:10px 16px;
+    border:0;border-radius:12px;padding:10px 16px;min-height:44px;
     background:var(--brand);color:#fff;
     font:inherit;font-weight:600;font-size:14px;cursor:pointer;
   }
@@ -124,16 +170,16 @@
   .btn.secondary{background:var(--brand-soft);color:var(--brand-ink)}
   .btn.danger{background:var(--danger-soft);color:var(--danger)}
   .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
-  .btn.small{padding:7px 12px;font-size:12.5px;border-radius:8px}
-  .btn.icon{width:38px;height:38px;padding:0;border-radius:50%}
+  .btn.small{padding:7px 14px;font-size:13px;border-radius:10px;min-height:40px}
+  .btn.icon{width:44px;height:44px;padding:0;border-radius:50%}
   .btn[disabled]{opacity:.55;cursor:default}
   .btn svg{width:17px;height:17px}
 
   /* ---------- shell / gate ---------- */
-  .shell{max-width:680px;margin:0 auto;padding:20px 14px 30px}
+  .shell{max-width:680px;margin:0 auto;padding:18px 14px 30px}
   .gate{
     max-width:400px;margin:10vh auto;
-    background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    background:var(--surface);border:1px solid var(--line);border-radius:22px;
     padding:30px 24px;box-shadow:var(--shadow);
   }
   .gate h2{font-family:var(--font-display);font-weight:400;margin:0 0 6px;font-size:24px}
@@ -170,7 +216,7 @@
   /* ---------- panels / cards ---------- */
   .panel{
     background:var(--surface);border:1px solid var(--line);
-    border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow);
+    border-radius:20px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow);
   }
   .panel h2{font-family:var(--font-display);font-weight:400;font-size:22px;line-height:1.25;margin:0 0 4px}
   .panel .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
@@ -246,7 +292,7 @@
   .filter-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
   .filter-btn{
     border:1px solid var(--line);background:var(--surface);color:var(--muted);
-    font:inherit;font-weight:600;font-size:13px;padding:6px 14px;
+    font:inherit;font-weight:600;font-size:13.5px;padding:6px 16px;min-height:40px;
     border-radius:999px;cursor:pointer;
   }
   .filter-btn.active{background:var(--ink);border-color:var(--ink);color:var(--surface)}
@@ -305,8 +351,9 @@
   .nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
 
   /* হেডারের লগআউট বাটন: আইকন, বড় স্ক্রিনে পাশে "লগআউট" লেখা */
-  #nav-actions #logout-btn.icon{
-    width:38px;height:38px;padding:0;border-radius:10px;
+  #nav-actions #logout-btn.icon,
+  #nav-actions #ar-chat-nav-btn{
+    width:44px;height:44px;padding:0;border-radius:12px;
     background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
     color:var(--nav-ink);
   }
@@ -319,20 +366,32 @@
   /* "অনুমতি নেই" পেজে বসা লগআউট বাটন হেডারের গাঢ় রঙে পড়া সহজ রাখে */
   #nav-actions #logout-btn.secondary{background:rgba(255,255,255,.1);color:var(--nav-ink)}
 
-  /* ---------- ডেস্কটপ: বাঁ পাশে সাইডবার ---------- */
+  /* ---------- ডেস্কটপ: বাঁ পাশে সাইডবারে সব ট্যাব ---------- */
   @media(min-width:900px){
+    body{padding-bottom:calc(20px + var(--safe-b))}
+    .ar-nav{border-radius:0;box-shadow:none}
     .top-nav{
-      position:fixed;left:0;top:calc(var(--hh) + var(--safe-t));bottom:0;width:236px;
-      flex-direction:column;gap:4px;padding:18px 12px;
-      border-bottom:0;border-right:1px solid var(--line);overflow-y:auto;
+      left:0;right:auto;top:calc(var(--hh) + var(--safe-t));bottom:0;width:236px;
+      flex-direction:column;align-items:stretch;gap:4px;padding:18px 12px;
+      border-top:0;border-right:1px solid var(--line);box-shadow:none;overflow-y:auto;
     }
     .top-nav button{
       flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:12px;
-      min-width:0;padding:11px 14px;font-size:14.5px;
-      border-radius:10px;border-bottom:0;text-align:left;
+      min-width:0;min-height:44px;padding:10px 14px;font-size:14.5px;
+      border-radius:12px;text-align:left;
     }
+    .top-nav button svg{width:20px;height:20px}
     .top-nav button.active{background:var(--brand-soft);color:var(--brand-ink)}
+    .top-nav button.active::before{display:none}
+    .top-nav .nav-secondary{display:flex}
+    #nav-more{display:none}
+    .top-nav .nav-fab .fab-circle{
+      width:auto;height:auto;margin:0;border:0;background:none;box-shadow:none;color:inherit;display:inline-flex;
+    }
+    :root[data-theme="dark"] .top-nav .nav-fab .fab-circle{color:inherit}
+    .top-nav .nav-fab .fab-circle svg{width:20px;height:20px}
     .nav-badge{position:static;order:3;margin-left:auto}
+    .sheet,.sheet-backdrop{display:none !important}
     .shell{max-width:none;margin:0 0 0 236px;padding:30px 44px 40px}
     .shell>section{max-width:860px}
     .top-nav[hidden] ~ .shell{margin:0 auto;max-width:680px}
@@ -358,19 +417,29 @@
     <div class="loading-line">লোড হচ্ছে…</div>
   </main>
 
+  <!-- "আরও" শিট (মোবাইল): বিজ্ঞাপন, অর্ডার, ইউজার ও চ্যাট। login.js ভেতরের তালিকা বসায় -->
+  <div class="sheet-backdrop" id="more-backdrop" hidden></div>
+  <div class="sheet" id="more-sheet" role="dialog" aria-modal="true" aria-labelledby="more-title" hidden>
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <h2 id="more-title">আরও</h2>
+    <div id="more-list"></div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
   <script src="config.js"></script>
 
-  <script src="login.js?v=2"></script>
+  <script src="login.js?v=3"></script>
   <script src="create.js?v=2"></script>
   <script src="posts.js?v=2"></script>
+  <script src="drafts.js?v=1"></script>
   <script src="reports.js?v=2"></script>
   <script src="users.js?v=2"></script>
   <script src="stats.js?v=2"></script>
   <script src="ad.js?v=2"></script>
   <script src="advertise.js?v=2"></script>
   <script src="contact.js?v=2"></script>
+  <script src="theme.js?v=1"></script>
 </body>
 </html>

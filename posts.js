@@ -53,9 +53,11 @@
     style.id = "ar-news-posts-styles";
 
     style.textContent = `
-      /* AR News — পোস্ট ম্যানেজার (নতুন ডিজাইন)
+      /* AR News — পোস্ট ম্যানেজার (ব্র্যান্ড নীল ডিজাইন)
          রং ও ফন্ট index.html-এর :root ভ্যারিয়েবল থেকে আসে।
-         সব রুল #panel-posts-এর ভেতরে সীমাবদ্ধ, যাতে বিজ্ঞাপন প্যানেলে প্রভাব না পড়ে। */
+         সব রুল #panel-posts-এর ভেতরে সীমাবদ্ধ, যাতে অন্য প্যানেলে প্রভাব না পড়ে। */
+
+      #panel-posts { margin-top: 0; }
 
       #panel-posts .posts-wrap {
         width: 100%;
@@ -64,108 +66,100 @@
         box-sizing: border-box;
       }
 
-      /* ---------- হেডার + সার্চ ---------- */
+      /* ---------- পেজ হেডার: নীল ব্যান্ড + সার্চ ---------- */
       #panel-posts .posts-header {
         display: flex;
         flex-direction: column;
-        gap: 14px;
-        margin-bottom: 14px;
-        padding: 0;
-        background: none;
+        gap: 16px;
+        margin: 0 -14px 16px;
+        padding: 12px 20px 26px;
+        background: var(--nav-bg);
+        color: #fff;
         border: 0;
+        border-radius: 0 0 28px 28px;
         box-shadow: none;
       }
 
-      #panel-posts .posts-header-text {
-        min-width: 0;
-      }
+      #panel-posts .posts-header-text { min-width: 0; }
 
       #panel-posts .posts-header-text h2 {
         margin: 0;
-        color: var(--ink);
+        color: #fff;
         font-family: var(--font-display, Georgia, serif);
-        font-size: 26px;
-        line-height: 1.2;
+        font-size: 30px;
+        line-height: 1.25;
         font-weight: 400;
       }
 
       #panel-posts .posts-header-text .sub {
-        margin: 3px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.5;
+        margin: 4px 0 0;
+        color: #c9d8f5;
+        font-size: 13.5px;
+        line-height: 1.55;
       }
 
-      #panel-posts .posts-search {
-        width: 100%;
-      }
+      #panel-posts .posts-search { width: 100%; }
 
       #panel-posts .posts-search input {
         width: 100%;
-        height: 44px;
+        height: auto;
+        min-height: 50px;
         box-sizing: border-box;
-        padding: 0 14px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 16px;
         outline: none;
-        background: var(--surface);
-        color: var(--ink);
+        background: #fff;
+        color: #14201f;
         font: inherit;
-        font-size: 14.5px;
+        font-size: 15px;
       }
 
-      #panel-posts .posts-search input::placeholder {
-        color: var(--muted);
-      }
+      #panel-posts .posts-search input::placeholder { color: #5e6a80; }
 
       #panel-posts .posts-search input:focus {
-        border-color: var(--brand);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, .35);
       }
 
-      /* ---------- তালিকা ---------- */
+      /* ---------- তালিকা: একটি সাদা কার্ড, ভেতরে দাগ-টানা সারি ---------- */
       #panel-posts .post-list {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-
-      /* কার্ড: বাঁয়ে থাম্বনেইল, ডানে শিরোনাম ও মেটা, নিচে পুরো প্রস্থে ফুটার */
-      #panel-posts .post-item {
-        position: relative;
-        display: grid;
-        grid-template-columns: 96px minmax(0, 1fr);
-        column-gap: 13px;
-        min-width: 0;
-        padding: 11px;
+        display: block;
+        overflow: hidden;
         background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 14px;
+        border-radius: 22px;
         box-shadow: var(--shadow);
       }
 
-      #panel-posts .post-body {
-        display: contents;
+      /* সারি: ছবি | শিরোনাম+মেটা | সুইচ  — নিচে পুরো প্রস্থে ফুটার */
+      #panel-posts .post-item {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr) auto;
+        grid-template-areas:
+          "thumb main sw"
+          "foot  foot foot";
+        column-gap: 14px;
+        align-items: start;
+        min-width: 0;
+        padding: 14px 12px 8px 14px;
+        border-top: 1px solid var(--line);
       }
 
-      /* ---------- থাম্বনেইল ---------- */
+      #panel-posts .post-item:first-child { border-top: 0; }
+
+      /* ---------- ছবি ---------- */
       #panel-posts .post-thumb {
-        grid-column: 1;
-        grid-row: 1 / span 2;
-        align-self: start;
-        width: 96px;
-        height: 96px;
+        grid-area: thumb;
+        width: 72px;
+        height: 72px;
         overflow: hidden;
-        border-radius: 10px;
-        background: var(--bg);
+        border-radius: 14px;
+        background: var(--brand-soft);
       }
 
       #panel-posts .post-thumb img {
         display: block;
         width: 100%;
         height: 100%;
-        margin: 0;
-        border-radius: 0;
         object-fit: cover;
       }
 
@@ -181,51 +175,28 @@
         line-height: 1.3;
       }
 
-      /* ---------- শিরোনাম + স্ট্যাটাস ---------- */
-      #panel-posts .post-top {
-        grid-column: 2;
-        grid-row: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
+      /* ---------- শিরোনাম ও মেটা ---------- */
+      #panel-posts .post-main {
+        grid-area: main;
         min-width: 0;
+        padding-top: 1px;
       }
 
-      #panel-posts .post-top h3 {
-        display: block;
+      #panel-posts .post-main h3 {
         margin: 0;
         color: var(--ink);
         font-family: var(--font-display, Georgia, serif);
-        font-size: 16.5px;
-        line-height: 1.4;
+        font-size: 16px;
+        line-height: 1.45;
         font-weight: 400;
         word-break: break-word;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
-      #panel-posts .status-tag {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 9px;
-        border-radius: 999px;
-        background: var(--brand-soft);
-        color: var(--brand-ink);
-        font-size: 11.5px;
-        line-height: 1.5;
-        font-weight: 600;
-        white-space: nowrap;
-      }
-
-      #panel-posts .status-tag.draft {
-        background: var(--warn-soft);
-        color: var(--warn);
-      }
-
-      /* ---------- ক্যাটাগরি + তারিখ ---------- */
       #panel-posts .post-meta {
-        grid-column: 2;
-        grid-row: 2;
-        align-self: end;
         display: flex;
         align-items: center;
         flex-wrap: wrap;
@@ -235,25 +206,88 @@
         font-size: 12px;
       }
 
-      #panel-posts .meta-cat {
-        color: var(--brand);
-        font-weight: 600;
-      }
+      #panel-posts .meta-cat { color: #0f766e; font-weight: 700; }
+      #panel-posts .meta-dot { color: var(--line); }
 
-      #panel-posts .meta-dot {
-        color: var(--line);
-      }
-
-      /* ---------- ফুটার: পরিসংখ্যান + বাটন ---------- */
-      #panel-posts .post-footer {
-        grid-column: 1 / -1;
-        grid-row: 3;
+      /* ---------- প্রকাশিত/ড্রাফট সুইচ ---------- */
+      #panel-posts .post-switch {
+        grid-area: sw;
         display: flex;
         flex-direction: column;
+        align-items: center;
+        min-width: 60px;
+      }
+
+      #panel-posts .sw {
+        width: 60px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        background: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      #panel-posts .sw-track {
+        position: relative;
+        display: block;
+        width: 50px;
+        height: 28px;
+        border-radius: 999px;
+        background: #b9c3d6;
+        transition: background .15s ease;
+      }
+
+      #panel-posts .sw[aria-checked="true"] .sw-track { background: var(--brand); }
+
+      #panel-posts .sw-knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+        transition: transform .15s ease;
+      }
+
+      #panel-posts .sw[aria-checked="true"] .sw-knob { transform: translateX(22px); }
+
+      #panel-posts .sw:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+        border-radius: 12px;
+      }
+
+      #panel-posts .status-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: #dcf3e4;
+        color: #166534;
+        font-size: 11.5px;
+        line-height: 1.5;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      #panel-posts .status-tag.draft {
+        background: var(--warn-soft);
+        color: #92400e;
+      }
+
+      /* ---------- ফুটার: পরিসংখ্যান + আইকন বাটন ---------- */
+      #panel-posts .post-footer {
+        grid-area: foot;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
-        margin-top: 11px;
-        padding-top: 10px;
-        border-top: 1px solid var(--line);
+        margin-top: 2px;
       }
 
       #panel-posts .post-engage {
@@ -272,75 +306,73 @@
         white-space: nowrap;
       }
 
-      #panel-posts .post-engage svg {
-        width: 15px;
-        height: 15px;
-      }
+      #panel-posts .post-engage svg { width: 15px; height: 15px; }
 
       #panel-posts .post-engage b {
         color: var(--ink);
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 700;
       }
 
       #panel-posts .item-actions {
         display: flex;
         align-items: center;
-        gap: 7px;
+        gap: 4px;
         margin: 0;
       }
 
-      #panel-posts .item-actions .btn {
-        flex: 1 1 0;
-        min-width: 0;
-        min-height: 34px;
-        padding: 6px 8px;
-        font-size: 12.5px;
+      #panel-posts .icon-btn {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: var(--brand-soft);
+        color: var(--brand-ink);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      #panel-posts .icon-btn.danger {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      #panel-posts .icon-btn svg { width: 19px; height: 19px; }
+
+      #panel-posts .icon-btn:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
       }
 
       /* ---------- খালি অবস্থা ---------- */
-      #panel-posts .empty {
-        padding: 42px 18px;
-      }
+      #panel-posts .empty { padding: 42px 18px; }
+
+      /* ---------- ডার্ক থিম ---------- */
+      :root[data-theme="dark"] #panel-posts .status-tag { background: #123a2c; color: #86efac; }
+      :root[data-theme="dark"] #panel-posts .status-tag.draft { background: var(--warn-soft); color: var(--warn); }
+      :root[data-theme="dark"] #panel-posts .meta-cat { color: #5eead4; }
 
       /* ---------- বড় স্ক্রিন ---------- */
       @media (min-width: 700px) {
-
-        #panel-posts .posts-header {
-          flex-direction: row;
-          align-items: flex-end;
-          justify-content: space-between;
-        }
-
-        #panel-posts .posts-search {
-          width: 320px;
-        }
-
         #panel-posts .post-item {
-          grid-template-columns: 128px minmax(0, 1fr);
-          column-gap: 16px;
-          padding: 13px;
+          grid-template-columns: 112px minmax(0, 1fr) auto;
+          padding: 16px 14px 10px 16px;
         }
-
-        #panel-posts .post-thumb {
-          width: 128px;
-          height: 100px;
-        }
-
-        #panel-posts .post-footer {
-          flex-direction: row;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        #panel-posts .item-actions .btn {
-          flex: 0 0 auto;
-          padding: 6px 14px;
-        }
+        #panel-posts .post-thumb { width: 112px; height: 80px; }
+        #panel-posts .post-main h3 { font-size: 17px; }
       }
 
-    
-`;
+      @media (min-width: 900px) {
+        #panel-posts .posts-header {
+          margin: 0 0 20px;
+          padding: 24px 28px 28px;
+          border-radius: 24px;
+        }
+      }
+    `;
 
     document.head.appendChild(style);
   }
@@ -431,6 +463,17 @@
     '</svg>';
 
 
+  var ICON_EDIT =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>' +
+    '</svg>';
+
+  var ICON_TRASH =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>' +
+    '</svg>';
+
+
   /* =========================================================
      Render
   ========================================================= */
@@ -516,307 +559,66 @@
     ======================================================= */
 
     list.innerHTML =
-
       '<div class="post-list">' +
-
       entries.map(function (entry) {
+        var id = entry[0];
+        var post = entry[1] || {};
+        var stats = postStats[id] || {};
+        var published = post.status === "published";
+        var title = esc(post.title || "শিরোনামহীন");
 
-        var id =
-          entry[0];
-
-        var post =
-          entry[1] || {};
-
-        var stats =
-          postStats[id] || {};
-
-        var published =
-          post.status === "published";
-
+        var thumb = post.imageUrl
+          ? '<div class="post-thumb">' +
+              '<img src="' + esc(post.imageUrl) + '" alt="" loading="lazy"' +
+              ' onerror="this.parentElement.innerHTML=\'কোনো ছবি নেই\';this.parentElement.classList.add(\'post-thumb-empty\')">' +
+            '</div>'
+          : '<div class="post-thumb post-thumb-empty">কোনো ছবি নেই</div>';
 
         return (
-
           '<article class="post-item">' +
+            thumb +
 
-
-            /* -----------------------------------------------
-               16:9 Image
-            ----------------------------------------------- */
-
-            (
-
-              post.imageUrl
-
-                ?
-
-                '<div class="post-thumb">' +
-
-                  '<img' +
-
-                    ' src="' +
-                      esc(post.imageUrl) +
-                    '"' +
-
-                    ' alt=""' +
-
-                    ' loading="lazy"' +
-
-                    ' onerror="' +
-
-                      "this.parentElement.innerHTML='কোনো ছবি নেই';" +
-
-                      "this.parentElement.classList.add('post-thumb-empty')" +
-
-                    '"' +
-
-                  '>' +
-
-                '</div>'
-
-                :
-
-                '<div class="post-thumb post-thumb-empty">' +
-                  'কোনো ছবি নেই' +
-                '</div>'
-
-            ) +
-
-
-            '<div class="post-body">' +
-
-
-              /* ---------------------------------------------
-                 Title
-              --------------------------------------------- */
-
-              '<div class="post-top">' +
-
-                '<h3>' +
-
-                  esc(
-
-                    post.title ||
-
-                    "শিরোনামহীন"
-
-                  ) +
-
-                '</h3>' +
-
-
-                '<span class="status-tag' +
-
-                  (
-
-                    published
-                      ? ""
-                      : " draft"
-
-                  ) +
-
-                '">' +
-
-                  (
-
-                    published
-                      ? "প্রকাশিত"
-                      : "ড্রাফট"
-
-                  ) +
-
-                '</span>' +
-
-              '</div>' +
-
-
-              /* ---------------------------------------------
-                 Category + Date
-              --------------------------------------------- */
-
+            /* শিরোনাম + ক্যাটাগরি/তারিখ */
+            '<div class="post-main">' +
+              '<h3>' + title + '</h3>' +
               '<div class="post-meta">' +
-
-                '<span class="meta-cat">' +
-
-                  esc(
-
-                    post.category ||
-
-                    "সাধারণ"
-
-                  ) +
-
-                '</span>' +
-
+                '<span class="meta-cat">' + esc(post.category || "সাধারণ") + '</span>' +
                 '<span class="meta-dot">·</span>' +
-
-                '<span>' +
-
-                  fmtDate(
-
-                    post.createdAt
-
-                  ) +
-
-                '</span>' +
-
+                '<span>' + fmtDate(post.createdAt) + '</span>' +
               '</div>' +
-
-
-              /* ---------------------------------------------
-                 Stats + Actions
-              --------------------------------------------- */
-
-              '<div class="post-footer">' +
-
-
-                '<div class="post-engage">' +
-
-                  '<span title="লাইক">' +
-
-                    ICON_HEART +
-
-                    '<b>' +
-
-                      (
-
-                        stats.likes ||
-
-                        0
-
-                      ) +
-
-                    '</b>' +
-
-                  '</span>' +
-
-
-                  '<span title="কমেন্ট">' +
-
-                    ICON_COMMENT +
-
-                    '<b>' +
-
-                      (
-
-                        stats.comments ||
-
-                        0
-
-                      ) +
-
-                    '</b>' +
-
-                  '</span>' +
-
-
-                  '<span title="ভিউ">' +
-
-                    ICON_EYE +
-
-                    '<b>' +
-
-                      (
-
-                        stats.views ||
-
-                        0
-
-                      ) +
-
-                    '</b>' +
-
-                  '</span>' +
-
-                '</div>' +
-
-
-                '<div class="item-actions">' +
-
-
-                  /* Edit */
-
-                  '<button' +
-
-                    ' class="btn secondary small"' +
-
-                    ' data-action="edit"' +
-
-                    ' data-id="' +
-
-                      esc(id) +
-
-                    '"' +
-
-                  '>' +
-
-                    'এডিট' +
-
-                  '</button>' +
-
-
-                  /* Publish / Draft */
-
-                  '<button' +
-
-                    ' class="btn secondary small"' +
-
-                    ' data-action="toggle"' +
-
-                    ' data-id="' +
-
-                      esc(id) +
-
-                    '"' +
-
-                  '>' +
-
-                    (
-
-                      published
-
-                        ? "ড্রাফট করুন"
-
-                        : "প্রকাশ করুন"
-
-                    ) +
-
-                  '</button>' +
-
-
-                  /* Delete */
-
-                  '<button' +
-
-                    ' class="btn danger small"' +
-
-                    ' data-action="delete"' +
-
-                    ' data-id="' +
-
-                      esc(id) +
-
-                    '"' +
-
-                  '>' +
-
-                    'ডিলিট' +
-
-                  '</button>' +
-
-
-                '</div>' +
-
-              '</div>' +
-
-
             '</div>' +
 
+            /* প্রকাশিত/ড্রাফট সুইচ */
+            '<div class="post-switch">' +
+              '<button type="button" class="sw" role="switch"' +
+                ' aria-checked="' + (published ? "true" : "false") + '"' +
+                ' aria-label="প্রকাশিত অবস্থা: ' + (published ? "চালু" : "বন্ধ") + '"' +
+                ' title="' + (published ? "ড্রাফট করুন" : "প্রকাশ করুন") + '"' +
+                ' data-action="toggle" data-id="' + esc(id) + '">' +
+                '<span class="sw-track"><span class="sw-knob"></span></span>' +
+              '</button>' +
+              '<span class="status-tag' + (published ? "" : " draft") + '">' +
+                (published ? "প্রকাশিত" : "ড্রাফট") +
+              '</span>' +
+            '</div>' +
+
+            /* পরিসংখ্যান + এডিট/ডিলিট */
+            '<div class="post-footer">' +
+              '<div class="post-engage">' +
+                '<span title="লাইক">' + ICON_HEART + '<b>' + (stats.likes || 0) + '</b></span>' +
+                '<span title="কমেন্ট">' + ICON_COMMENT + '<b>' + (stats.comments || 0) + '</b></span>' +
+                '<span title="ভিউ">' + ICON_EYE + '<b>' + (stats.views || 0) + '</b></span>' +
+              '</div>' +
+              '<div class="item-actions">' +
+                '<button type="button" class="icon-btn" data-action="edit" data-id="' + esc(id) + '"' +
+                  ' aria-label="এডিট করুন" title="এডিট">' + ICON_EDIT + '</button>' +
+                '<button type="button" class="icon-btn danger" data-action="delete" data-id="' + esc(id) + '"' +
+                  ' aria-label="ডিলিট করুন" title="ডিলিট">' + ICON_TRASH + '</button>' +
+              '</div>' +
+            '</div>' +
           '</article>'
-
         );
-
       }).join("") +
-
       '</div>';
 
 
