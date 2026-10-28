@@ -61,8 +61,7 @@
     display:flex;align-items:center;justify-content:space-between;gap:12px;
     padding:var(--safe-t) 16px 0;
     background:var(--nav-bg);color:var(--nav-ink);
-    border-radius:0 0 22px 22px;
-    box-shadow:0 6px 18px rgba(11,61,145,.18);
+    border-radius:0;
   }
   .ar-brand{
     display:flex;align-items:center;gap:11px;
@@ -176,7 +175,7 @@
   .btn svg{width:17px;height:17px}
 
   /* ---------- shell / gate ---------- */
-  .shell{max-width:680px;margin:0 auto;padding:18px 14px 30px}
+  .shell{max-width:680px;margin:0 auto;padding:0 14px 30px}
   .gate{
     max-width:400px;margin:10vh auto;
     background:var(--surface);border:1px solid var(--line);border-radius:22px;
@@ -216,7 +215,7 @@
   /* ---------- panels / cards ---------- */
   .panel{
     background:var(--surface);border:1px solid var(--line);
-    border-radius:20px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow);
+    border-radius:20px;padding:18px;margin:16px 0;box-shadow:var(--shadow);
   }
   .panel h2{font-family:var(--font-display);font-weight:400;font-size:22px;line-height:1.25;margin:0 0 4px}
   .panel .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
@@ -226,7 +225,7 @@
     border:1px dashed var(--line);border-radius:14px;background:var(--surface);
   }
   /* পোস্ট প্যানেলের কার্ড নিজেই posts.js থেকে আসে, তাই বাইরের প্যানেল স্বচ্ছ */
-  #panel-posts{background:none;border:0;box-shadow:none;padding:0}
+  #panel-posts{background:none;border:0;box-shadow:none;padding:0;margin-top:0}
 
   /* list cards (বিজ্ঞাপন প্যানেল ইত্যাদিতে ব্যবহৃত) */
   .post-list{display:grid;gap:10px}
@@ -432,14 +431,13 @@
 
   <script src="login.js?v=3"></script>
   <script src="create.js?v=2"></script>
-  <script src="posts.js?v=2"></script>
-  <script src="drafts.js?v=1"></script>
+  <script src="posts.js?v=3"></script>
   <script src="reports.js?v=2"></script>
   <script src="users.js?v=2"></script>
   <script src="stats.js?v=2"></script>
   <script src="ad.js?v=2"></script>
   <script src="advertise.js?v=2"></script>
   <script src="contact.js?v=2"></script>
-  <script src="theme.js?v=1"></script>
+  <script src="drafts.js?v=2"></script>
 </body>
 </html>

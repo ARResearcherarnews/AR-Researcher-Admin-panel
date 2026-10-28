@@ -111,6 +111,17 @@
       #ar-drafts-overlay .dr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
       #ar-drafts-overlay .dr-actions .btn{flex:1 1 auto;min-height:46px}
       #ar-drafts-overlay .dr-empty{color:var(--muted);text-align:center;padding:34px 12px;font-size:13.5px;border:1px dashed var(--line);border-radius:14px}
+      #ar-drafts-overlay .dr-f select{width:100%;box-sizing:border-box;font:inherit;font-size:16px;min-height:46px;padding:0 12px;
+        border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+      #ar-drafts-overlay .dr-opt{display:block;width:100%;text-align:left;margin:0 0 8px;padding:12px 14px;border:1px solid var(--line);
+        border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+      #ar-drafts-overlay .dr-opt b{display:block;font-size:15px;line-height:1.5;font-weight:600}
+      #ar-drafts-overlay .dr-opt small{display:block;margin-top:2px;color:var(--muted);font-size:12.5px;line-height:1.5}
+      #ar-drafts-overlay .dr-opt:hover,#ar-drafts-overlay .dr-opt:focus-visible{border-color:var(--brand);outline:none}
+      #ar-drafts-overlay .dr-opt.on{border-color:var(--brand);background:var(--brand-soft)}
+      #ar-drafts-overlay .dr-ul{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.7}
+      #ar-drafts-overlay #dr-cover{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line);margin:8px 0}
+      #ar-drafts-overlay #dr-cover[hidden]{display:none}
     `;
     document.head.appendChild(s);
   }
@@ -188,7 +199,10 @@
     }
     openId = null;
     wrap.removeAttribute("data-open");
+    var keepT = val("dr-newtitle"), keepC = val("dr-newcat");
     wrap.innerHTML = listHtml();
+    if (keepT && $("dr-newtitle")) $("dr-newtitle").value = keepT;
+    if (keepC && $("dr-newcat")) $("dr-newcat").value = keepC;
   }
 
   /* ---------- তালিকা ---------- */
@@ -227,11 +241,21 @@
       );
     }).join("");
 
+    var catOpts = '<option value="">AI ঠিক করুক</option>' + REPORT_CATS.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("");
+    var reportForm =
+      '<div class="dr-card" id="dr-newreport"><h4>নতুন রিপোর্ট (শিরোনাম থেকে)</h4>' +
+      '<div class="dr-note" style="margin-bottom:8px">একটি শিরোনাম বা বিষয় লিখুন। AI একবার ওয়েবে সার্চ করে তথ্য যাচাই করে রিপোর্ট ও আরও ভালো শিরোনামের বিকল্প দেবে (সর্বোচ্চ ১০ মিনিট সময়)। একই বিষয় আবার দিলে আগের রিপোর্টই খুলবে, নতুন করে AI চলবে না।</div>' +
+      '<div class="dr-f"><label for="dr-newtitle">শিরোনাম / বিষয়</label><input type="text" id="dr-newtitle" placeholder="যেমন: পিএইচপিতে নতুন নিরাপত্তাত্রুটি"></div>' +
+      '<div class="dr-f"><label for="dr-newcat">বিভাগ</label><select id="dr-newcat">' + catOpts + "</select></div>" +
+      '<div class="dr-actions"><button type="button" class="btn" data-act="report" id="dr-reportbtn">রিপোর্ট তৈরি করুন</button></div>' +
+      '<div class="msg" id="dr-reportmsg"></div></div>';
+
     return (
       '<div class="dr-top"><h2>AI ড্রাফট</h2>' +
         '<button type="button" class="btn small" data-act="run" id="dr-run">এখনই চালান</button>' +
         '<button type="button" class="btn ghost small" data-act="close">বন্ধ</button></div>' +
       statsHtml() +
+      reportForm +
       '<div class="msg" id="dr-runmsg" style="margin:0 0 6px"></div>' +
       '<div class="dr-seg"><button type="button" data-act="view" data-v="pending" class="' + (view === "pending" ? "on" : "") + '">অপেক্ষমাণ (' + pendingCount() + ')</button>' +
       '<button type="button" data-act="view" data-v="archive" class="' + (view === "archive" ? "on" : "") + '">প্রকাশিত / বাতিল</button></div>' +
@@ -302,6 +326,40 @@
       area("dr-social", "সামাজিক মাধ্যমের পোস্ট (প্রকাশ হবে না, শুধু কপির জন্য)", d.socialPost) +
       "</div>";
 
+    var rep = d.report || {};
+    var findings = toArr(rep.keyFindings), unclear = toArr(rep.unclear);
+    var reportBox = (rep.summary || findings.length || rep.background)
+      ? '<div class="dr-card"><h4>রিপোর্ট' + (d.topic ? " — " + esc(d.topic) : "") + "</h4>" +
+        (rep.summary ? "<p style=\"margin:0 0 8px;line-height:1.8\">" + esc(rep.summary) + "</p>" : "") +
+        (findings.length ? "<b style=\"font-size:13.5px\">যাচাই-করা মূল তথ্য</b><ul class=\"dr-ul\">" + findings.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "") +
+        (rep.background ? "<div class=\"dr-note\" style=\"margin-top:8px\"><b>প্রেক্ষাপট:</b> " + esc(rep.background) + "</div>" : "") +
+        (unclear.length ? "<div class=\"dr-note\" style=\"margin-top:8px\"><b>যা এখনো স্পষ্ট নয়:</b><br>" + unclear.map(esc).join("<br>") + "</div>" : "") +
+        "</div>"
+      : "";
+
+    var tOpts = toArr(d.titleOptions);
+    var titleBox = tOpts.length
+      ? '<div class="dr-card"><h4>আরও ভালো শিরোনামের বিকল্প</h4>' +
+        '<div class="dr-note" style="margin-bottom:8px">যেটা ভালো লাগে চাপুন — নিচের "শিরোনাম" ঘরে বসে যাবে। না চাইলে নিজের শিরোনামই রাখুন।</div>' +
+        tOpts.map(function (o, i) {
+          return '<button type="button" class="dr-opt" data-act="pickTitle" data-i="' + i + '"><b>' + esc(o.title) + "</b>" + (o.why ? "<small>" + esc(o.why) + "</small>" : "") + "</button>";
+        }).join("") + "</div>"
+      : "";
+
+    var coverBox = d.reviewStatus === "rejected" ? "" :
+      '<div class="dr-card"><h4>কভার ছবি (লোগো + শিরোনাম)</h4>' +
+      '<div class="dr-note" style="margin-bottom:8px">শিরোনাম ও ক্যাটাগরি (বিভাগ) ঠিক করার পর এখানে কভার বানান: লোগো, ক্যাটাগরি আর শিরোনাম ছবির ওপর বসবে। তৈরি হলে ডাউনলোড করা যাবে।</div>' +
+      '<div class="dr-f"><label for="dr-coverbg">পটভূমি</label><select id="dr-coverbg">' +
+        '<option value="blue">শুধু নীল (দ্রুত, কোনো AI কল নেই)</option>' +
+        '<option value="ai">AI পটভূমি (ছবির বর্ণনা থেকে)</option>' +
+        '<option value="current">পোস্টের বর্তমান ছবি</option></select></div>' +
+      '<canvas id="dr-cover" width="1200" height="630" hidden></canvas>' +
+      '<div class="dr-actions">' +
+        '<button type="button" class="btn secondary" data-act="cover" id="dr-coverbtn">কভার তৈরি করুন</button>' +
+        '<button type="button" class="btn secondary" data-act="coverdl" id="dr-coverdl" disabled>ডাউনলোড (PNG)</button>' +
+        '<button type="button" class="btn secondary" data-act="coveruse" id="dr-coveruse" disabled>পোস্টের ছবি হিসেবে বসান</button>' +
+      '</div><div class="msg" id="dr-covermsg"></div></div>';
+
     var pub =
       done
         ? '<div class="dr-card"><div class="dr-note">এই ড্রাফট ' + esc(REVIEW_LABEL[d.reviewStatus]) + " হয়েছে" + (d.publishedAt ? " (" + esc(fmt(d.publishedAt)) + ")" : "") + "।</div></div>"
@@ -320,7 +378,7 @@
       '<div class="dr-top"><button type="button" class="btn ghost small" data-act="back">← তালিকা</button><h2>ড্রাফট রিভিউ</h2></div>' +
       '<div><span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + "</span>" +
       '<span class="dr-meta">' + esc(fmt(d.createdAt)) + "</span></div><div style=\"height:10px\"></div>" +
-      verifyBox + form + pub
+      verifyBox + reportBox + titleBox + form + coverBox + pub
     );
   }
 
@@ -451,6 +509,205 @@
       .then(function () { input.value = ""; });
   }
 
+
+  /* ---------- নতুন রিপোর্ট (শিরোনাম থেকে) ---------- */
+  var REPORT_CATS = ["জাতীয়", "আন্তর্জাতিক", "রাজনীতি", "অর্থনীতি", "খেলা", "বিনোদন", "প্রযুক্তি", "শিক্ষা", "স্বাস্থ্য", "সাধারণ"];
+  var pendingOpen = null;
+
+  function openPending() {
+    if (pendingOpen && drafts[pendingOpen]) {
+      openId = pendingOpen;
+      pendingOpen = null;
+      render();
+    }
+  }
+
+  function runReport() {
+    var title = val("dr-newtitle");
+    var cat = val("dr-newcat");
+    if (title.length < 8) { setMsg("dr-reportmsg", "শিরোনাম বা বিষয়টি একটু বিস্তারিত লিখুন (কমপক্ষে ৮ অক্ষর)।", "bad"); return; }
+    var btn = $("dr-reportbtn");
+    if (btn) btn.disabled = true;
+    setMsg("dr-reportmsg", "গবেষণা ও যাচাই চলছে… (সর্বোচ্চ ১০ মিনিট; পেজ বন্ধ করবেন না)", "");
+    callWorker("/api/ai/report", { title: title, category: cat })
+      .then(function (r) {
+        pendingOpen = r.draftId;
+        setMsg("dr-reportmsg", r.cached ? "আগের তৈরি রিপোর্ট খোলা হচ্ছে (নতুন করে AI চলেনি)।" : "✓ রিপোর্ট তৈরি হয়েছে, খোলা হচ্ছে…", "ok");
+        openPending(); // ড্রাফট এখনো না এলে নিচের লিসেনার খুলবে
+      })
+      .catch(function (e) { setMsg("dr-reportmsg", "রিপোর্ট তৈরি হয়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-reportbtn"); if (b) b.disabled = false; });
+  }
+
+  function pickTitle(i) {
+    var o = toArr(drafts[openId] && drafts[openId].titleOptions)[i];
+    if (!o) return;
+    $("dr-title").value = o.title;
+    var btns = document.querySelectorAll("#ar-drafts-overlay .dr-opt");
+    for (var k = 0; k < btns.length; k++) btns[k].classList.toggle("on", k === Number(i));
+    setMsg("dr-msg", "শিরোনাম বসেছে — সংরক্ষণ করতে ভুলবেন না।", "ok");
+  }
+
+  /* ---------- কভার ছবি: লোগো + ক্যাটাগরি + শিরোনাম (ব্রাউজারেই আঁকা, ডাউনলোডযোগ্য) ---------- */
+  var coverAi = { prompt: "", img: null };
+
+  function loadImg(src, cors) {
+    return new Promise(function (resolve, reject) {
+      var im = new Image();
+      if (cors) im.crossOrigin = "anonymous";
+      im.onload = function () { resolve(im); };
+      im.onerror = function () { reject(new Error("ছবি লোড হয়নি")); };
+      im.src = src;
+    });
+  }
+
+  function coverBackground(mode) {
+    if (mode === "ai") {
+      var prompt = val("dr-imgprompt");
+      if (!prompt) return Promise.reject(new Error("AI পটভূমির জন্য আগে ছবির বর্ণনা (ইংরেজি) লিখুন।"));
+      if (coverAi.img && coverAi.prompt === prompt) return Promise.resolve(coverAi.img); // একই বর্ণনায় আবার AI চালানো হয় না
+      return callWorker("/api/ai/image", { prompt: prompt })
+        .then(function (r) { return loadImg(r.image, false); })
+        .then(function (im) { coverAi = { prompt: prompt, img: im }; return im; });
+    }
+    if (mode === "current") {
+      var u = safeUrl(val("dr-image"));
+      if (!u) return Promise.reject(new Error("পোস্টে এখনো ছবির লিংক নেই।"));
+      return loadImg(u, true);
+    }
+    return Promise.resolve(null);
+  }
+
+  function wrapText(ctx, text, maxW) {
+    var words = String(text).split(/\s+/).filter(Boolean), lines = [], cur = "";
+    words.forEach(function (w) {
+      var t = cur ? cur + " " + w : w;
+      if (ctx.measureText(t).width <= maxW || !cur) { cur = t; }
+      else { lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  function drawLogo(ctx, cx, cy, r) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = "#8fd8cf"; ctx.stroke();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0b3d91"; ctx.font = "800 " + Math.round(r * 0.82) + 'px Arial, Helvetica, sans-serif';
+    ctx.fillText("AR", cx, cy - r * 0.16);
+    ctx.fillStyle = "#0f766e"; ctx.font = "700 " + Math.round(r * 0.26) + 'px Arial, Helvetica, sans-serif';
+    ctx.fillText("NEWS", cx, cy + r * 0.52);
+    ctx.restore();
+  }
+
+  function drawCover(canvas, bg, title, cat) {
+    var W = 1200, H = 630, ctx = canvas.getContext("2d"), F = '"Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#0b3d91"; ctx.fillRect(0, 0, W, H);
+    if (bg) {
+      var sc = Math.max(W / bg.width, H / bg.height), w = bg.width * sc, h = bg.height * sc;
+      ctx.drawImage(bg, (W - w) / 2, (H - h) / 2, w, h);
+    }
+    var g = ctx.createLinearGradient(0, 0, 0, H); // লেখা পড়ার জন্য গাঢ় আবরণ
+    g.addColorStop(0, bg ? "rgba(6,20,58,0.55)" : "rgba(6,20,58,0)"); g.addColorStop(1, "rgba(6,20,58,0.88)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    drawLogo(ctx, 104, 96, 44);
+    ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = "#ffffff"; ctx.font = "700 36px " + F;
+    ctx.fillText("AR News", 164, 96);
+
+    ctx.font = "700 28px " + F;
+    var cw = ctx.measureText(cat).width + 44;
+    ctx.fillStyle = "#0f766e"; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(64, 172, cw, 52, 26); else ctx.rect(64, 172, cw, 52);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.fillText(cat, 86, 199);
+
+    var size = 72, lines;
+    for (;;) {
+      ctx.font = "700 " + size + "px " + F;
+      lines = wrapText(ctx, title, W - 128);
+      if ((lines.length <= 4 && lines.length * size * 1.32 <= 330) || size <= 34) break;
+      size -= 4;
+    }
+    ctx.textBaseline = "alphabetic"; ctx.fillStyle = "#ffffff";
+    lines.forEach(function (ln, i) { ctx.fillText(ln, 64, 276 + size + i * size * 1.32); });
+
+    ctx.font = "600 26px " + F; ctx.fillStyle = "#c9d8f5"; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+    ctx.fillText("arnews.info", W - 64, H - 36);
+  }
+
+  function makeCover() {
+    var title = val("dr-title"), cat = val("dr-category");
+    if (!title) { setMsg("dr-covermsg", "আগে শিরোনাম দিন (বা উপরের বিকল্প থেকে বেছে নিন)।", "bad"); return; }
+    if (!cat) { setMsg("dr-covermsg", "ক্যাটাগরি (বিভাগ) ঘরে বিভাগ লিখুন।", "bad"); return; }
+    var mode = val("dr-coverbg") || "blue";
+    var btn = $("dr-coverbtn"); btn.disabled = true;
+    setMsg("dr-covermsg", mode === "ai" ? "পটভূমি বানানো হচ্ছে…" : "কভার তৈরি হচ্ছে…", "");
+    var fonts = document.fonts && document.fonts.load
+      ? Promise.all([document.fonts.load('700 40px "Hind Siliguri"', title + cat), document.fonts.load('700 40px "Hind Siliguri"')]).catch(function () {})
+      : Promise.resolve();
+    fonts
+      .then(function () { return coverBackground(mode); })
+      .catch(function (e) {
+        if (mode === "current") { setMsg("dr-covermsg", "বর্তমান ছবি কভারে নেওয়া যায়নি (" + e.message + ") — নীল পটভূমি ব্যবহার হচ্ছে।", "bad"); return null; }
+        throw e;
+      })
+      .then(function (bg) {
+        var c = $("dr-cover");
+        drawCover(c, bg, title, cat);
+        c.hidden = false;
+        c.setAttribute("data-mode", mode);
+        $("dr-coverdl").disabled = false;
+        $("dr-coveruse").disabled = false;
+        if (!$("dr-covermsg").textContent || /হচ্ছে…$/.test($("dr-covermsg").textContent)) setMsg("dr-covermsg", "✓ কভার তৈরি। ডাউনলোড করতে পারেন।", "ok");
+      })
+      .catch(function (e) { setMsg("dr-covermsg", "কভার তৈরি হয়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-coverbtn"); if (b) b.disabled = false; });
+  }
+
+  function coverBlob(cb) {
+    var c = $("dr-cover");
+    try {
+      c.toBlob(function (b) {
+        if (!b) { setMsg("dr-covermsg", "ছবি তৈরি করা যায়নি — 'শুধু নীল' বা AI পটভূমি বেছে নিন।", "bad"); return; }
+        cb(b);
+      }, "image/png");
+    } catch (e) {
+      setMsg("dr-covermsg", "এই পটভূমির ছবি ডাউনলোডযোগ্য নয় — 'শুধু নীল' বা AI পটভূমি বেছে নিন।", "bad");
+    }
+  }
+
+  function downloadCover() {
+    coverBlob(function (b) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = (val("dr-slug") || "ar-news-cover") + ".png";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      setMsg("dr-covermsg", "✓ ডাউনলোড শুরু হয়েছে।", "ok");
+    });
+  }
+
+  function useCover() {
+    var mode = $("dr-cover").getAttribute("data-mode");
+    setMsg("dr-covermsg", "আপলোড হচ্ছে…", "");
+    coverBlob(function (b) {
+      var fd = new FormData();
+      fd.append("image", b, "cover.png");
+      uploadToImgbb(fd)
+        .then(function (url) {
+          $("dr-image").value = url;
+          imageAi = mode === "ai";
+          updatePreview();
+          setMsg("dr-covermsg", "✓ কভার পোস্টের ছবি হিসেবে বসেছে। সংরক্ষণ বা প্রকাশ করতে ভুলবেন না।", "ok");
+        })
+        .catch(function (e) { setMsg("dr-covermsg", "আপলোড হয়নি: " + e.message, "bad"); });
+    });
+  }
+
   /* ---------- সংরক্ষণ / প্রকাশ / বাতিল ---------- */
   function draftPatch(f) {
     return {
@@ -553,6 +810,11 @@
     else if (act === "view") { view = el.getAttribute("data-v"); render(); }
     else if (act === "run") runAuto();
     else if (act === "genimg") genImage();
+    else if (act === "report") runReport();
+    else if (act === "pickTitle") pickTitle(el.getAttribute("data-i"));
+    else if (act === "cover") makeCover();
+    else if (act === "coverdl") downloadCover();
+    else if (act === "coveruse") useCover();
     else if (act === "save") saveDraft();
     else if (act === "publish") publish();
     else if (act === "reject") reject();
@@ -570,6 +832,7 @@
     window.rtdb.ref("drafts").orderByChild("createdAt").limitToLast(100).on("value", function (snap) {
       drafts = snap.val() || {};
       updateBadge();
+      openPending(); // নতুন রিপোর্টের ড্রাফট এসে গেলে সরাসরি খোলে
       if (overlay && !overlay.hidden && !openId) render();
     }, function () { /* অনুমতি না থাকলে চুপ */ });
 
