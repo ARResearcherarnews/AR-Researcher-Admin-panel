@@ -25,6 +25,9 @@
   var drafts = {};
   var autoState = null;
   var autoLog = null;
+  var aiStat = null;
+  var statErr = "";
+  var statBusy = false;
   var view = "pending"; // pending | archive
   var openId = null;
   var imageAi = false;
@@ -122,6 +125,22 @@
       #ar-drafts-overlay .dr-ul{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.7}
       #ar-drafts-overlay #dr-cover{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line);margin:8px 0}
       #ar-drafts-overlay #dr-cover[hidden]{display:none}
+      #ar-drafts-overlay .dr-sthead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+      #ar-drafts-overlay .dr-sthead h4{flex:1;margin:0}
+      #ar-drafts-overlay .dr-mrow{padding:8px 0;border-top:1px solid var(--line)}
+      #ar-drafts-overlay .dr-mrow:first-of-type{border-top:0}
+      #ar-drafts-overlay .dr-mname{display:flex;justify-content:space-between;gap:8px;font-size:13px;align-items:baseline}
+      #ar-drafts-overlay .dr-mname span{color:var(--muted);font-size:12.5px;white-space:nowrap}
+      #ar-drafts-overlay .dr-mrow small{display:block;color:var(--muted);font-size:12px;line-height:1.6;margin-top:3px}
+      #ar-drafts-overlay .dr-bar{height:7px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:5px}
+      #ar-drafts-overlay .dr-bar i{display:block;height:100%;background:var(--brand);border-radius:99px}
+      #ar-drafts-overlay .dr-bar i.hi{background:var(--danger,#b42318)}
+      #ar-drafts-overlay .dr-sum{font-size:13px;line-height:1.8;margin:8px 0 2px}
+      #ar-drafts-overlay .bad{color:var(--danger,#b42318)}
+      #ar-drafts-overlay .dr-lg{font-size:12.5px;line-height:1.6;padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+      #ar-drafts-overlay .dr-lg time{color:var(--muted);margin-right:6px}
+      #ar-drafts-overlay .dr-lg.bad b{color:var(--danger,#b42318)}
+      #ar-drafts-overlay .dr-lg small{display:block;color:var(--danger,#b42318)}
     `;
     document.head.appendChild(s);
   }
@@ -172,6 +191,7 @@
     return overlay;
   }
   function openOverlay() {
+    setTimeout(loadStatus, 0);
     ensureOverlay();
     overlay.hidden = false;
     document.body.style.overflow = "hidden";
@@ -199,10 +219,12 @@
     }
     openId = null;
     wrap.removeAttribute("data-open");
-    var keepT = val("dr-newtitle"), keepC = val("dr-newcat");
+    var keepT = val("dr-newtitle"), keepC = val("dr-newcat"), keepU = val("dr-newurl"), keepX = val("dr-newtext");
     wrap.innerHTML = listHtml();
     if (keepT && $("dr-newtitle")) $("dr-newtitle").value = keepT;
     if (keepC && $("dr-newcat")) $("dr-newcat").value = keepC;
+    if (keepU && $("dr-newurl")) $("dr-newurl").value = keepU;
+    if (keepX && $("dr-newtext")) $("dr-newtext").value = keepX;
   }
 
   /* ---------- তালিকা ---------- */
@@ -216,10 +238,94 @@
     } else {
       h += '<div class="dr-stats">এখনো কোনো অটো-রান হয়নি।</div>';
     }
-    if (autoLog && autoLog.error) {
+    if (autoLog && autoLog.error && !(autoState && autoState.lastRun && autoState.lastRun > autoLog.at)) {
       h += '<div class="dr-err">⚠ সর্বশেষ ত্রুটি (' + esc(fmt(autoLog.at)) + "): " + esc(autoLog.error) + "</div>";
     }
     return h;
+  }
+
+  /* ---------- AI অবস্থা ও ব্যবহার (Worker থেকে) ---------- */
+  var KIND_LABEL = { auto: "অটো-রান", report: "রিপোর্ট", draft: "ড্রাফট", image: "ছবি", status: "অবস্থা" };
+
+  function pct(a, b) { return b > 0 ? Math.min(100, Math.round((a * 100) / b)) : 0; }
+  function bar(a, b) {
+    var p = pct(a, b);
+    return '<div class="dr-bar"><i class="' + (p >= 80 ? "hi" : "") + '" style="width:' + p + '%"></i></div>';
+  }
+
+  function statusInner() {
+    var h = '<div class="dr-sthead"><h4>AI অবস্থা ও ব্যবহার</h4>' +
+      '<button type="button" class="btn ghost small" data-act="refreshstat" id="dr-statrefresh">রিফ্রেশ</button></div>';
+    if (statErr && !aiStat) return h + '<div class="dr-note">লোড করা যায়নি: ' + esc(statErr) + "</div>";
+    if (!aiStat) return h + '<div class="dr-note">লোড হচ্ছে…</div>';
+
+    var s = aiStat, cfg = s.config || {}, u = s.usage || {}, gu = u.gemini || {};
+    var lim = (s.limits && s.limits.gemini) || {};
+    var alim = (s.limits && s.limits.auto) || {};
+    var names = toArr(cfg.geminiModels).slice();
+    Object.keys(gu).forEach(function (k) { if (names.indexOf(k) < 0) names.push(k); });
+
+    if (cfg.pausedUntil) {
+      h += '<div class="dr-warn">কোটা শেষ হওয়ায় অটো-রান বিরতিতে — ' + esc(fmt(cfg.pausedUntil)) + " পর্যন্ত Gemini ডাকা হবে না।</div>";
+    }
+
+    h += '<div class="dr-sum">আজকের রিপোর্ট: <b>' + (s.reportsToday || 0) + " / " + (s.reportLimit || 0) + "</b>";
+    if (s.auto) {
+      h += "<br>অটো-ড্রাফট: যাচাই <b>" + (s.auto.verified || 0) + (alim.verify ? " / " + alim.verify : "") + "</b> · ড্রাফট <b>" +
+        (s.auto.drafted || 0) + (alim.draft ? " / " + alim.draft : "") + "</b>";
+    }
+    h += "</div>";
+
+    h += '<div style="margin-top:8px"><b style="font-size:13px">Gemini (ফ্রি টিয়ার)</b></div>';
+    h += names.map(function (m) {
+      var g = gu[m] || {}, l = lim[m] || {}, ok = g.ok || 0, errs = [];
+      if (g.e429) errs.push("কোটা/সীমা (৪২৯): " + g.e429);
+      if (g.e404) errs.push("মডেল নেই (৪০৪): " + g.e404);
+      if (g.eOther) errs.push("অন্য ত্রুটি: " + g.eOther);
+      return '<div class="dr-mrow"><div class="dr-mname"><b>' + esc(m) + "</b><span>" + ok + (l.rpd ? " / " + l.rpd : "") + " সফল কল</span></div>" +
+        (l.rpd ? bar(ok, l.rpd) : "") +
+        "<small>টোকেন: ইনপুট " + (g.inTok || 0) + " · আউটপুট " + (g.outTok || 0) +
+        (errs.length ? '<br><span class="bad">' + esc(errs.join(" · ")) + "</span>" : "") + "</small></div>";
+    }).join("");
+
+    var w = u.workers || {};
+    h += '<div style="margin-top:10px"><b style="font-size:13px">Cloudflare Workers AI (ফলব্যাক)</b></div>';
+    if (cfg.workersAi) {
+      h += '<div class="dr-mrow"><div class="dr-mname"><b>' + esc(cfg.workersAiModel || "") + "</b><span>" + (w.ok || 0) + " সফল কল</span></div>" +
+        "<small>ব্যর্থ: " + (w.fail || 0) + " · টোকেন: ইনপুট " + (w.inTok || 0) + " · আউটপুট " + (w.outTok || 0) +
+        "<br>Neurons-এর আসল হিসাব: Cloudflare → AI → Workers AI (দিনে ১০,০০০ ফ্রি)</small></div>";
+    } else {
+      h += '<div class="dr-note">বন্ধ — Worker-এ AI_MODEL সেট করা নেই।</div>';
+    }
+
+    var log = toArr(s.log).slice(0, 10);
+    h += '<div style="margin-top:12px"><b style="font-size:13px">সাম্প্রতিক কার্যকলাপ</b></div>';
+    h += log.length
+      ? log.map(function (e) {
+          return '<div class="dr-lg ' + (e.ok ? "" : "bad") + '"><time>' + esc(fmt(e.at)) + "</time><b>" + esc(KIND_LABEL[e.kind] || e.kind || "") +
+            "</b> " + (e.ok ? "✓ " : "✗ ") + esc(e.msg || "") + (e.error ? "<small>" + esc(e.error) + "</small>" : "") + "</div>";
+        }).join("")
+      : '<div class="dr-note">এখনো কিছু নেই।</div>';
+
+    h += '<div class="dr-note" style="margin-top:10px">এটা শুধু এই Worker-এর নিজের গোনা (প্রতিদিন ঢাকার সময়ে নতুন)। Google-এর আসল কোটা দেখতে AI Studio → Rate limit পেজ।</div>';
+    return h;
+  }
+
+  function statusHtml() { return '<div class="dr-card" id="dr-status">' + statusInner() + "</div>"; }
+
+  function loadStatus() {
+    if (statBusy) return;
+    statBusy = true;
+    var b = $("dr-statrefresh");
+    if (b) b.textContent = "…";
+    callWorker("/api/ai/status", {})
+      .then(function (r) { aiStat = r; statErr = ""; })
+      .catch(function (e) { statErr = e.message; })
+      .then(function () {
+        statBusy = false;
+        var el = $("dr-status");
+        if (el) el.innerHTML = statusInner();
+      });
   }
 
   function listHtml() {
@@ -244,8 +350,10 @@
     var catOpts = '<option value="">AI ঠিক করুক</option>' + REPORT_CATS.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("");
     var reportForm =
       '<div class="dr-card" id="dr-newreport"><h4>নতুন রিপোর্ট (শিরোনাম থেকে)</h4>' +
-      '<div class="dr-note" style="margin-bottom:8px">একটি শিরোনাম বা বিষয় লিখুন। AI একবার ওয়েবে সার্চ করে তথ্য যাচাই করে রিপোর্ট ও আরও ভালো শিরোনামের বিকল্প দেবে (সর্বোচ্চ ১০ মিনিট সময়)। একই বিষয় আবার দিলে আগের রিপোর্টই খুলবে, নতুন করে AI চলবে না।</div>' +
+      '<div class="dr-note" style="margin-bottom:8px">একটি শিরোনাম বা বিষয় লিখুন। সূত্র খুঁজে AI একবার তথ্য মিলিয়ে রিপোর্ট ও আরও ভালো শিরোনামের বিকল্প দেবে (ওয়েব-সার্চ নয়; খবরের লিংক বা তথ্য সাথে দিলে ফল ভালো হয়)। একই বিষয় আবার দিলে আগের রিপোর্টই খুলবে, নতুন করে AI চলবে না।</div>' +
       '<div class="dr-f"><label for="dr-newtitle">শিরোনাম / বিষয়</label><input type="text" id="dr-newtitle" placeholder="যেমন: পিএইচপিতে নতুন নিরাপত্তাত্রুটি"></div>' +
+      '<div class="dr-f"><label for="dr-newurl">খবরের লিংক (ঐচ্ছিক)</label><input type="text" id="dr-newurl" placeholder="https://…"></div>' +
+      '<div class="dr-f"><label for="dr-newtext">অতিরিক্ত তথ্য / পেস্ট করা লেখা (ঐচ্ছিক)</label><textarea id="dr-newtext" placeholder="খবরের লেখা বা নিশ্চিত তথ্য এখানে দিন"></textarea></div>' +
       '<div class="dr-f"><label for="dr-newcat">বিভাগ</label><select id="dr-newcat">' + catOpts + "</select></div>" +
       '<div class="dr-actions"><button type="button" class="btn" data-act="report" id="dr-reportbtn">রিপোর্ট তৈরি করুন</button></div>' +
       '<div class="msg" id="dr-reportmsg"></div></div>';
@@ -255,6 +363,7 @@
         '<button type="button" class="btn small" data-act="run" id="dr-run">এখনই চালান</button>' +
         '<button type="button" class="btn ghost small" data-act="close">বন্ধ</button></div>' +
       statsHtml() +
+      statusHtml() +
       reportForm +
       '<div class="msg" id="dr-runmsg" style="margin:0 0 6px"></div>' +
       '<div class="dr-seg"><button type="button" data-act="view" data-v="pending" class="' + (view === "pending" ? "on" : "") + '">অপেক্ষমাণ (' + pendingCount() + ')</button>' +
@@ -463,7 +572,7 @@
         setMsg("dr-runmsg", "শেষ। " + (lines.join(" | ") || "নতুন কিছু হয়নি"), "ok");
       })
       .catch(function (e) { setMsg("dr-runmsg", "চালানো যায়নি: " + e.message, "bad"); })
-      .then(function () { var b = $("dr-run"); if (b) b.disabled = false; });
+      .then(function () { var b = $("dr-run"); if (b) b.disabled = false; loadStatus(); });
   }
 
   function genImage() {
@@ -529,14 +638,14 @@
     var btn = $("dr-reportbtn");
     if (btn) btn.disabled = true;
     setMsg("dr-reportmsg", "গবেষণা ও যাচাই চলছে… (সর্বোচ্চ ১০ মিনিট; পেজ বন্ধ করবেন না)", "");
-    callWorker("/api/ai/report", { title: title, category: cat })
+    callWorker("/api/ai/report", { title: title, category: cat, url: val("dr-newurl"), text: val("dr-newtext") })
       .then(function (r) {
         pendingOpen = r.draftId;
         setMsg("dr-reportmsg", r.cached ? "আগের তৈরি রিপোর্ট খোলা হচ্ছে (নতুন করে AI চলেনি)।" : "✓ রিপোর্ট তৈরি হয়েছে, খোলা হচ্ছে…", "ok");
         openPending(); // ড্রাফট এখনো না এলে নিচের লিসেনার খুলবে
       })
       .catch(function (e) { setMsg("dr-reportmsg", "রিপোর্ট তৈরি হয়নি: " + e.message, "bad"); })
-      .then(function () { var b = $("dr-reportbtn"); if (b) b.disabled = false; });
+      .then(function () { var b = $("dr-reportbtn"); if (b) b.disabled = false; loadStatus(); });
   }
 
   function pickTitle(i) {
@@ -809,6 +918,7 @@
     else if (act === "back") { openId = null; render(); }
     else if (act === "view") { view = el.getAttribute("data-v"); render(); }
     else if (act === "run") runAuto();
+    else if (act === "refreshstat") loadStatus();
     else if (act === "genimg") genImage();
     else if (act === "report") runReport();
     else if (act === "pickTitle") pickTitle(el.getAttribute("data-i"));
