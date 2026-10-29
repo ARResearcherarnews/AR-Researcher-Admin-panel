@@ -23,8 +23,6 @@
 
   var user = null;
   var drafts = {};
-  var autoState = null;
-  var autoLog = null;
   var aiStat = null;
   var statErr = "";
   var statBusy = false;
@@ -95,6 +93,7 @@
       #ar-drafts-overlay .st-unverified{background:var(--line);color:var(--muted)}
       #ar-drafts-overlay .st-false_misleading,#ar-drafts-overlay .rv-review_required{background:var(--danger-soft);color:var(--danger)}
       :root[data-theme="dark"] #ar-drafts-overlay .st-verified{background:#123a2c;color:#86efac}
+      #ar-drafts-overlay .dr-claim a{color:var(--brand-ink);text-decoration:underline;overflow-wrap:anywhere}
       #ar-drafts-overlay .dr-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
       #ar-drafts-overlay .dr-card h4{margin:0 0 8px;font-size:14px}
       #ar-drafts-overlay .dr-warn{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:9px 11px;font-size:13px;line-height:1.6;margin-bottom:10px}
@@ -228,24 +227,8 @@
   }
 
   /* ---------- তালিকা ---------- */
-  function statsHtml() {
-    var h = "";
-    if (autoState) {
-      h +=
-        '<div class="dr-stats">আজ (' + esc(autoState.date) + "): শনাক্ত <b>" + (autoState.detected || 0) + "</b> · যাচাই <b>" + (autoState.verified || 0) +
-        "</b> · ড্রাফট <b>" + (autoState.drafted || 0) + "</b> · রিভিউ প্রয়োজন <b>" + (autoState.reviewRequired || 0) + "</b>" +
-        (autoState.lastRun ? "<br>সর্বশেষ চলেছে: " + esc(fmt(autoState.lastRun)) : "") + "</div>";
-    } else {
-      h += '<div class="dr-stats">এখনো কোনো অটো-রান হয়নি।</div>';
-    }
-    if (autoLog && autoLog.error && !(autoState && autoState.lastRun && autoState.lastRun > autoLog.at)) {
-      h += '<div class="dr-err">⚠ সর্বশেষ ত্রুটি (' + esc(fmt(autoLog.at)) + "): " + esc(autoLog.error) + "</div>";
-    }
-    return h;
-  }
-
   /* ---------- AI অবস্থা ও ব্যবহার (Worker থেকে) ---------- */
-  var KIND_LABEL = { auto: "অটো-রান", report: "রিপোর্ট", draft: "ড্রাফট", image: "ছবি", status: "অবস্থা" };
+  var KIND_LABEL = { report: "রিপোর্ট", draft: "ড্রাফট", image: "ছবি", status: "অবস্থা" };
 
   function pct(a, b) { return b > 0 ? Math.min(100, Math.round((a * 100) / b)) : 0; }
   function bar(a, b) {
@@ -261,20 +244,11 @@
 
     var s = aiStat, cfg = s.config || {}, u = s.usage || {}, gu = u.gemini || {};
     var lim = (s.limits && s.limits.gemini) || {};
-    var alim = (s.limits && s.limits.auto) || {};
     var names = toArr(cfg.geminiModels).slice();
     Object.keys(gu).forEach(function (k) { if (names.indexOf(k) < 0) names.push(k); });
 
-    if (cfg.pausedUntil) {
-      h += '<div class="dr-warn">কোটা শেষ হওয়ায় অটো-রান বিরতিতে — ' + esc(fmt(cfg.pausedUntil)) + " পর্যন্ত Gemini ডাকা হবে না।</div>";
-    }
-
     h += '<div class="dr-sum">আজকের রিপোর্ট: <b>' + (s.reportsToday || 0) + " / " + (s.reportLimit || 0) + "</b>";
-    if (s.auto) {
-      h += "<br>অটো-ড্রাফট: যাচাই <b>" + (s.auto.verified || 0) + (alim.verify ? " / " + alim.verify : "") + "</b> · ড্রাফট <b>" +
-        (s.auto.drafted || 0) + (alim.draft ? " / " + alim.draft : "") + "</b>";
-    }
-    h += "</div>";
+    h += "</div>" + bar(s.reportsToday || 0, s.reportLimit || 0);
 
     h += '<div style="margin-top:8px"><b style="font-size:13px">Gemini (ফ্রি টিয়ার)</b></div>';
     h += names.map(function (m) {
@@ -328,6 +302,21 @@
       });
   }
 
+  // গুচ্ছ-মোছা: "প্রকাশিত / বাতিল" ট্যাবে বাতিলগুলো, "অপেক্ষমাণ" ট্যাবে "রিভিউ প্রয়োজন"গুলো
+  function countBy(status) {
+    return Object.keys(drafts).filter(function (k) { return drafts[k].reviewStatus === status; }).length;
+  }
+  function bulkHtml() {
+    var n = view === "archive" ? countBy("rejected") : countBy("review_required");
+    if (!n) return "";
+    return (
+      '<div class="dr-actions" style="margin:-4px 0 12px"><button type="button" class="btn danger small" data-act="' +
+      (view === "archive" ? "delrejected" : "delreview") + '">' +
+      (view === "archive" ? "বাতিল করা সব (" + n + "টি) মুছুন" : "\"রিভিউ প্রয়োজন\" সব (" + n + "টি) মুছুন") +
+      "</button></div>"
+    );
+  }
+
   function listHtml() {
     var ids = Object.keys(drafts)
       .filter(function (id) { return view === "pending" ? isPending(drafts[id]) : !isPending(drafts[id]); })
@@ -360,14 +349,13 @@
 
     return (
       '<div class="dr-top"><h2>AI ড্রাফট</h2>' +
-        '<button type="button" class="btn small" data-act="run" id="dr-run">এখনই চালান</button>' +
         '<button type="button" class="btn ghost small" data-act="close">বন্ধ</button></div>' +
-      statsHtml() +
       statusHtml() +
       reportForm +
       '<div class="msg" id="dr-runmsg" style="margin:0 0 6px"></div>' +
       '<div class="dr-seg"><button type="button" data-act="view" data-v="pending" class="' + (view === "pending" ? "on" : "") + '">অপেক্ষমাণ (' + pendingCount() + ')</button>' +
       '<button type="button" data-act="view" data-v="archive" class="' + (view === "archive" ? "on" : "") + '">প্রকাশিত / বাতিল</button></div>' +
+      bulkHtml() +
       (items ? '<div class="dr-list">' + items + "</div>" : '<div class="dr-empty">এখানে কিছু নেই।</div>')
     );
   }
@@ -398,6 +386,10 @@
         '<div class="dr-claim"><span class="dr-pill st-' + esc(c.status) + '">' + esc(VERIFY_LABEL[c.status] || c.status) + "</span> " + esc(c.claim) +
         (c.evidence ? "<small>প্রমাণ: " + esc(c.evidence) + "</small>" : "<small>প্রমাণ পাওয়া যায়নি</small>") +
         (toArr(c.supportedBy).length ? "<small>সমর্থন করছে: " + esc(toArr(c.supportedBy).join(", ")) + "</small>" : "") +
+        (toArr(c.links).length ? "<small>যাচাইয়ের লিংক: " + toArr(c.links).map(function (l) {
+          var u = safeUrl(l.url);
+          return u ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(l.name || "লিংক") + "</a>" : esc(l.name || "");
+        }).join(" · ") + "</small>" : "") +
         (toArr(c.contradictedBy).length ? "<small>বিরোধিতা করছে: " + esc(toArr(c.contradictedBy).join(", ")) + "</small>" : "") +
         "</div>"
       );
@@ -469,6 +461,12 @@
         '<button type="button" class="btn secondary" data-act="coveruse" id="dr-coveruse" disabled>পোস্টের ছবি হিসেবে বসান</button>' +
       '</div><div class="msg" id="dr-covermsg"></div></div>';
 
+    var delCard =
+      '<div class="dr-card"><div class="dr-actions"><button type="button" class="btn danger" data-act="delete">স্থায়ীভাবে মুছে ফেলুন</button></div>' +
+      '<div class="dr-note" style="margin-top:8px">ভুল বা অপ্রয়োজনীয় হলে মুছে দিন। ড্রাফটের রেকর্ড চিরতরে যাবে' +
+      (d.reviewStatus === "approved" ? " (আগে প্রকাশিত পোস্ট থেকে যাবে, মুছবে না)" : "") + ".</div>" +
+      '<div class="msg" id="dr-delmsg"></div></div>';
+
     var pub =
       done
         ? '<div class="dr-card"><div class="dr-note">এই ড্রাফট ' + esc(REVIEW_LABEL[d.reviewStatus]) + " হয়েছে" + (d.publishedAt ? " (" + esc(fmt(d.publishedAt)) + ")" : "") + "।</div></div>"
@@ -487,7 +485,7 @@
       '<div class="dr-top"><button type="button" class="btn ghost small" data-act="back">← তালিকা</button><h2>ড্রাফট রিভিউ</h2></div>' +
       '<div><span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + "</span>" +
       '<span class="dr-meta">' + esc(fmt(d.createdAt)) + "</span></div><div style=\"height:10px\"></div>" +
-      verifyBox + reportBox + titleBox + form + coverBox + pub
+      verifyBox + reportBox + titleBox + form + coverBox + pub + delCard
     );
   }
 
@@ -556,23 +554,6 @@
         if (!data || !data.success || !data.data || !data.data.url) throw new Error((data && data.error && data.error.message) || "আপলোড ব্যর্থ");
         return data.data.url;
       });
-  }
-
-  function runAuto() {
-    var btn = $("dr-run");
-    if (btn) btn.disabled = true;
-    setMsg("dr-runmsg", "চলছে… (এক-দুই মিনিট লাগতে পারে)", "");
-    callWorker("/api/ai/auto-run", {})
-      .then(function (r) {
-        var lines = toArr(r.results).map(function (x) {
-          if (x.note) return x.note;
-          var o = { drafted: "ড্রাফট তৈরি", review_required: "রিভিউ প্রয়োজন", skipped_old: "পুরোনো খবর, বাদ" }[x.outcome] || x.outcome;
-          return o + ": " + (x.title || x.event || "");
-        });
-        setMsg("dr-runmsg", "শেষ। " + (lines.join(" | ") || "নতুন কিছু হয়নি"), "ok");
-      })
-      .catch(function (e) { setMsg("dr-runmsg", "চালানো যায়নি: " + e.message, "bad"); })
-      .then(function () { var b = $("dr-run"); if (b) b.disabled = false; loadStatus(); });
   }
 
   function genImage() {
@@ -895,6 +876,30 @@
       .catch(function (e) { setMsg("dr-msg", "বাতিল করা যায়নি: " + e.message, "bad"); });
   }
 
+  function deleteDraft() {
+    var id = openId;
+    var d = drafts[id];
+    if (!d) return;
+    var q = "এই ড্রাফটটি স্থায়ীভাবে মুছে ফেলবেন? আর ফেরানো যাবে না।";
+    if (d.reviewStatus === "approved") q += "\n(আগে প্রকাশিত পোস্টটি মুছবে না, শুধু এই ড্রাফটের রেকর্ড যাবে।)";
+    if (!window.confirm(q)) return;
+    setMsg("dr-delmsg", "মুছছে…", "");
+    window.rtdb.ref("drafts/" + id).remove()
+      .then(function () { openId = null; render(); })
+      .catch(function (e) { setMsg("dr-delmsg", "মোছা যায়নি: " + e.message, "bad"); });
+  }
+
+  function bulkDelete(kind) {
+    var want = kind === "rejected" ? "rejected" : "review_required";
+    var ids = Object.keys(drafts).filter(function (id) { return drafts[id].reviewStatus === want; });
+    if (!ids.length) return;
+    var label = kind === "rejected" ? "বাতিল করা" : "\"রিভিউ প্রয়োজন\"";
+    if (!window.confirm(label + " " + ids.length + "টি ড্রাফট স্থায়ীভাবে মুছে ফেলবেন? আর ফেরানো যাবে না।")) return;
+    var upd = {};
+    ids.forEach(function (id) { upd["drafts/" + id] = null; });
+    window.rtdb.ref().update(upd).catch(function (e) { setMsg("dr-runmsg", "মোছা যায়নি: " + e.message, "bad"); });
+  }
+
   function toCreateTab() {
     var d = drafts[openId] || {};
     var title = d.title || "";
@@ -917,7 +922,6 @@
     else if (act === "open") { openId = el.getAttribute("data-id"); render(); }
     else if (act === "back") { openId = null; render(); }
     else if (act === "view") { view = el.getAttribute("data-v"); render(); }
-    else if (act === "run") runAuto();
     else if (act === "refreshstat") loadStatus();
     else if (act === "genimg") genImage();
     else if (act === "report") runReport();
@@ -929,6 +933,9 @@
     else if (act === "publish") publish();
     else if (act === "reject") reject();
     else if (act === "manual") toCreateTab();
+    else if (act === "delete") deleteDraft();
+    else if (act === "delrejected") bulkDelete("rejected");
+    else if (act === "delreview") bulkDelete("review");
   }
 
   /* ---------- শুরু ---------- */
@@ -945,14 +952,5 @@
       openPending(); // নতুন রিপোর্টের ড্রাফট এসে গেলে সরাসরি খোলে
       if (overlay && !overlay.hidden && !openId) render();
     }, function () { /* অনুমতি না থাকলে চুপ */ });
-
-    window.rtdb.ref("autoState").on("value", function (snap) {
-      autoState = snap.val();
-      if (overlay && !overlay.hidden && !openId) render();
-    }, function () {});
-    window.rtdb.ref("autoLog").on("value", function (snap) {
-      autoLog = snap.val();
-      if (overlay && !overlay.hidden && !openId) render();
-    }, function () {});
   });
 })();
