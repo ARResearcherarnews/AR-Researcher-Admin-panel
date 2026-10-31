@@ -1,39 +1,105 @@
-/* login.js — অ্যাডমিন প্যানেলের প্রবেশদ্বার
-   এই ফাইলটাই ঠিক করে কে ড্যাশবোর্ড দেখতে পাবে: লগইন ফর্ম, "অনুমতি নেই" স্ক্রিন,
-   অথবা আসল ড্যাশবোর্ড (নিচের ন্যাভ বার + খালি প্যানেল)। ড্যাশবোর্ড দেখানোর পর
-   "admin:ready" ইভেন্ট পাঠানো হয় — create.js/posts.js/reports.js/users.js/stats.js
-   প্রত্যেকে এই ইভেন্ট শুনে নিজের প্যানেলের কনটেন্ট বসায় ও নিজের Firebase লিসেনার চালু করে।
-   ছোট কিছু শেয়ার্ড হেল্পার (esc, fmtDate, setActiveTab) window.AdminUtil-এ রাখা আছে,
-   যাতে বাকি ফাইলগুলোতে এগুলো বারবার লিখতে না হয়। */
+/* login.js — অ্যাডমিন প্যানেলের প্রবেশদ্বার (নতুন ডিজাইন)
+   index.html-এ লগইন শিট (#login), উপরের বার (#topbar), নিচের নেভিগেশন (#bottom-nav) ও
+   মেনু শিট (#more-sheet) আগে থেকেই আছে। এই ফাইল ঠিক করে কে ভেতরে ঢুকবে:
+   - কেউ লগইন না থাকলে: লগইন শিট নিচ থেকে উঠে আসে
+   - লগইন আছে কিন্তু অ্যাডমিন নয়: "অনুমতি নেই" দেখায়
+   - অ্যাডমিন হলে: শিট নেমে যায়, ড্যাশবোর্ড (নিচের নেভ + প্যানেল) দেখায়, তারপর "admin:ready" ইভেন্ট পাঠায়
+   প্রতিটা পেজ আলাদা HTML ফাইল (index/stats/create/reports/advertise/ad/users/contact/drafts) — নিজের JS ফাইলের ভেতরেই।
+   <body data-page="..."> দেখে এই ফাইল শেল বানায়: উপরের বার, নিচের নেভ (লিংক), মেনু, আর শুধু ওই পেজের #panel-<key>।
+   তারপর "admin:ready" পাঠায়, পেজের মডিউল ওই ইভেন্ট শুনে নিজের প্যানেল ভরে। শেয়ার্ড হেল্পার window.AdminUtil-এ আগের মতোই আছে। */
 (function () {
   "use strict";
 
-  var app = document.getElementById("app");
-  var navActions = document.getElementById("nav-actions");
-  var bottomNav = document.getElementById("bottom-nav");
+  function $(id) { return document.getElementById(id); }
 
+
+  // ---------- হোম/ল্যান্ডিং পেজ (index.html): লগইন ড্রয়ার ----------
+  // index.html-এ #fallbackLogin ফর্ম থাকে; এখানে window.auth / window.isAdmin (config.js) ব্যবহার হয়।
+  if (document.getElementById("fallbackLogin")) {
+    var loginForm = $("fallbackLogin");
+    var msg = $("loginMessage");
+    var say = function (text, ok) {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.style.color = ok ? "#15803d" : "#dc2626";
+    };
+    var ERRORS = {
+      "auth/invalid-credential": "ইমেইল অথবা পাসওয়ার্ড ভুল।",
+      "auth/user-not-found": "এই ইমেইলে কোনো অ্যাকাউন্ট পাওয়া যায়নি।",
+      "auth/wrong-password": "পাসওয়ার্ড সঠিক নয়।",
+      "auth/invalid-email": "সঠিক ইমেইল লিখুন।",
+      "auth/too-many-requests": "অনেকবার চেষ্টা হয়েছে। পরে আবার চেষ্টা করুন।",
+      "auth/network-request-failed": "ইন্টারনেট সংযোগ পরীক্ষা করুন।",
+    };
+    if (!window.auth || !window.rtdb || !window.isAdmin) {
+      say("Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।");
+      return;
+    }
+    var submitting = false;
+    loginForm.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var email = $("email").value.trim(), pass = $("password").value;
+      if (!email || !pass) { say("ইমেইল ও পাসওয়ার্ড লিখুন।"); return; }
+      var btn = loginForm.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
+      submitting = true;
+      say("লগইন করা হচ্ছে...", true);
+      window.auth.signInWithEmailAndPassword(email, pass)
+        .then(function (cred) {
+          return window.isAdmin(cred.user).then(function (ok) {
+            if (ok) { say("লগইন সফল।", true); window.location.href = "post.html"; }
+            else return window.auth.signOut().then(function () { say("আপনার অ্যাকাউন্টে অ্যাডমিন অনুমতি নেই।"); });
+          });
+        })
+        .catch(function (err) { say(ERRORS[err && err.code] || "লগইন ব্যর্থ হয়েছে। Firebase সেটিংস পরীক্ষা করুন।"); })
+        .then(function () { submitting = false; if (btn) btn.disabled = false; });
+    });
+    // আগে থেকেই অ্যাডমিন লগইন থাকলে সরাসরি পোস্ট পেজে
+    window.auth.onAuthStateChanged(function (user) {
+      if (!user || submitting) return;
+      window.isAdmin(user).then(function (ok) { if (ok && !submitting) window.location.replace("post.html"); });
+    });
+    return;
+  }
+
+  var app = $("app");
+  var navActions = $("nav-actions");
+  var bottomNav = $("bottom-nav");
+  var topbar = $("topbar");
+  var loginEl = $("login");
+
+  function svg(inner) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + "</svg>";
+  }
+
+  // নিচের বারে থাকবে: পোস্ট, স্ট্যাটস, নতুন (মাঝের বড় বাটন), রিপোর্ট + "মেনু"। বাকিগুলো মেনুতে।
   var TABS = [
-    { key: "create", label: "নতুন", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' },
-    { key: "ad", label: "বিজ্ঞাপন", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 13"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/><path d="M3 11v2"/></svg>' },
-    { key: "advertise", label: "অর্ডার", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
-    { key: "posts", label: "পোস্ট", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>' },
-    { key: "reports", label: "রিপোর্ট", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-    { key: "users", label: "ইউজার", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
-    { key: "stats", label: "স্ট্যাটস", icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+    { key: "posts", label: "পোস্ট", icon: svg('<path d="M4 4h16v16H4z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/>') },
+    { key: "stats", label: "স্ট্যাটস", icon: svg('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>') },
+    { key: "create", label: "নতুন", icon: svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>') },
+    { key: "reports", label: "রিপোর্ট", icon: svg('<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>') },
+    { key: "advertise", label: "অর্ডার", icon: svg('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>') },
+    { key: "ad", label: "বিজ্ঞাপন", icon: svg('<path d="m3 11 18-5v12L3 13"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/><path d="M3 11v2"/>') },
+    { key: "users", label: "ইউজার", icon: svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
   ];
-
-  // নতুন ডিজাইন: মোবাইলে নিচের বারে ৪টি প্রধান ট্যাব + "আরও"; বাকিগুলো "আরও" শিটে (ডেস্কটপ সাইডবারে সব)।
+  var PAGE_FILE = {
+    posts: "post.html", stats: "stats.html", create: "create.html", reports: "reports.html",
+    advertise: "advertise.html", ad: "ad.html", users: "user.html", chat: "contact.html", drafts: "drafts.html",
+  };
+  var PAGE = document.body.getAttribute("data-page") || "posts";
   var PRIMARY = ["posts", "stats", "create", "reports"];
   var SHEET_DESC = {
-    ad: "সব বিজ্ঞাপন দেখুন ও পরিচালনা করুন",
-    advertise: "বিজ্ঞাপনের অর্ডার ব্যবস্থাপনা",
+    advertise: "বিজ্ঞাপনের অর্ডার ও পেমেন্ট যাচাই",
+    ad: "ফিডের বিজ্ঞাপন তৈরি ও পরিচালনা",
     users: "রোল পরিবর্তন করে কাউকে অ্যাডমিন বানান বা বাদ দিন",
   };
-  var ICON_MORE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
-  var ICON_CHAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-  var ICON_CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+  var ICON_MORE = svg('<circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>');
+  var ICON_AI = svg('<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>');
+  var ICON_CHAT = svg('<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
+  var ICON_CHEV = svg('<path d="m9 6 6 6-6 6"/>');
+  var ICON_OUT = svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>');
 
-  // ---------- শেয়ার্ড হেল্পার — বাকি সব js ফাইল window.AdminUtil থেকে এগুলো ব্যবহার করবে ----------
+  // ---------- শেয়ার্ড হেল্পার — বাকি সব ফাইল window.AdminUtil থেকে এগুলো ব্যবহার করে ----------
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (ch) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
@@ -45,86 +111,13 @@
     catch (_) { return ""; }
   }
   function setActiveTab(key) {
-    TABS.forEach(function (t) {
-      var btn = document.getElementById("nav-" + t.key);
-      var panel = document.getElementById("panel-" + t.key);
-      if (btn) btn.classList.toggle("active", t.key === key);
-      if (panel) panel.hidden = t.key !== key;
-    });
-    var more = document.getElementById("nav-more");
-    if (more) more.classList.toggle("active", PRIMARY.indexOf(key) === -1);
+    // প্রতিটা পেজ আলাদা ফাইল: অন্য ট্যাব মানে অন্য পেজে যাওয়া
+    if (key && key !== PAGE && PAGE_FILE[key]) { window.location.href = PAGE_FILE[key]; return; }
     closeMore(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
-  // ---------- "আরও" শিট ----------
-  function openMore() {
-    var sheet = document.getElementById("more-sheet");
-    var back = document.getElementById("more-backdrop");
-    var list = document.getElementById("more-list");
-    var btn = document.getElementById("nav-more");
-    if (!sheet || !back || !list) return;
-
-    var rows = TABS.filter(function (t) { return PRIMARY.indexOf(t.key) === -1; }).map(function (t) {
-      return sheetRow('data-tab="' + t.key + '"', t.icon, t.label, SHEET_DESC[t.key] || "", "");
-    });
-    var chat = document.getElementById("ar-chat-nav-btn");
-    if (chat) {
-      var cb = document.getElementById("ar-chat-total-badge");
-      var unread = cb && cb.classList.contains("show") ? cb.textContent : "";
-      rows.push(sheetRow('data-chat="1"', ICON_CHAT, "ইউজার চ্যাট", "ইউজারদের মেসেজের উত্তর দিন", unread));
-    }
-    list.innerHTML = rows.join("");
-    list.querySelectorAll("button").forEach(function (b) {
-      b.addEventListener("click", function () {
-        if (b.getAttribute("data-chat")) {
-          closeMore(false);
-          chat.click();
-        } else {
-          setActiveTab(b.getAttribute("data-tab"));
-        }
-      });
-    });
-
-    back.hidden = false;
-    sheet.hidden = false;
-    if (btn) btn.setAttribute("aria-expanded", "true");
-    var first = list.querySelector("button");
-    if (first) first.focus();
-  }
-  function closeMore(restoreFocus) {
-    var sheet = document.getElementById("more-sheet");
-    var back = document.getElementById("more-backdrop");
-    var btn = document.getElementById("nav-more");
-    var wasOpen = sheet && !sheet.hidden;
-    if (sheet) sheet.hidden = true;
-    if (back) back.hidden = true;
-    if (btn) btn.setAttribute("aria-expanded", "false");
-    if (wasOpen && restoreFocus && btn) btn.focus();
-  }
-  function sheetRow(attr, icon, label, desc, badge) {
-    return (
-      '<button type="button" class="sheet-row" ' + attr + ">" +
-      '<span class="sheet-ic">' + icon + "</span>" +
-      '<span class="sheet-txt"><b>' + label + "</b>" + (desc ? "<small>" + desc + "</small>" : "") + "</span>" +
-      (badge ? '<span class="sheet-badge">' + esc(badge) + "</span>" : "") +
-      '<span class="sheet-chev">' + ICON_CHEV + "</span>" +
-      "</button>"
-    );
-  }
-  var sheetWired = false;
-  function wireSheet() {
-    if (sheetWired) return;
-    sheetWired = true;
-    var back = document.getElementById("more-backdrop");
-    if (back) back.addEventListener("click", function () { closeMore(true); });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeMore(true);
-    });
-  }
-
   function setNavBadge(key, count) {
-    var el = document.getElementById("nav-badge-" + key);
+    var el = $("nav-badge-" + key);
     if (!el) return;
     if (count > 0) {
       el.textContent = count > 99 ? "99+" : String(count);
@@ -133,113 +126,239 @@
       el.classList.remove("show");
     }
   }
-
   window.AdminUtil = { esc: esc, fmtDate: fmtDate, setActiveTab: setActiveTab, setNavBadge: setNavBadge };
 
-  // ---------- লগইন স্ক্রিন ----------
-  function renderLogin() {
-    closeMore(false);
-    bottomNav.hidden = true;
-    navActions.innerHTML = "";
-    app.innerHTML =
-      '<div class="gate">' +
-      "<h2>অ্যাডমিন লগইন</h2>" +
-      "<p>শুধুমাত্র অনুমোদিত অ্যাডমিন এখানে পোস্ট প্রকাশ ও ম্যানেজ করতে পারবেন।</p>" +
-      '<div class="error" id="login-error"></div>' +
-      '<form id="login-form">' +
-      '<div class="field"><label for="email">ইমেইল</label><input id="email" type="email" required autocomplete="email"></div>' +
-      '<div class="field"><label for="pass">পাসওয়ার্ড</label><input id="pass" type="password" required autocomplete="current-password" minlength="6"></div>' +
-      '<button class="btn" type="submit" style="width:100%">লগইন করুন</button>' +
-      "</form>" +
-      "</div>";
+  // ---------- মেনু শিট ----------
+  var sheetTimer = null;
+  function sheetRow(attr, icon, label, desc, badge) {
+    return (
+      '<button type="button" class="m-row" ' + attr + ">" +
+      '<span class="m-ic">' + icon + "</span>" +
+      '<span class="m-tx"><b>' + label + "</b>" + (desc ? "<small>" + desc + "</small>" : "") + "</span>" +
+      (badge ? '<span class="m-bd">' + esc(badge) + "</span>" : "") +
+      '<span class="m-ch">' + ICON_CHEV + "</span>" +
+      "</button>"
+    );
+  }
+  function openMore() {
+    var sheet = $("more-sheet"), back = $("more-backdrop"), list = $("more-list"), btn = $("nav-more");
+    if (!sheet || !back || !list) return;
 
-    document.getElementById("login-form").addEventListener("submit", function (e) {
+    var rows = TABS.filter(function (t) { return PRIMARY.indexOf(t.key) === -1; }).map(function (t) {
+      return sheetRow('data-go="' + PAGE_FILE[t.key] + '"', t.icon, t.label, SHEET_DESC[t.key] || "", "");
+    });
+    rows.push(sheetRow('data-go="' + PAGE_FILE.chat + '"', ICON_CHAT, "ইউজার চ্যাট", "ইউজারদের মেসেজের উত্তর দিন", ""));
+    rows.push(sheetRow('data-go="' + PAGE_FILE.drafts + '"', ICON_AI, "AI ড্রাফট", "স্বয়ংক্রিয় খবরের ড্রাফট রিভিউ ও প্রকাশ", ""));
+    list.innerHTML = rows.join("");
+    list.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var go = b.getAttribute("data-go");
+        if (go === PAGE_FILE[PAGE] || (PAGE === "chat" && go === "contact.html")) { closeMore(false); return; }
+        window.location.href = go;
+      });
+    });
+
+    clearTimeout(sheetTimer);
+    back.hidden = false;
+    sheet.hidden = false;
+    void sheet.offsetWidth; // ট্রানজিশন চালু করতে
+    back.classList.add("show");
+    sheet.classList.add("show");
+    if (btn) btn.setAttribute("aria-expanded", "true");
+    var first = list.querySelector("button");
+    if (first) first.focus();
+  }
+  function closeMore(restoreFocus) {
+    var sheet = $("more-sheet"), back = $("more-backdrop"), btn = $("nav-more");
+    if (!sheet || !back) return;
+    var wasOpen = sheet.classList.contains("show");
+    sheet.classList.remove("show");
+    back.classList.remove("show");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    clearTimeout(sheetTimer);
+    sheetTimer = setTimeout(function () {
+      if (!sheet.classList.contains("show")) { sheet.hidden = true; back.hidden = true; }
+    }, 340);
+    if (wasOpen && restoreFocus && btn) btn.focus();
+  }
+  var sheetWired = false;
+  function wireSheet() {
+    if (sheetWired) return;
+    sheetWired = true;
+    $("more-backdrop").addEventListener("click", function () { closeMore(true); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeMore(true);
+    });
+  }
+
+  // ---------- লগইন শিট ----------
+  function showLoginSheet() {
+    closeMore(false);
+    topbar.hidden = true;
+    bottomNav.hidden = true;
+    $("lg-form-view").hidden = false;
+    $("lg-noaccess").hidden = true;
+    loginEl.classList.remove("checking"); // শিট নিচ থেকে উঠে আসবে
+  }
+
+  function bindLoginForm() {
+    var form = $("lg-form");
+    var errEl = $("lg-err");
+    var btn = $("lg-btn");
+    form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var errEl = document.getElementById("login-error");
       errEl.classList.remove("show");
+      btn.disabled = true;
+      btn.textContent = "যাচাই হচ্ছে…";
       window.auth
-        .signInWithEmailAndPassword(
-          document.getElementById("email").value.trim(),
-          document.getElementById("pass").value
-        )
+        .signInWithEmailAndPassword($("em").value.trim(), $("pw").value)
         .catch(function () {
           errEl.textContent = "লগইন ব্যর্থ হয়েছে। ইমেইল বা পাসওয়ার্ড যাচাই করুন।";
           errEl.classList.add("show");
+          btn.disabled = false;
+          btn.textContent = "লগইন করুন";
         });
+      // সফল হলে onAuthStateChanged বাকিটা সামলায়
     });
+    $("na-out").addEventListener("click", function () { window.auth.signOut(); });
   }
 
-  function renderNoAccess(user) {
+  function showNoAccess(user) {
     closeMore(false);
+    topbar.hidden = true;
     bottomNav.hidden = true;
-    navActions.innerHTML = '<button class="btn secondary small" id="logout-btn">লগআউট</button>';
-    document.getElementById("logout-btn").onclick = function () { window.auth.signOut(); };
-    app.innerHTML =
-      '<div class="gate"><h2>অনুমতি নেই</h2><p>' +
-      esc(user.email || "") +
-      " — এই একাউন্টের অ্যাডমিন অনুমতি নেই। সঠিক একাউন্ট দিয়ে লগইন করুন অথবা কোনো অ্যাডমিনকে আপনাকে অনুমতি দিতে বলুন।</p>" +
-      '<button class="btn secondary" id="logout-btn-2" style="margin-top:6px">অন্য একাউন্টে লগইন করুন</button>' +
-      "</div>";
-    document.getElementById("logout-btn-2").onclick = function () { window.auth.signOut(); };
+    $("na-text").textContent = (user.email || "") + " — এই একাউন্টের অ্যাডমিন অনুমতি নেই। সঠিক একাউন্ট দিয়ে লগইন করুন অথবা কোনো অ্যাডমিনকে আপনাকে অনুমতি দিতে বলুন।";
+    $("lg-form-view").hidden = true;
+    $("lg-noaccess").hidden = false;
+    loginEl.classList.remove("checking");
   }
 
-  // ---------- ড্যাশবোর্ড শেল (নিচের ন্যাভ + খালি প্যানেল) ----------
-  function renderDashboard(user) {
+  // ---------- ড্যাশবোর্ড ----------
+  function navBtn(t) {
+    var fab = t.key === "create";
+    return (
+      '<a id="nav-' + t.key + '" href="' + PAGE_FILE[t.key] + '"' + (t.key === PAGE ? ' class="active' + (fab ? " nav-fab" : "") + '" aria-current="page"' : (fab ? ' class="nav-fab"' : "")) + ">" +
+      (fab ? '<span class="fab-circle">' + t.icon + "</span>" : t.icon) +
+      '<span class="nav-badge" id="nav-badge-' + t.key + '"></span>' +
+      '<span class="nl">' + t.label + "</span>" +
+      "</a>"
+    );
+  }
+
+  // সব পেজে "অপেক্ষমাণ রিপোর্ট" ব্যাজ (reports.js শুধু রিপোর্ট পেজে চলে, তাই এখানে আলাদা হালকা লিসেনার)
+  function watchReportBadge() {
+    if (PAGE === "reports") return;
+    window.rtdb.ref("reports").on("value", function (snap) {
+      var v = snap.val() || {}, n = 0;
+      Object.keys(v).forEach(function (k) { if (!v[k].status || v[k].status === "pending") n++; });
+      setNavBadge("reports", n);
+    }, function () {});
+  }
+
+  function showDashboard(user) {
+    var links = "";
+    if (PAGE !== "chat") links += '<a class="btn icon ghost" href="contact.html" aria-label="ইউজার চ্যাট" title="ইউজার চ্যাট">' + ICON_CHAT + "</a>";
+    if (PAGE !== "drafts") links += '<a class="btn icon ghost" href="drafts.html" aria-label="AI ড্রাফট" title="AI ড্রাফট">' + ICON_AI + "</a>";
     navActions.innerHTML =
+      links +
       '<span class="who">' + esc(user.displayName || user.email || "") + "</span>" +
-      '<button class="btn icon ghost" id="logout-btn" aria-label="লগআউট" title="লগআউট">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
-      "</button>";
-    document.getElementById("logout-btn").onclick = function () { window.auth.signOut(); };
+      '<button class="btn icon ghost" id="logout-btn" aria-label="লগআউট" title="লগআউট">' + ICON_OUT + "</button>";
+    $("logout-btn").onclick = function () { window.auth.signOut(); };
 
-    app.innerHTML = TABS.map(function (t) {
-      return '<section class="panel" id="panel-' + t.key + '" hidden><div class="loading-line">লোড হচ্ছে…</div></section>';
-    }).join("");
+    app.innerHTML = '<section class="panel" id="panel-' + PAGE + '"><div class="loading-line">লোড হচ্ছে…</div></section>';
 
-    bottomNav.hidden = false;
     var byKey = {};
     TABS.forEach(function (t) { byKey[t.key] = t; });
-    function navBtn(t) {
-      var fab = t.key === "create";
-      var secondary = PRIMARY.indexOf(t.key) === -1;
-      return (
-        '<button type="button" id="nav-' + t.key + '" data-tab="' + t.key + '"' +
-        ' class="' + (fab ? "nav-fab" : "") + (secondary ? " nav-secondary" : "") + '">' +
-        (fab ? '<span class="fab-circle">' + t.icon + "</span>" : t.icon) +
-        '<span class="nav-badge" id="nav-badge-' + t.key + '"></span>' +
-        "<span>" + t.label + "</span>" +
-        "</button>"
-      );
-    }
     bottomNav.innerHTML =
       PRIMARY.map(function (k) { return navBtn(byKey[k]); }).join("") +
-      '<button type="button" id="nav-more" aria-haspopup="dialog" aria-expanded="false">' + ICON_MORE + "<span>আরও</span></button>" +
-      TABS.filter(function (t) { return PRIMARY.indexOf(t.key) === -1; }).map(navBtn).join("");
-    bottomNav.querySelectorAll("button[data-tab]").forEach(function (btn) {
-      btn.addEventListener("click", function () { setActiveTab(btn.dataset.tab); });
-    });
-    document.getElementById("nav-more").addEventListener("click", function () {
-      var sheet = document.getElementById("more-sheet");
-      if (sheet && !sheet.hidden) closeMore(true);
+      '<button type="button" id="nav-more" aria-haspopup="dialog" aria-expanded="false">' + ICON_MORE + '<span class="nl">মেনু</span></button>';
+    $("nav-more").addEventListener("click", function () {
+      if ($("more-sheet").classList.contains("show")) closeMore(true);
       else openMore();
     });
+    if (PRIMARY.indexOf(PAGE) === -1) $("nav-more").classList.add("active");
     wireSheet();
 
-    setActiveTab("create");
+    topbar.hidden = false;
+    bottomNav.hidden = false;
+    document.body.classList.add("authed");
+    watchReportBadge();
+
+    // লগইন শিট সরানো: ফর্ম থেকে এলে শিট নিচে নামে, আগে থেকে লগইন থাকলে হালকা মিলিয়ে যায়
+    if (loginEl.classList.contains("checking")) {
+      loginEl.classList.add("gone");
+    } else {
+      loginEl.classList.add("leaving");
+      setTimeout(function () { loginEl.classList.add("gone"); }, 450);
+    }
+
+    // posts → create: এডিটের তথ্য sessionStorage দিয়ে পাঠানো (আলাদা পেজ বলে)
+    if (PAGE === "posts") {
+      document.addEventListener("admin:edit-post", function (e) {
+        try { sessionStorage.setItem("ar_edit", JSON.stringify(e.detail)); } catch (_) {}
+        window.location.href = PAGE_FILE.create;
+      });
+    }
+
     document.dispatchEvent(new CustomEvent("admin:ready", { detail: { user: user } }));
+
+    if (PAGE === "create") {
+      var edit = null, pre = null;
+      try {
+        edit = JSON.parse(sessionStorage.getItem("ar_edit") || "null");
+        pre = JSON.parse(sessionStorage.getItem("ar_prefill") || "null");
+        sessionStorage.removeItem("ar_edit"); sessionStorage.removeItem("ar_prefill");
+      } catch (_) {}
+      if (edit && edit.id) document.dispatchEvent(new CustomEvent("admin:edit-post", { detail: edit }));
+      else if (pre) setTimeout(function () {
+        if ($("p-title")) $("p-title").value = pre.title || "";
+        if ($("p-category")) $("p-category").value = pre.category || "";
+      }, 120);
+    }
+
+    // চ্যাট / AI ড্রাফট: নিজের পেজ খুললেই ফুল-স্ক্রিন প্যানেল খোলা, বন্ধ করলে হোমে ফেরা
+    var ov = { chat: ["ar-chat-nav-btn", "ar-chat-overlay"], drafts: ["ar-drafts-nav-btn", "ar-drafts-overlay"] }[PAGE];
+    if (ov) {
+      var tries = 0;
+      var timer = setInterval(function () {
+        var btn = $(ov[0]), el = $(ov[1]);
+        if (btn && (!el || el.hidden)) btn.click();
+        el = $(ov[1]);
+        if (btn && el && !el.hidden) {
+          clearInterval(timer);
+          new MutationObserver(function () {
+            if (el.hidden) window.location.href = PAGE_FILE.posts;
+          }).observe(el, { attributes: true, attributeFilter: ["hidden"] });
+        } else if (++tries > 40) clearInterval(timer);
+      }, 150);
+    }
   }
 
   // ---------- entry point ----------
   if (!window.auth || !window.rtdb) {
-    app.innerHTML = '<div class="loading-line">Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।</div>';
+    loginEl.classList.remove("checking");
+    $("lg-err").textContent = "Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।";
+    $("lg-err").classList.add("show");
     return;
   }
 
+  bindLoginForm();
+
+  var wasLoggedIn = false;
+  var dashboardShown = false;
   window.auth.onAuthStateChanged(function (user) {
-    if (!user) return renderLogin();
+    if (!user) {
+      // লগআউটের পর পেজ নতুন করে লোড — সব লিসেনার পরিষ্কার থাকে
+      if (wasLoggedIn) { window.location.reload(); return; }
+      showLoginSheet();
+      return;
+    }
+    wasLoggedIn = true;
     window.isAdmin(user).then(function (allowed) {
-      if (!allowed) return renderNoAccess(user);
-      renderDashboard(user);
+      if (!allowed) { showNoAccess(user); return; }
+      if (dashboardShown) return;
+      dashboardShown = true;
+      showDashboard(user);
     });
   });
 })();

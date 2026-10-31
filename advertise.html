@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>বিজ্ঞাপন ব্যবস্থাপনা | AR News</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-light: #e6f4f1;
+      --bg: #f7f9fb;
+      --text: #172b2a;
+      --muted: #718096;
+      --border: #e5eaf0;
+      --danger: #dc2626;
+      --warn: #b45309;
+      --warn-soft: #fef3c7;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      font-family: 'Hind Siliguri', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    a { color: inherit; }
+
+    main {
+      width: 100%;
+      padding: 22px;
+      margin: 0 auto;
+    }
+
+    .heading { margin-bottom: 18px; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-light { background: var(--primary-light); color: var(--primary); }
+    .btn-warn { background: var(--warn-soft); color: var(--warn); }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-block { width: 100%; }
+
+    .message {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 9px;
+      display: none;
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { display: block; background: #fee2e2; color: #991b1b; }
+    .message.success { display: block; background: #dcfce7; color: #166534; }
+    .message.info { display: block; background: #e0f2fe; color: #075985; }
+
+    /* ---------- ট্যাব ---------- */
+    .seg {
+      display: flex;
+      max-width: 420px;
+      padding: 3px;
+      margin-bottom: 16px;
+      border-radius: 11px;
+      background: var(--primary-light);
+    }
+
+    .seg-btn {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--primary);
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .seg-btn.active { background: var(--primary); color: #fff; }
+
+    .tab-count {
+      display: none;
+      min-width: 20px;
+      margin-left: 6px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 12px;
+      line-height: 20px;
+      text-align: center;
+    }
+    .tab-count.show { display: inline-block; }
+
+    /* ---------- প্যানেল ও ফর্ম ---------- */
+    .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .panel-head { padding: 16px; border-bottom: 1px solid var(--border); }
+    .panel-head h2 { margin: 0 0 2px; font-size: 19px; }
+    .panel-head p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .panel-body { padding: 16px; }
+
+    .field { margin-bottom: 12px; }
+    .field label { display: block; margin-bottom: 5px; font-size: 13.5px; font-weight: 600; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #dce3e8;
+      border-radius: 9px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+      font-size: 16px;               /* iOS জুম ঠেকায় */
+    }
+
+    textarea { min-height: 70px; resize: vertical; }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px #0f766e14;
+    }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0 14px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .check input { width: 18px; height: 18px; flex: none; accent-color: var(--primary); }
+
+    .settings-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+
+    @media (min-width: 900px) {
+      .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      input, select, textarea { font-size: 14.5px; }
+    }
+
+    /* ---------- তালিকার টুলবার ---------- */
+    .toolbar { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+
+    /* ---------- অর্ডার কার্ড ---------- */
+    .ad-list { display: grid; gap: 10px; padding: 14px; }
+
+    .ad-card {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      column-gap: 13px;
+      min-width: 0;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .ad-thumb {
+      display: block;
+      width: 96px;
+      height: 64px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .ad-main { min-width: 0; }
+
+    .ad-title {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-size: 15px;
+      line-height: 1.4;
+      font-weight: 600;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
+    a.ad-title:hover { color: var(--primary); }
+
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+
+    .b-pending  { background: var(--warn-soft); color: var(--warn); }
+    .b-verified,
+    .b-approved { background: var(--primary-light); color: var(--primary); }
+    .b-running  { background: #dcfce7; color: #166534; }
+    .b-ended    { background: var(--border); color: var(--muted); }
+    .b-rejected { background: #fee2e2; color: var(--danger); }
+    .b-pkg      { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+
+    .ad-meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .ad-meta strong { color: var(--text); font-weight: 600; }
+
+    .ad-meta code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text);
+      font-size: 11.5px;
+      word-break: break-all;
+    }
+
+    .ad-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .ad-actions .btn { flex: 1 1 120px; min-height: 38px; font-size: 14px; }
+
+    @media (min-width: 700px) {
+      .ad-actions .btn { flex: 0 0 auto; padding-left: 16px; padding-right: 16px; }
+    }
+
+    .empty, .loading { padding: 35px 15px; text-align: center; color: var(--muted); }
+
+    /* ---------- "বিজ্ঞাপন শুরু করুন" শিট ---------- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      background: rgba(8, 18, 17, .5);
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      width: 100%;
+      max-width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 22px 18px calc(22px + env(safe-area-inset-bottom, 0px));
+      background: #fff;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -8px 40px rgba(0, 0, 0, .18);
+    }
+
+    @media (min-width: 520px) {
+      .modal-overlay { align-items: center; padding: 20px; }
+      .modal { padding: 24px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0, 0, 0, .22); }
+    }
+
+    .modal h3 { margin: 0 0 4px; font-size: 20px; }
+    .modal .sub { margin: 0 0 16px; font-size: 13px; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+
+    @media (max-width: 650px) {
+      main { padding: 15px 11px; }
+      h1 { font-size: 23px; }
+      .ad-list { padding: 10px; }
+      .ad-card { grid-template-columns: 80px minmax(0, 1fr); column-gap: 11px; }
+      .ad-thumb { width: 80px; height: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="heading">
+      <h1>বিজ্ঞাপন ব্যবস্থাপনা</h1>
+      <p class="sub">বিজ্ঞাপনদাতাদের অর্ডার, পেমেন্ট যাচাই ও প্যাকেজ সেটিংস।</p>
+    </div>
+
+    <div id="message" class="message" role="status"></div>
+
+    <div class="seg" role="tablist">
+      <button class="seg-btn active" id="tabOrders" data-tab="orders" type="button" role="tab" aria-selected="true">অর্ডার <span class="tab-count" id="pendingCount">0</span></button>
+      <button class="seg-btn" id="tabSettings" data-tab="settings" type="button" role="tab" aria-selected="false">সেটিংস</button>
+    </div>
+
+    <!-- ===== অর্ডার তালিকা ===== -->
+    <section class="panel" id="viewOrders">
+      <div class="toolbar">
+        <select id="statusFilter" aria-label="স্ট্যাটাস ফিল্টার">
+          <option value="All">সব বিজ্ঞাপন</option>
+          <option value="pending">অপেক্ষমাণ</option>
+          <option value="verified">পেমেন্ট যাচাইকৃত</option>
+          <option value="approved">অনুমোদিত</option>
+          <option value="running">চলছে</option>
+          <option value="ended">শেষ</option>
+          <option value="rejected">বাতিল</option>
+        </select>
+      </div>
+      <div class="ad-list" id="adList"><div class="loading">ডেটা লোড হচ্ছে…</div></div>
+    </section>
+
+    <!-- ===== সেটিংস ===== -->
+    <div class="settings-grid" id="viewSettings" hidden>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>প্যাকেজ সেটিংস</h2>
+          <p>বিজ্ঞাপনদাতারা যে প্যাকেজগুলো দেখবেন।</p>
+        </div>
+        <form class="panel-body" id="pkgForm">
+          <div class="field">
+            <label for="pkgSelect">প্যাকেজ সিলেক্ট</label>
+            <select id="pkgSelect">
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pkgName">প্যাকেজের নাম</label>
+            <input type="text" id="pkgName" required>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="pkgDuration">মেয়াদ (দিন)</label>
+              <input type="number" id="pkgDuration" min="1" required inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="pkgPrice">মূল্য (৳)</label>
+              <input type="number" id="pkgPrice" min="0" required inputmode="numeric">
+            </div>
+          </div>
+          <div class="field">
+            <label for="pkgDesc">বিবরণ</label>
+            <textarea id="pkgDesc" rows="2"></textarea>
+          </div>
+          <label class="check"><input type="checkbox" id="pkgActive" checked> সক্রিয় (পাবলিক ফর্মে দেখাবে)</label>
+          <button type="submit" class="btn btn-primary btn-block" id="pkgSave">প্যাকেজ সেভ করুন</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>পেমেন্ট নম্বর</h2>
+          <p>ফর্মে যে নম্বরে টাকা পাঠাতে বলা হবে।</p>
+        </div>
+        <form class="panel-body" id="payForm">
+          <div class="field">
+            <label for="bkash">bKash নম্বর</label>
+            <input type="text" id="bkash" required placeholder="01XXXXXXXXX" inputmode="tel">
+          </div>
+          <div class="field">
+            <label for="nagad">Nagad নম্বর</label>
+            <input type="text" id="nagad" required placeholder="01XXXXXXXXX" inputmode="tel">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="paySave">নম্বর আপডেট করুন</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== বিজ্ঞাপন শুরু করুন ===== -->
+  <div class="modal-overlay" id="startModal" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+    <div class="modal">
+      <h3 id="startTitle">বিজ্ঞাপন শুরু করুন</h3>
+      <p class="sub" id="startSub">মেয়াদ অনুযায়ী শেষ তারিখ হিসাব করা হবে।</p>
+      <div class="field">
+        <label for="startDate">শুরুর তারিখ</label>
+        <input type="datetime-local" id="startDate">
+      </div>
+      <div class="field">
+        <label for="endDate">শেষের তারিখ</label>
+        <input type="datetime-local" id="endDate">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-light" id="startCancel">বাতিল</button>
+        <button type="button" class="btn btn-primary" id="startConfirm">শুরু করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <!-- config.js সাধারণ স্ক্রিপ্ট (window.auth / window.rtdb / window.isAdmin), ES Module নয় -->
+  <script src="./config.js"></script>
+  <script src="./nav.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    /*
+      ডেটা (Firebase Realtime Database):
+        advertisements/{id}   বিজ্ঞাপনদাতার অর্ডার (পাবলিক ফর্ম থেকে)
+        adPackages/{basic|standard|premium}   প্যাকেজ সেটিংস
+        adSettings/payment    { bkashNumber, nagadNumber }
+        ads/{id}              ফিডে চালু বিজ্ঞাপন (feed.html এখান থেকে পড়ে)
+    */
+
+    var DAY = 24 * 60 * 60 * 1000;
+
+    var db = window.rtdb;
+    var auth = window.auth;
+    var $ = function (id) { return document.getElementById(id); };
+
+    var allAds = {};
+    var pendingStartId = null;
+    var started = false;
+
+    /* ---------- সহায়ক ---------- */
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    // শুধু http(s) লিংক — javascript: ধরনের লিংক ঠেকাতে
+    function safeUrl(u) {
+      var s = String(u || "").trim();
+      return /^https?:\/\//i.test(s) ? s : "";
+    }
+
+    function showMessage(text, type) {
+      var el = $("message");
+      el.textContent = text;
+      el.className = "message " + (type || "error");
+      if ((type || "error") === "success") {
+        clearTimeout(showMessage._t);
+        showMessage._t = setTimeout(clearMessage, 4000);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function clearMessage() {
+      $("message").className = "message";
+      $("message").textContent = "";
+    }
+
+    function errText(err) {
+      return err && err.code === "PERMISSION_DENIED"
+        ? "অনুমতি নেই — Database Rules ও অ্যাডমিন role দেখুন।"
+        : (err && err.message) || String(err);
+    }
+
+    function fmt(ms) {
+      var d = new Date(Number(ms));
+      if (!ms || isNaN(d.getTime())) return "—";
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+      }).format(d);
+    }
+
+    function toLocalInput(ms) {
+      var d = new Date(ms);
+      if (isNaN(d.getTime())) return "";
+      function pad(n) { return String(n).padStart(2, "0"); }
+      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+        "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+    }
+
+    function fromLocalInput(val) {
+      if (!val) return null;
+      var t = new Date(val).getTime();
+      return isNaN(t) ? null : t;
+    }
+
+    /* ---------- ট্যাব ---------- */
+    function showTab(name) {
+      var orders = name === "orders";
+      $("viewOrders").hidden = !orders;
+      $("viewSettings").hidden = orders;
+      $("tabOrders").classList.toggle("active", orders);
+      $("tabSettings").classList.toggle("active", !orders);
+      $("tabOrders").setAttribute("aria-selected", String(orders));
+      $("tabSettings").setAttribute("aria-selected", String(!orders));
+    }
+
+    /* ---------- প্যাকেজ ও পেমেন্ট ---------- */
+    function getDefaults(id) {
+      if (id === "basic") return { name: "Basic", duration: 7, price: 500, description: "৭ দিনের বেসিক প্যাকেজ", status: "active" };
+      if (id === "standard") return { name: "Standard", duration: 15, price: 1200, description: "১৫ দিনের স্ট্যান্ডার্ড", status: "active" };
+      if (id === "premium") return { name: "Premium", duration: 30, price: 2200, description: "৩০ দিনের প্রিমিয়াম", status: "active" };
+      return { name: id, duration: 7, price: 0, description: "", status: "active" };
+    }
+
+    function loadPackageForm() {
+      var pId = $("pkgSelect").value;
+      db.ref("adPackages/" + pId).once("value").then(function (snap) {
+        var data = snap.val() || getDefaults(pId);
+        $("pkgName").value = data.name || pId;
+        $("pkgDuration").value = data.duration || 7;
+        $("pkgPrice").value = data.price || 0;
+        $("pkgDesc").value = data.description || "";
+        $("pkgActive").checked = data.status === "active";
+      }).catch(function (err) {
+        console.error(err);
+        showMessage("প্যাকেজের তথ্য আনা যায়নি: " + errText(err));
+      });
+    }
+
+    function savePackage(e) {
+      e.preventDefault();
+      var btn = $("pkgSave");
+      btn.disabled = true;
+      db.ref("adPackages/" + $("pkgSelect").value).update({
+        name: $("pkgName").value.trim(),
+        duration: Number($("pkgDuration").value),
+        price: Number($("pkgPrice").value),
+        description: $("pkgDesc").value.trim(),
+        status: $("pkgActive").checked ? "active" : "inactive"
+      }).then(function () {
+        showMessage("প্যাকেজ সংরক্ষিত হয়েছে।", "success");
+      }).catch(function (err) {
+        console.error(err);
+        showMessage("প্যাকেজ সংরক্ষণ করা যায়নি: " + errText(err));
+      }).then(function () { btn.disabled = false; });
+    }
+
+    function loadPaymentSettings() {
+      db.ref("adSettings/payment").once("value").then(function (snap) {
+        var data = snap.val() || {};
+        $("bkash").value = data.bkashNumber || "";
+        $("nagad").value = data.nagadNumber || "";
+      }).catch(function (err) {
+        console.error(err);
+        showMessage("পেমেন্ট তথ্য আনা যায়নি: " + errText(err));
+      });
+    }
+
+    function savePayment(e) {
+      e.preventDefault();
+      var btn = $("paySave");
+      btn.disabled = true;
+      db.ref("adSettings/payment").update({
+        bkashNumber: $("bkash").value.trim(),
+        nagadNumber: $("nagad").value.trim()
+      }).then(function () {
+        showMessage("পেমেন্ট তথ্য আপডেট হয়েছে।", "success");
+      }).catch(function (err) {
+        console.error(err);
+        showMessage("আপডেট করা যায়নি: " + errText(err));
+      }).then(function () { btn.disabled = false; });
+    }
+
+    /* ---------- অর্ডার তালিকা ---------- */
+    var STATUS_LABEL = {
+      pending: "অপেক্ষমাণ",
+      verified: "পেমেন্ট যাচাইকৃত",
+      approved: "অনুমোদিত",
+      running: "চলছে",
+      ended: "শেষ",
+      rejected: "বাতিল"
+    };
+
+    function computeStatus(ad) {
+      var s = ad.status || "pending";
+      if (s === "running" && ad.endDate && Date.now() > ad.endDate) s = "ended";
+      return s;
+    }
+
+    function badgeClass(status) {
+      return "b-" + (STATUS_LABEL[status] ? status : "ended");
+    }
+
+    function actionBtn(act, cls, label) {
+      return '<button type="button" class="btn ' + cls + '" data-act="' + act + '">' + label + "</button>";
+    }
+
+    function updatePendingCount() {
+      var n = Object.keys(allAds).filter(function (id) {
+        return computeStatus(allAds[id] || {}) === "pending";
+      }).length;
+      var b = $("pendingCount");
+      b.textContent = n.toLocaleString("bn-BD");
+      b.classList.toggle("show", n > 0);
+    }
+
+    function renderAds() {
+      var list = $("adList");
+      var filter = $("statusFilter").value;
+      var html = [];
+
+      var ids = Object.keys(allAds).sort(function (a, b) {
+        return ((allAds[b] || {}).createdAt || 0) - ((allAds[a] || {}).createdAt || 0);
+      });
+
+      ids.forEach(function (adId) {
+        var ad = allAds[adId] || {};
+        var status = computeStatus(ad);
+
+        if (filter !== "All" && status !== filter && ad.paymentStatus !== filter) return;
+
+        var actions = [];
+
+        if (ad.paymentStatus === "pending") {
+          actions.push(actionBtn("verify", "btn-primary", "পেমেন্ট যাচাই"));
+        }
+
+        // অনুমোদিত / যাচাইকৃত / শেষ — (আবার) ফিডে চালু করা যায়
+        if (
+          status === "approved" ||
+          status === "ended" ||
+          (ad.paymentStatus === "verified" && status !== "running" && status !== "rejected")
+        ) {
+          actions.push(actionBtn("start", status === "ended" ? "btn-light" : "btn-primary",
+            status === "ended" ? "আবার চালু করুন" : "ফিডে চালু করুন"));
+        }
+
+        if (status === "running") actions.push(actionBtn("end", "btn-warn", "বন্ধ করুন"));
+
+        if (status !== "rejected" && status !== "ended") actions.push(actionBtn("reject", "btn-danger", "বাতিল"));
+
+        actions.push(actionBtn("delete", "btn-danger", "ডিলিট"));
+
+        var img = safeUrl(ad.imageUrl);
+        var link = safeUrl(ad.link);
+        var titleHtml = link
+          ? '<a class="ad-title" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' + esc(ad.title || "শিরোনামহীন") + "</a>"
+          : '<span class="ad-title">' + esc(ad.title || "শিরোনামহীন") + "</span>";
+
+        html.push(
+          '<article class="ad-card">' +
+            (img
+              ? '<img class="ad-thumb" src="' + esc(img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'
+              : '<div class="ad-thumb"></div>') +
+            '<div class="ad-main">' +
+              titleHtml +
+              '<div class="badges">' +
+                '<span class="badge ' + badgeClass(status) + '">' + esc(STATUS_LABEL[status] || status) + "</span>" +
+                '<span class="badge b-pkg">' + esc(ad.packageName) + " · ৳" + Number(ad.packagePrice || 0).toLocaleString("bn-BD") + "</span>" +
+              "</div>" +
+              '<div class="ad-meta">' +
+                "<strong>" + esc(ad.advertiserName) + "</strong> · " + esc(ad.companyName) + "<br>" +
+                esc(ad.phone) + " · " + esc(ad.email) + "<br>" +
+                esc(ad.paymentMethod) + " · TrxID: <code>" + esc(ad.transactionId) + "</code>" +
+              "</div>" +
+              '<div class="ad-meta">' +
+                "জমা: " + fmt(ad.createdAt) +
+                (ad.startDate ? "<br>শুরু: " + fmt(ad.startDate) : "") +
+                (ad.endDate ? "<br>শেষ: " + fmt(ad.endDate) : "") +
+              "</div>" +
+            "</div>" +
+            '<div class="ad-actions" data-id="' + esc(adId) + '">' + actions.join("") + "</div>" +
+          "</article>"
+        );
+      });
+
+      list.innerHTML = html.length
+        ? html.join("")
+        : '<div class="empty">কোনো মিল থাকা বিজ্ঞাপন নেই।</div>';
+    }
+
+    function listenToAds() {
+      db.ref("advertisements").on("value", function (snap) {
+        allAds = snap.val() || {};
+        updatePendingCount();
+        renderAds();
+      }, function (err) {
+        console.error(err);
+        $("adList").innerHTML = '<div class="empty">অর্ডার লোড করা যায়নি।</div>';
+        showMessage("অর্ডার তালিকা আনা যায়নি: " + errText(err));
+      });
+    }
+
+    /* ---------- ফিডে প্রকাশ / সরানো / মোছা ---------- */
+    // feed.html "ads" নোড থেকে পড়ে
+    function publishToFeed(adId, ad, startDate, endDate) {
+      var user = auth.currentUser;
+      var now = Date.now();
+      return db.ref("ads/" + adId).set({
+        title: (ad.title || "").trim() || "বিজ্ঞাপন",
+        description: (ad.description || "").trim(),
+        imageUrl: ad.imageUrl || "",
+        link: ad.link || "",
+        buttonLabel: (ad.buttonLabel || "ভিজিট").trim() || "ভিজিট",
+        status: "active",
+        authorId: user ? user.uid : "admin",
+        authorName: (user && (user.displayName || user.email)) || "এডমিন",
+        sourceAdId: adId,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        createdAt: ad.feedCreatedAt || now,
+        updatedAt: now
+      });
+    }
+
+    function unpublishFromFeed(adId) {
+      return db.ref("ads/" + adId).update({ status: "inactive", updatedAt: Date.now() })
+        .catch(function () { /* ads নোডে না থাকলে ignore */ });
+    }
+
+    function deleteAdCompletely(adId) {
+      return Promise.all([
+        db.ref("advertisements/" + adId).remove(),
+        db.ref("ads/" + adId).remove().catch(function () {})
+      ]);
+    }
+
+    /* ---------- বাটনের ক্লিক ---------- */
+    function onListClick(e) {
+      var btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      var box = btn.closest(".ad-actions");
+      if (!box) return;
+
+      var id = box.dataset.id;
+      var act = btn.dataset.act;
+
+      function fail(prefix) {
+        return function (err) {
+          console.error(err);
+          btn.disabled = false;
+          showMessage(prefix + errText(err));
+        };
+      }
+
+      if (act === "verify") {
+        if (!confirm("পেমেন্ট যাচাই করে অনুমোদন করবেন?")) return;
+        btn.disabled = true;
+        db.ref("advertisements/" + id).update({
+          paymentStatus: "verified",
+          status: "approved",
+          updatedAt: Date.now()
+        }).then(function () {
+          showMessage("পেমেন্ট যাচাই হয়েছে, বিজ্ঞাপন অনুমোদিত।", "success");
+        }).catch(fail("যাচাই করা যায়নি: "));
+        return;
+      }
+
+      if (act === "reject") {
+        if (!confirm("এই বিজ্ঞাপন বাতিল করবেন?")) return;
+        btn.disabled = true;
+        db.ref("advertisements/" + id).update({ status: "rejected", updatedAt: Date.now() })
+          .then(function () { return unpublishFromFeed(id); })
+          .then(function () { showMessage("বিজ্ঞাপন বাতিল করা হয়েছে।", "success"); })
+          .catch(fail("বাতিল করা যায়নি: "));
+        return;
+      }
+
+      if (act === "start") {
+        openStartModal(id);
+        return;
+      }
+
+      if (act === "end") {
+        if (!confirm("বিজ্ঞাপন এখনই শেষ করবেন? ফিড থেকে সরে যাবে।")) return;
+        btn.disabled = true;
+        db.ref("advertisements/" + id).update({
+          status: "ended",
+          endDate: Date.now(),
+          updatedAt: Date.now()
+        }).then(function () { return unpublishFromFeed(id); })
+          .then(function () { showMessage("বিজ্ঞাপন বন্ধ করা হয়েছে।", "success"); })
+          .catch(fail("বন্ধ করা যায়নি: "));
+        return;
+      }
+
+      if (act === "delete") {
+        if (!confirm("এই বিজ্ঞাপন সম্পূর্ণ মুছে ফেলবেন?\n\nadvertisements ও ফিড (ads) — দুই জায়গা থেকেই চিরতরে মুছে যাবে। ফিরিয়ে আনা যাবে না.")) return;
+        btn.disabled = true;
+        deleteAdCompletely(id)
+          .then(function () { showMessage("বিজ্ঞাপন মুছে ফেলা হয়েছে।", "success"); })
+          .catch(fail("মুছে ফেলা যায়নি: "));
+      }
+    }
+
+    /* ---------- "বিজ্ঞাপন শুরু করুন" শিট ---------- */
+    function openStartModal(adId) {
+      pendingStartId = adId;
+      var ad = allAds[adId] || {};
+      var days = Number(ad.duration) || 7;
+      var now = Date.now();
+
+      $("startSub").textContent = "প্যাকেজ: " + (ad.packageName || "—") + " · " + days.toLocaleString("bn-BD") + " দিন";
+      $("startDate").value = toLocalInput(now);
+      $("endDate").value = toLocalInput(now + days * DAY);
+      $("startModal").classList.add("open");
+    }
+
+    function closeStartModal() {
+      $("startModal").classList.remove("open");
+      pendingStartId = null;
+    }
+
+    async function confirmStart() {
+      if (!pendingStartId) return;
+
+      var id = pendingStartId;
+      var ad = allAds[id] || {};
+      var startDate = fromLocalInput($("startDate").value) || Date.now();
+      var endDate = fromLocalInput($("endDate").value) || startDate + (Number(ad.duration) || 7) * DAY;
+
+      if (endDate <= startDate) {
+        alert("শেষের তারিখ শুরুর তারিখের পরে হতে হবে।");
+        return;
+      }
+
+      var btn = $("startConfirm");
+      btn.disabled = true;
+      btn.textContent = "প্রকাশ হচ্ছে…";
+
+      try {
+        await db.ref("advertisements/" + id).update({
+          status: "running",
+          paymentStatus: ad.paymentStatus === "pending" ? "verified" : (ad.paymentStatus || "verified"),
+          startDate: startDate,
+          endDate: endDate,
+          updatedAt: Date.now()
+        });
+        await publishToFeed(id, ad, startDate, endDate);
+        closeStartModal();
+        showMessage("✓ বিজ্ঞাপন ফিডে চালু হয়েছে।", "success");
+      } catch (err) {
+        console.error("Start/publish error:", err);
+        showMessage("ত্রুটি: " + errText(err) + " (ads নোডে লেখার অনুমতি অ্যাডমিনের থাকতে হবে।)");
+        closeStartModal();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "শুরু করুন";
+      }
+    }
+
+    /* ---------- ইভেন্ট ---------- */
+    $("tabOrders").addEventListener("click", function () { showTab("orders"); });
+    $("tabSettings").addEventListener("click", function () { showTab("settings"); });
+    $("statusFilter").addEventListener("change", renderAds);
+    $("adList").addEventListener("click", onListClick);
+    $("pkgSelect").addEventListener("change", loadPackageForm);
+    $("pkgForm").addEventListener("submit", savePackage);
+    $("payForm").addEventListener("submit", savePayment);
+    $("startCancel").addEventListener("click", closeStartModal);
+    $("startConfirm").addEventListener("click", confirmStart);
+    $("startModal").addEventListener("click", function (e) {
+      if (e.target === $("startModal")) closeStartModal();   // বাইরে চাপলে বন্ধ
+    });
+
+    // শুরুর তারিখ বদলালে শেষের তারিখ মেয়াদ অনুযায়ী আবার হিসাব হয়
+    $("startDate").addEventListener("change", function () {
+      var ad = allAds[pendingStartId] || {};
+      var s = fromLocalInput($("startDate").value);
+      if (s) $("endDate").value = toLocalInput(s + (Number(ad.duration) || 7) * DAY);
+    });
+
+    /* ---------- শুরু ---------- */
+    if (!auth || !db) {
+      showMessage("Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।");
+      $("adList").innerHTML = "";
+      return;
+    }
+
+    auth.onAuthStateChanged(async function (user) {
+      if (!user) {
+        location.replace("./index.html");
+        return;
+      }
+
+      try {
+        if (!(await window.isAdmin(user))) {
+          showMessage("এই পেজ শুধু Admin ব্যবহার করতে পারবেন।");
+          $("adList").innerHTML = "";
+          setTimeout(function () { location.replace("./index.html"); }, 1800);
+          return;
+        }
+
+        if (started) return;
+        started = true;
+
+        loadPackageForm();
+        loadPaymentSettings();
+        listenToAds();
+      } catch (error) {
+        console.error(error);
+        showMessage("Admin যাচাই করা যায়নি। Firebase Rules যাচাই করুন।");
+        $("adList").innerHTML = "";
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

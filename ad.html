@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <title>বিজ্ঞাপন | AR News</title>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    :root {
+      --primary: #0b3d91;
+      --primary-dark: #082f73;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #e5e7eb;
+      --background: #f8fafc;
+      --danger: #dc2626;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Noto Sans Bengali", "Hind Siliguri", sans-serif;
+      color: var(--text);
+      background: var(--background);
+      padding-bottom: 85px;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+
+    .main { max-width: 760px; margin: 0 auto; padding: 23px 15px; }
+
+    .page-heading {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
+    }
+    .page-heading h1 { font-size: 23px; }
+
+    .primary-button {
+      border: 0; border-radius: 10px; background: var(--primary); color: #fff;
+      padding: 11px 15px; font-weight: 650; text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .primary-button:hover { background: var(--primary-dark); }
+    .primary-button:disabled { opacity: .6; cursor: not-allowed; }
+
+    .ghost-button {
+      border: 1px solid var(--border); border-radius: 10px; background: #fff;
+      color: var(--text); padding: 11px 15px; font-weight: 600;
+    }
+    .ghost-button:hover { background: var(--background); }
+
+    .ico {
+      width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ---- স্ট্যাটস ---- */
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .stat-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px 14px; }
+    .stat-card span { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; margin-bottom: 9px; }
+    .stat-card span .ico { width: 30px; height: 30px; padding: 6px; border-radius: 9px; }
+    .stat-card strong { font-size: 25px; font-weight: 750; }
+    .s-total { color: #1e3a8a; } .s-total .ico { background: #e8eefb; color: var(--primary); }
+    .s-active { color: #166534; } .s-active .ico { background: #dcfce7; color: #16a34a; }
+    .s-off { color: #92400e; } .s-off .ico { background: #fef3c7; color: #d97706; }
+
+    /* ---- কার্ড ---- */
+    .box {
+      background: #fff; border: 1px solid var(--border); border-radius: 15px;
+      padding: 18px; margin-bottom: 16px;
+    }
+    .box.editing { border-top: 3px solid var(--primary); }
+    .box h2 { font-size: 18px; margin-bottom: 3px; }
+    .box .sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 16px; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; margin-bottom: 6px; font-size: 13.5px; font-weight: 600; }
+
+    input:not([type="file"]), select, textarea {
+      width: 100%; min-height: 44px; padding: 10px 12px; background: #fff;
+      border: 1px solid var(--border); border-radius: 9px; color: var(--text);
+      font-size: 16px; outline: none;
+    }
+    textarea { min-height: 96px; line-height: 1.7; resize: vertical; }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(11, 61, 145, .12);
+    }
+
+    input[type="file"] { width: 100%; padding: 8px; color: var(--muted); font-size: 13.5px; }
+    input[type="file"]::file-selector-button {
+      margin-right: 12px; padding: 7px 14px; border: 0; border-radius: 8px;
+      background: #eaf0fb; color: var(--primary-dark); font: inherit; font-weight: 600; cursor: pointer;
+    }
+
+    .hint { display: block; margin-top: 6px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+    .hint:empty { display: none; }
+    .hint.ok { color: #166534; }
+    .hint.bad { color: var(--danger); }
+
+    /* "অথবা ছবির লিংক দিন" ঘর লুকানো (আপলোডের লিংক ভেতরে বসে যায়) */
+    label[for="ad-image"], #ad-image, #ad-img-hint:not(.ok):not(.bad) { display: none; }
+
+    .preview { max-width: 420px; margin-top: 10px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .preview img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+
+    .row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); column-gap: 14px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+    .actions .primary-button, .actions .ghost-button { flex: 1 1 auto; min-height: 46px; }
+
+    .msg { margin-top: 10px; font-size: 13.5px; font-weight: 600; }
+    .msg:empty { display: none; }
+    .msg.ok { color: #166534; }
+    .msg.bad { color: var(--danger); }
+
+    /* ---- বিজ্ঞাপনের তালিকা (পোস্টের মতো ফিড-কার্ড) ---- */
+    .ad-list { display: grid; gap: 16px; }
+
+    .ad-card { overflow: hidden; background: #fff; border: 1px solid var(--border); border-radius: 15px; }
+    .ad-card:hover { border-color: #9db7e3; }
+
+    .ad-media { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #e8eef7; }
+    .ad-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .ad-media .ph { height: 100%; display: grid; place-items: center; color: #94a3b8; font-size: 34px; }
+
+    .ad-body { padding: 14px 15px 4px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; background: #eaf0fb; color: var(--primary-dark); }
+    .tag.on { background: #dcfce7; color: #166534; }
+    .tag.off { background: #fef3c7; color: #92400e; }
+
+    .ad-title { font-size: 16.5px; line-height: 1.6; font-weight: 700; overflow-wrap: anywhere; }
+    .ad-desc {
+      margin-top: 4px; color: #475569; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .ad-date { margin-top: 6px; color: var(--muted); font-size: 12px; }
+
+    .ad-actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 15px 0; padding: 12px 0 15px; border-top: 1px solid #f1f5f9; }
+    .action-button {
+      flex: 1; min-width: 70px; padding: 9px 8px; background: #fff; color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+      text-align: center; text-decoration: none;
+    }
+    .action-button:hover { background: var(--background); }
+    .action-button.danger { color: var(--danger); border-color: #fecaca; }
+
+    .message {
+      background: #fff; border: 1px solid var(--border); border-radius: 14px;
+      padding: 28px 15px; text-align: center; color: var(--muted); line-height: 1.8;
+    }
+    .message.error { color: var(--danger); }
+
+    @media (max-width: 600px) {
+      .stats { gap: 8px; }
+      .stat-card { padding: 13px 10px; }
+      .stat-card strong { font-size: 22px; }
+      .stat-card span { font-size: 11px; }
+      .page-heading h1 { font-size: 21px; }
+      .box { padding: 15px; }
+    }
+
+    @media (min-width: 640px) {
+      input:not([type="file"]), select, textarea { font-size: 14.5px; }
+      #ad-interval { width: auto; min-width: 260px; }
+      .actions .primary-button, .actions .ghost-button { flex: 0 0 auto; padding-left: 24px; padding-right: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="main">
+    <div class="page-heading">
+      <h1>বিজ্ঞাপন</h1>
+      <button class="primary-button" id="newBtn" type="button">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        নতুন
+      </button>
+    </div>
+
+    <section class="stats">
+      <div class="stat-card">
+        <span class="s-total">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+          মোট
+        </span>
+        <strong id="totalCount">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="s-active">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/></svg>
+          সক্রিয়
+        </span>
+        <strong id="activeCount">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="s-off">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+          নিষ্ক্রিয়
+        </span>
+        <strong id="inactiveCount">—</strong>
+      </div>
+    </section>
+
+    <!-- ফিডে ব্যবধান -->
+    <section class="box">
+      <div class="field" style="margin-bottom:0">
+        <label for="ad-interval">ফিডে কয়টি পোস্টের পর একটি বিজ্ঞাপন দেখাবে</label>
+        <select id="ad-interval">
+          <option value="2">প্রতি ২টি পোস্টের পর</option>
+          <option value="3">প্রতি ৩টি পোস্টের পর</option>
+          <option value="4">প্রতি ৪টি পোস্টের পর</option>
+        </select>
+        <p class="msg" id="ad-interval-msg"></p>
+      </div>
+    </section>
+
+    <!-- ফর্ম -->
+    <section class="box" id="formBox">
+      <h2 id="ad-form-title">নতুন বিজ্ঞাপন তৈরি করুন</h2>
+      <p class="sub">টাইটেল, ডেসক্রিপশন আর একটা ছবি (16:9) দিয়ে বিজ্ঞাপন তৈরি করুন। লিংক দিলে কার্ডে ভিজিট/ওপেন বাটন দেখাবে।</p>
+
+      <form id="ad-form">
+        <div class="field">
+          <label for="ad-title">টাইটেল</label>
+          <input id="ad-title" required maxlength="120">
+        </div>
+        <div class="field">
+          <label for="ad-desc">ডেসক্রিপশন (ঐচ্ছিক)</label>
+          <textarea id="ad-desc" maxlength="800"></textarea>
+        </div>
+        <div class="field">
+          <label for="ad-image-file">ছবি আপলোড করুন (16:9)</label>
+          <input id="ad-image-file" type="file" accept="image/*">
+          <small id="ad-upload-status" class="hint"></small>
+          <label for="ad-image">অথবা ছবির লিংক দিন</label>
+          <input id="ad-image" placeholder="ibb.co-এর লিংক বা HTML/BBCode এম্বেড কোড এখানে পেস্ট করুন">
+          <small id="ad-img-hint" class="hint"></small>
+          <div class="preview" id="ad-img-preview-wrap" hidden><img id="ad-img-preview" alt="প্রিভিউ"></div>
+        </div>
+        <div class="field">
+          <label for="ad-link">লিংক (ঐচ্ছিক)</label>
+          <input id="ad-link" type="url" placeholder="https://example.com">
+        </div>
+        <div class="row2">
+          <div class="field" id="ad-btn-label-wrap" hidden>
+            <label for="ad-btn-label">বাটনের লেখা</label>
+            <select id="ad-btn-label">
+              <option value="ভিজিট করুন">ভিজিট করুন</option>
+              <option value="ওপেন করুন">ওপেন করুন</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ad-status">স্ট্যাটাস</label>
+            <select id="ad-status">
+              <option value="active">সক্রিয়</option>
+              <option value="inactive">নিষ্ক্রিয়</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary-button" type="submit" id="ad-save-btn">বিজ্ঞাপন সংরক্ষণ করুন</button>
+          <button class="ghost-button" type="button" id="ad-cancel-btn" hidden>বাতিল</button>
+        </div>
+        <p class="msg" id="ad-form-msg"></p>
+      </form>
+    </section>
+
+    <!-- তালিকা -->
+    <section>
+      <div class="page-heading" style="margin-bottom:12px"><h1 style="font-size:19px">সব বিজ্ঞাপন</h1></div>
+      <div class="ad-list" id="ad-list"><div class="message">লোড হচ্ছে...</div></div>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script src="./config.js"></script>
+  <script src="./nav.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var auth = window.auth;
+    var db = window.rtdb;
+    var $ = function (id) { return document.getElementById(id); };
+
+    if (!auth || !db) {
+      $("ad-list").innerHTML = '<div class="message error">Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।</div>';
+      return;
+    }
+
+    var ADS_REF = "ads";
+    var IMGBB_API_KEY = "aede02b305570da9ff878b94285d9623";
+    var HINT_DEFAULT = "উপরে ছবি আপলোড করলে লিংক নিজে থেকেই বসে যাবে। ছবিটা সবসময় 16:9 অনুপাতে ক্রপ হয়ে দেখাবে।";
+    var editingId = null;
+    var started = false;
+    var currentUser = null;
+
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function safeUrl(u) {
+      var s = String(u || "").trim();
+      return /^https?:\/\//i.test(s) ? s : "";
+    }
+
+    function fmtDate(ms) {
+      var d = new Date(Number(ms));
+      if (!ms || isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("bn-BD", { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function setMsg(el, text, cls) {
+      el.textContent = text || "";
+      el.className = "msg" + (cls ? " " + cls : "");
+    }
+
+    /* ---------- ফর্ম রিসেট ---------- */
+    function toggleBtnLabel() {
+      $("ad-btn-label-wrap").hidden = !$("ad-link").value.trim();
+    }
+
+    function resetForm() {
+      editingId = null;
+      $("ad-form").reset();
+      $("ad-form-title").textContent = "নতুন বিজ্ঞাপন তৈরি করুন";
+      $("ad-save-btn").textContent = "বিজ্ঞাপন সংরক্ষণ করুন";
+      $("ad-cancel-btn").hidden = true;
+      $("formBox").classList.remove("editing");
+      $("ad-img-hint").textContent = HINT_DEFAULT;
+      $("ad-img-hint").className = "hint";
+      $("ad-upload-status").textContent = "";
+      $("ad-upload-status").className = "hint";
+      $("ad-img-preview-wrap").hidden = true;
+      setMsg($("ad-form-msg"), "");
+      toggleBtnLabel();
+    }
+
+    /* ---------- ছবি ---------- */
+    // ibb.co-এর HTML/BBCode এম্বেড কোড থেকে আসল ছবির লিংক বের করে
+    function extractImageUrl(raw) {
+      var s = (raw || "").trim();
+      if (!s) return "";
+      var m = s.match(/\[img\](.*?)\[\/img\]/i);
+      if (m) return m[1].trim();
+      m = s.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (m) return m[1].trim();
+      return s;
+    }
+
+    function bindImagePreview() {
+      var input = $("ad-image"), hint = $("ad-img-hint");
+      var wrap = $("ad-img-preview-wrap"), img = $("ad-img-preview");
+      var timer = null;
+
+      function check() {
+        var cleaned = extractImageUrl(input.value);
+        if (cleaned && cleaned !== input.value.trim()) input.value = cleaned;
+        var url = input.value.trim();
+        if (!url) {
+          wrap.hidden = true;
+          hint.textContent = HINT_DEFAULT;
+          hint.className = "hint";
+          return;
+        }
+        hint.textContent = "যাচাই করা হচ্ছে…";
+        hint.className = "hint";
+        img.onload = function () {
+          wrap.hidden = false;
+          hint.textContent = "✓ ছবি ঠিক আছে, 16:9 অনুপাতে এভাবেই দেখাবে।";
+          hint.className = "hint ok";
+        };
+        img.onerror = function () {
+          wrap.hidden = true;
+          hint.textContent = "✗ এই লিংক থেকে ছবি লোড করা যায়নি। HTML বা BBCode এম্বেড কোডটা পুরো কপি করে পেস্ট করুন।";
+          hint.className = "hint bad";
+        };
+        img.src = url;
+      }
+
+      input.addEventListener("input", function () {
+        clearTimeout(timer);
+        timer = setTimeout(check, 400);
+      });
+    }
+
+    // ছবি সিলেক্ট করলে ImgBB-তে আপলোড হয়, লিংক ad-image-এ বসে যায়
+    function bindImageUpload() {
+      var fileInput = $("ad-image-file"), urlInput = $("ad-image"), status = $("ad-upload-status");
+
+      fileInput.addEventListener("change", function () {
+        var file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+          status.textContent = "✗ শুধু ছবি ফাইল আপলোড করা যাবে।";
+          status.className = "hint bad";
+          fileInput.value = "";
+          return;
+        }
+
+        status.textContent = "আপলোড হচ্ছে…";
+        status.className = "hint";
+        fileInput.disabled = true;
+
+        var fd = new FormData();
+        fd.append("image", file);
+
+        fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_API_KEY, { method: "POST", body: fd })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (!data || !data.success || !data.data || !data.data.url) {
+              throw new Error((data && data.error && data.error.message) || "আপলোড ব্যর্থ হয়েছে");
+            }
+            urlInput.value = data.data.url;
+            urlInput.dispatchEvent(new Event("input"));
+            status.textContent = "✓ ছবি আপলোড হয়ে গেছে।";
+            status.className = "hint ok";
+          })
+          .catch(function (err) {
+            status.textContent = "✗ আপলোড করা যায়নি: " + err.message + " — ইন্টারনেট সংযোগ পরীক্ষা করুন অথবা লিংক পেস্ট করে দিন।";
+            status.className = "hint bad";
+          })
+          .then(function () { fileInput.disabled = false; });
+      });
+    }
+
+    /* ---------- ব্যবধান সেটিং ---------- */
+    function bindInterval() {
+      var sel = $("ad-interval"), msg = $("ad-interval-msg");
+
+      db.ref("settings/adInterval").once("value").then(function (snap) {
+        var v = snap.val();
+        sel.value = v === 2 || v === 3 || v === 4 ? String(v) : "3";
+      }).catch(function () {});
+
+      sel.addEventListener("change", function () {
+        db.ref("settings/adInterval").set(parseInt(sel.value, 10)).then(function () {
+          setMsg(msg, "সংরক্ষণ হয়েছে ✓", "ok");
+          setTimeout(function () { setMsg(msg, ""); }, 2000);
+        }).catch(function (err) {
+          setMsg(msg, "সংরক্ষণ করা যায়নি: " + err.message, "bad");
+        });
+      });
+    }
+
+    /* ---------- সংরক্ষণ / এডিট / ডিলিট ---------- */
+    function saveAd(e) {
+      e.preventDefault();
+      var msg = $("ad-form-msg"), btn = $("ad-save-btn");
+      var link = $("ad-link").value.trim();
+      var data = {
+        title: $("ad-title").value.trim(),
+        description: $("ad-desc").value.trim(),
+        imageUrl: extractImageUrl($("ad-image").value),
+        link: link,
+        buttonLabel: link ? $("ad-btn-label").value : "",
+        status: $("ad-status").value,
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || currentUser.email || "এডমিন",
+        updatedAt: Date.now()
+      };
+      var id = editingId || db.ref(ADS_REF).push().key;
+      if (!editingId) data.createdAt = Date.now();
+
+      btn.disabled = true;
+      setMsg(msg, "");
+      db.ref(ADS_REF + "/" + id).update(data).then(function () {
+        resetForm();
+        setMsg(msg, "সফলভাবে সংরক্ষণ হয়েছে ✓", "ok");
+      }).catch(function (err) {
+        setMsg(msg, "সংরক্ষণ করা যায়নি: " + err.message, "bad");
+      }).then(function () { btn.disabled = false; });
+    }
+
+    function fillFormForEdit(id, ad) {
+      editingId = id;
+      $("ad-title").value = ad.title || "";
+      $("ad-desc").value = ad.description || "";
+      $("ad-image").value = ad.imageUrl || "";
+      $("ad-image").dispatchEvent(new Event("input"));
+      $("ad-link").value = ad.link || "";
+      toggleBtnLabel();
+      $("ad-btn-label").value = ad.buttonLabel || "ভিজিট করুন";
+      $("ad-status").value = ad.status || "active";
+      $("ad-form-title").textContent = "বিজ্ঞাপন এডিট করুন";
+      $("ad-save-btn").textContent = "আপডেট করুন";
+      $("ad-cancel-btn").hidden = false;
+      $("formBox").classList.add("editing");
+      $("formBox").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function deleteAd(id) {
+      if (!window.confirm("এই বিজ্ঞাপনটি মুছে ফেলতে চান? এটা আর ফিরিয়ে আনা যাবে না.")) return;
+      db.ref(ADS_REF + "/" + id).remove().then(function () {
+        if (editingId === id) resetForm();
+      }).catch(function (err) {
+        window.alert("মুছে ফেলা যায়নি: " + err.message);
+      });
+    }
+
+    /* ---------- তালিকা ---------- */
+    var cache = {};
+
+    function renderList(val) {
+      cache = val || {};
+      var list = $("ad-list");
+      var ids = Object.keys(cache);
+      var active = ids.filter(function (id) { return (cache[id] || {}).status !== "inactive"; }).length;
+
+      $("totalCount").textContent = ids.length.toLocaleString("bn-BD");
+      $("activeCount").textContent = active.toLocaleString("bn-BD");
+      $("inactiveCount").textContent = (ids.length - active).toLocaleString("bn-BD");
+
+      if (!ids.length) {
+        list.innerHTML = '<div class="message">এখনো কোনো বিজ্ঞাপন তৈরি হয়নি।</div>';
+        return;
+      }
+
+      ids.sort(function (a, b) { return ((cache[b] || {}).createdAt || 0) - ((cache[a] || {}).createdAt || 0); });
+
+      list.innerHTML = ids.map(function (id) {
+        var ad = cache[id] || {};
+        var img = safeUrl(ad.imageUrl);
+        var link = safeUrl(ad.link);
+        var date = fmtDate(ad.createdAt);
+        var off = ad.status === "inactive";
+
+        return (
+          '<article class="ad-card" data-id="' + esc(id) + '">' +
+            '<div class="ad-media">' +
+              (img ? '<img src="' + esc(img) + '" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'ph\',textContent:\'▧\'}))">'
+                   : '<div class="ph">▧</div>') +
+            "</div>" +
+            '<div class="ad-body">' +
+              '<div class="tags"><span class="tag">বিজ্ঞাপন</span>' +
+                (off ? '<span class="tag off">নিষ্ক্রিয়</span>' : '<span class="tag on">সক্রিয়</span>') + "</div>" +
+              '<h3 class="ad-title">' + esc(ad.title || "শিরোনাম নেই") + "</h3>" +
+              (ad.description ? '<p class="ad-desc">' + esc(ad.description) + "</p>" : "") +
+              (date ? '<p class="ad-date">' + esc(date) + "</p>" : "") +
+            "</div>" +
+            '<div class="ad-actions">' +
+              (link ? '<a class="action-button" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' + esc(ad.buttonLabel || "ভিজিট করুন") + "</a>" : "") +
+              '<button class="action-button" type="button" data-action="edit">এডিট</button>' +
+              '<button class="action-button danger" type="button" data-action="delete">ডিলিট</button>' +
+            "</div>" +
+          "</article>"
+        );
+      }).join("");
+    }
+
+    function listen() {
+      db.ref(ADS_REF).on("value", function (snap) {
+        renderList(snap.val());
+      }, function (err) {
+        console.error(err);
+        $("ad-list").innerHTML = '<div class="message error">বিজ্ঞাপন লোড করা যায়নি। Firebase Rules পরীক্ষা করুন।</div>';
+      });
+    }
+
+    /* ---------- ইভেন্ট ---------- */
+    $("ad-form").addEventListener("submit", saveAd);
+    $("ad-cancel-btn").addEventListener("click", resetForm);
+    $("ad-link").addEventListener("input", toggleBtnLabel);
+    $("newBtn").addEventListener("click", function () {
+      resetForm();
+      $("formBox").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("ad-title").focus({ preventScroll: true });
+    });
+    $("ad-list").addEventListener("click", function (e) {
+      var btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      var card = btn.closest(".ad-card");
+      var id = card && card.getAttribute("data-id");
+      if (!id) return;
+      if (btn.getAttribute("data-action") === "delete") { deleteAd(id); return; }
+      fillFormForEdit(id, cache[id] || {});
+    });
+
+    bindImagePreview();
+    bindImageUpload();
+    resetForm();
+
+    /* ---------- শুরু ---------- */
+    auth.onAuthStateChanged(async function (user) {
+      if (!user) { window.location.replace("./index.html"); return; }
+
+      try {
+        if (!(await window.isAdmin(user))) {
+          await auth.signOut();
+          alert("এই পেজ দেখার জন্য অ্যাডমিন অনুমতি প্রয়োজন।");
+          window.location.replace("./index.html");
+          return;
+        }
+        currentUser = user;
+        if (started) return;
+        started = true;
+        bindInterval();
+        listen();
+      } catch (error) {
+        console.error("Admin verification error:", error);
+        $("ad-list").innerHTML = '<div class="message error">অ্যাডমিন অনুমতি যাচাই করা যায়নি। Firebase Rules পরীক্ষা করুন।</div>';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

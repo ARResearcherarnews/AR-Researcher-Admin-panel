@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>নতুন পোস্ট | AR News Admin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary: #0f766e;
+  --primary-light: #e6f5f2;
+  --bg: #f5f7fa;
+  --text: #17212b;
+  --muted: #64748b;
+  --border: #e5eaf0;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Hind Siliguri", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding-bottom: 85px;
+}
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+
+.btn {
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-weight: 600;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.btn-primary:hover { background: #115e59; }
+.btn:disabled { opacity: .6; cursor: wait; }
+
+.container {
+  width: 100%;
+  max-width: 900px;
+  padding: 24px;
+  margin: auto;
+}
+.page-title { margin-bottom: 22px; }
+.page-title h1 { margin: 0; font-size: 27px; }
+
+.form-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 25px;
+  width: 100%;
+}
+.field { margin-bottom: 21px; }
+.field label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.required { color: #dc2626; }
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid #dce3e9;
+  border-radius: 10px;
+  padding: 12px 14px;
+  outline: none;
+  background: #fff;
+  color: var(--text);
+}
+.field input, .field select { min-height: 47px; }
+.field textarea {
+  min-height: 300px;
+  resize: vertical;
+  line-height: 1.9;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15,118,110,.08);
+}
+.help {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.upload-box {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  background: #fafcfd;
+}
+.upload-box input {
+  width: 100%;
+  max-width: 350px;
+  margin-top: 12px;
+}
+.image-preview {
+  display: none;
+  width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  margin: 18px auto 0;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 22px;
+  margin-top: 25px;
+}
+.status-message {
+  display: none;
+  padding: 12px 15px;
+  border-radius: 9px;
+  margin-bottom: 18px;
+  overflow-wrap: anywhere;
+}
+.status-message.show { display: block; }
+.status-message.error { background: #fef2f2; color: #b91c1c; }
+.status-message.success { background: #f0fdf4; color: #166534; }
+
+@media(max-width:600px) {
+  .container { padding: 15px 10px; }
+  .page-title h1 { font-size: 23px; }
+  .form-card { padding: 16px 13px; }
+  .field textarea { min-height: 240px; }
+  .actions { display: grid; grid-template-columns: 1fr; }
+  .actions .btn { width: 100%; }
+}
+</style>
+</head>
+
+<body>
+
+<main class="container">
+  <div class="page-title">
+    <h1 id="pageHeading">নতুন পোস্ট</h1>
+  </div>
+
+  <div id="message" class="status-message" role="status"></div>
+
+  <form class="form-card" id="postForm">
+    <div class="field">
+      <label for="title">টাইটেল <span class="required">*</span></label>
+      <input id="title" name="title" type="text"
+        placeholder="খবরের শিরোনাম লিখুন" required maxlength="250">
+    </div>
+
+    <div class="field">
+      <label for="category">বিভাগ <span class="required">*</span></label>
+      <select id="category" name="category" required>
+        <option value="">বিভাগ নির্বাচন করুন</option>
+        <option value="জাতীয়">জাতীয়</option>
+        <option value="আন্তর্জাতিক">আন্তর্জাতিক</option>
+        <option value="প্রযুক্তি">প্রযুক্তি</option>
+        <option value="বিজ্ঞান">বিজ্ঞান</option>
+        <option value="স্বাস্থ্য">স্বাস্থ্য</option>
+        <option value="শিক্ষা">শিক্ষা</option>
+        <option value="অর্থনীতি">অর্থনীতি</option>
+        <option value="যাচাই-বাছাই">যাচাই-বাছাই</option>
+        <option value="বিশ্লেষণ">বিশ্লেষণ</option>
+        <option value="অন্যান্য">অন্যান্য</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="details">বিস্তারিত <span class="required">*</span></label>
+      <textarea id="details" name="details"
+        placeholder="খবরের সম্পূর্ণ বিবরণ লিখুন..." required></textarea>
+    </div>
+
+    <div class="field">
+      <label for="imageFile">ছবি আপলোড</label>
+      <div class="upload-box">
+        <div>🖼️</div>
+        <strong>খবরের ছবি নির্বাচন করুন</strong>
+        <input id="imageFile" type="file" accept="image/*">
+        <div id="uploadStatus" class="help"></div>
+        <img id="imagePreview" class="image-preview" alt="ছবির প্রিভিউ">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="imageUrl">ছবির লিংক</label>
+      <input id="imageUrl" type="text" placeholder="আপলোড করলে নিজে থেকেই বসবে, অথবা লিংক পেস্ট করুন">
+    </div>
+
+    <div class="field">
+      <label for="status">স্ট্যাটাস</label>
+      <select id="status">
+        <option value="published">প্রকাশিত</option>
+        <option value="draft">ড্রাফট</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="previewBtn" type="button">👁 প্রিভিউ</button>
+      <button class="btn btn-primary" id="draftBtn" type="submit">সংরক্ষণ</button>
+    </div>
+  </form>
+</main>
+
+<!-- post.html-এর মতোই: Firebase (compat) + config.js + nav.js — সাধারণ স্ক্রিপ্ট, ES Module নয় -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="./config.js"></script>
+<script src="./nav.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ছবি আপলোড হয় ImgBB-তে (create.js-এর মতোই)
+  const IMGBB_API_KEY = "99e869a5e930f58f491beb611c8f1bcd";
+
+  const $ = id => document.getElementById(id);
+  const auth = window.auth;
+  const db = window.rtdb;
+
+  if (!auth || !db) {
+    $("message").className = "status-message show error";
+    $("message").textContent =
+      "Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।";
+    return;
+  }
+
+  const params = new URLSearchParams(location.search);
+  // post.html থেকে আসা এডিটের ডেটা (sessionStorage) — ?id না থাকলেও কাজ করবে
+  let cachedEdit = null;
+  try {
+    cachedEdit = JSON.parse(sessionStorage.getItem("ar_edit") || "null");
+  } catch (e) { cachedEdit = null; }
+
+  // শুধু ?id থাকলেই এডিট মোড (নইলে "নতুন পোস্ট" পুরোনো cache থেকে এডিট হয়ে যেত)
+  const editId = params.get("id");
+  if (!editId || !cachedEdit || cachedEdit.id !== editId) {
+    cachedEdit = null;
+    if (!editId) { try { sessionStorage.removeItem("ar_edit"); } catch (e) {} }
+  }
+
+  let currentUser = null;
+  let existingPost = {};
+  let uploading = false;
+  let busy = false;
+
+  function saveLabel() { return editId ? "আপডেট করুন" : "সংরক্ষণ"; }
+
+  function showMessage(text, type) {
+    const box = $("message");
+    box.textContent = text;
+    box.className = "status-message show" + (type ? " " + type : "");
+  }
+
+  // ibb.co-এর HTML/BBCode এম্বেড কোড থেকে আসল ছবির লিংক বের করে
+  function extractImageUrl(raw) {
+    const text = (raw || "").trim();
+    if (!text) return "";
+    let m = text.match(/\[img\](.*?)\[\/img\]/i);
+    if (m) return m[1].trim();
+    m = text.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (m) return m[1].trim();
+    return text;
+  }
+
+  function getFormData() {
+    return {
+      title: $("title").value.trim(),
+      category: $("category").value,
+      details: $("details").value.trim(),
+      imageUrl: extractImageUrl($("imageUrl").value),
+      status: $("status").value
+    };
+  }
+
+  function updateImagePreview(url) {
+    const image = $("imagePreview");
+    if (url) {
+      image.src = url;
+      image.style.display = "block";
+    } else {
+      image.removeAttribute("src");
+      image.style.display = "none";
+    }
+  }
+
+  function setUploadStatus(text, type) {
+    const el = $("uploadStatus");
+    el.textContent = text;
+    el.style.color = type === "ok" ? "#166534" : type === "bad" ? "#b91c1c" : "";
+  }
+
+  let previewTimer = null;
+  $("imageUrl").addEventListener("input", () => {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      const cleaned = extractImageUrl($("imageUrl").value);
+      if (cleaned && cleaned !== $("imageUrl").value.trim()) $("imageUrl").value = cleaned;
+      updateImagePreview(cleaned);
+    }, 350);
+  });
+
+  $("imagePreview").addEventListener("error", () => {
+    if ($("imageUrl").value.trim()) {
+      setUploadStatus("এই লিংক থেকে ছবি লোড করা যায়নি।", "bad");
+    }
+    $("imagePreview").style.display = "none";
+  });
+
+  // ছবি বাছলে সঙ্গে সঙ্গে ImgBB-তে আপলোড, লিংক নিজে থেকে বসে যায়
+  $("imageFile").addEventListener("change", event => {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadStatus("শুধু ছবি ফাইল আপলোড করা যাবে।", "bad");
+      input.value = "";
+      return;
+    }
+
+    if (file.size > 32 * 1024 * 1024) {
+      setUploadStatus("ছবি বেশি বড় (সর্বোচ্চ ৩২ MB)।", "bad");
+      input.value = "";
+      return;
+    }
+
+    uploading = true;
+    input.disabled = true;
+    setUploadStatus("আপলোড হচ্ছে…");
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_API_KEY, {
+      method: "POST",
+      body: formData
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!data || !data.success || !data.data || !data.data.url) {
+          throw new Error((data && data.error && data.error.message) || "আপলোড ব্যর্থ হয়েছে");
+        }
+        $("imageUrl").value = data.data.url;
+        updateImagePreview(data.data.url);
+        setUploadStatus("✓ ছবি আপলোড হয়েছে।", "ok");
+      })
+      .catch(err => {
+        setUploadStatus("✗ আপলোড করা যায়নি: " + err.message, "bad");
+      })
+      .finally(() => {
+        uploading = false;
+        input.disabled = false;
+        input.value = "";
+      });
+  });
+
+  $("previewBtn").addEventListener("click", () => {
+    const data = getFormData();
+
+    if (!data.title || !data.category || !data.details) {
+      showMessage("প্রিভিউ দেখার আগে টাইটেল, বিভাগ ও বিস্তারিত লিখুন।", "error");
+      return;
+    }
+
+    try {
+      sessionStorage.setItem("arnews_post_preview", JSON.stringify(data));
+    } catch (e) {
+      showMessage("প্রিভিউ তৈরি করা যায়নি।", "error");
+      return;
+    }
+
+    window.open("./post-view.html", "_blank");
+  });
+
+  function fillForm(post) {
+    existingPost = post || {};
+
+    $("title").value = existingPost.title || existingPost.Title || "";
+
+    // বিভাগ ড্রপডাউনে না থাকলে অপশন যোগ করে দিই, নইলে ফাঁকা দেখাবে
+    const cat = existingPost.category || existingPost.Category || "";
+    if (cat && ![...$("category").options].some(o => o.value === cat)) {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      $("category").appendChild(opt);
+    }
+    $("category").value = cat;
+
+    $("details").value = existingPost.description || existingPost.details ||
+      existingPost.body || existingPost.content || existingPost.fullArticle || "";
+
+    $("imageUrl").value = existingPost.imageUrl || existingPost.image ||
+      existingPost.thumbnail || "";
+    updateImagePreview($("imageUrl").value);
+
+    const st = String(existingPost.status || existingPost.visibility || "").toLowerCase();
+    $("status").value =
+      (st === "published" || st === "public" || st === "publish" ||
+        existingPost.published === true)
+        ? "published" : "draft";
+
+    $("pageHeading").textContent = "পোস্ট এডিট";
+    document.title = "পোস্ট এডিট | AR News Admin";
+    $("draftBtn").textContent = saveLabel();
+  }
+
+  async function loadExistingPost() {
+    if (!editId) return;
+
+    // আগে post.html-এর পাঠানো ডেটা দিয়ে সঙ্গে সঙ্গে ফর্ম ভরি
+    if (cachedEdit && cachedEdit.post) fillForm(cachedEdit.post);
+
+    // তারপর Firebase থেকে সর্বশেষ ডেটা এনে আপডেট করি
+    try {
+      const snapshot = await db.ref("posts/" + editId).once("value");
+
+      if (!snapshot.exists()) {
+        if (!cachedEdit) showMessage("এই পোস্টটি পাওয়া যায়নি।", "error");
+        return;
+      }
+
+      fillForm(snapshot.val() || {});
+    } catch (error) {
+      console.error("Load post error:", error);
+      if (!cachedEdit) {
+        showMessage("পোস্টের তথ্য লোড করা যায়নি। Database Rules ও সংযোগ দেখুন।", "error");
+      }
+    }
+  }
+
+  async function savePost(event) {
+    event.preventDefault();
+    if (busy) return;
+
+    if (!currentUser) {
+      showMessage("প্রথমে অ্যাডমিন হিসেবে লগইন করুন।", "error");
+      return;
+    }
+
+    if (uploading) {
+      showMessage("ছবি আপলোড শেষ হওয়া পর্যন্ত অপেক্ষা করুন।", "error");
+      return;
+    }
+
+    const data = getFormData();
+
+    if (!data.title || !data.category || !data.details) {
+      showMessage("টাইটেল, বিভাগ ও বিস্তারিত পূরণ করুন।", "error");
+      return;
+    }
+
+    busy = true;
+    $("draftBtn").disabled = true;
+    $("draftBtn").textContent = "সংরক্ষণ হচ্ছে...";
+
+    try {
+      const now = Date.now();
+
+      const postData = Object.assign({}, existingPost, {
+        title: data.title,
+        category: data.category,
+        description: data.details,
+        imageUrl: data.imageUrl,
+        status: data.status,
+        published: data.status === "published",
+        // Database Rules: authorId == লগইন করা অ্যাডমিনের uid হতেই হবে
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || currentUser.email || "অ্যাডমিন",
+        updatedAt: now
+      });
+
+      // post.html আগে image/thumbnail ফিল্ড পড়ে — পুরোনো পোস্টে থাকলে নতুন ছবির সাথে মিলিয়ে দিই
+      if ("image" in postData) postData.image = data.imageUrl;
+      if ("thumbnail" in postData) postData.thumbnail = data.imageUrl;
+      // বিস্তারিত অন্য ফিল্ডে থাকলে সেগুলোও সিঙ্ক রাখি
+      ["body", "content"].forEach(k => { if (k in postData) postData[k] = data.details; });
+
+      if (editId) {
+        await db.ref("posts/" + editId).update(postData);
+        existingPost = postData;
+      } else {
+        postData.createdAt = now;
+        await db.ref("posts").push().set(postData);
+      }
+
+      showMessage(
+        data.status === "published"
+          ? "সফলভাবে সংরক্ষণ হয়েছে ✓ (প্রকাশিত)"
+          : "সফলভাবে সংরক্ষণ হয়েছে ✓ (ড্রাফট)",
+        "success"
+      );
+
+      try { sessionStorage.removeItem("ar_edit"); } catch (e) {}
+
+      if (!editId) {
+        $("postForm").reset();
+        updateImagePreview("");
+        setUploadStatus("");
+        existingPost = {};
+      }
+    } catch (error) {
+      console.error("Save post error:", error);
+
+      if (error && error.code === "PERMISSION_DENIED") {
+        showMessage("অনুমতি নেই। অ্যাডমিন হিসেবে লগইন আছে কিনা এবং Database Rules দেখুন।", "error");
+      } else {
+        showMessage("সংরক্ষণ করা যায়নি। সংযোগ ও Database Rules পরীক্ষা করুন।", "error");
+      }
+    } finally {
+      busy = false;
+      $("draftBtn").disabled = false;
+      $("draftBtn").textContent = saveLabel();
+    }
+  }
+
+  $("postForm").addEventListener("submit", savePost);
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) {
+      window.location.replace("./index.html");
+      return;
+    }
+
+    currentUser = user;
+
+    try {
+      if (!(await window.isAdmin(user))) {
+        showMessage("এই পেজ শুধু অ্যাডমিন ব্যবহার করতে পারবেন।", "error");
+        $("postForm").querySelectorAll("input, select, textarea, button")
+          .forEach(el => { el.disabled = true; });
+        return;
+      }
+
+      await loadExistingPost();
+    } catch (error) {
+      console.error("Admin verification error:", error);
+      showMessage("অ্যাডমিন যাচাই করা যায়নি। Firebase Rules পরীক্ষা করুন।", "error");
+    }
+  });
+})();
+</script>
+</body>
+</html>

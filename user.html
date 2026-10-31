@@ -1,0 +1,750 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ইউজার ম্যানেজমেন্ট | AR News</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-light: #e6f4f1;
+      --bg: #f7f9fb;
+      --text: #172b2a;
+      --muted: #718096;
+      --border: #e5eaf0;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Hind Siliguri', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select { font: inherit; }
+
+
+
+
+
+    main {
+      width: 100%;
+      padding: 22px;
+      margin: 0 auto;
+    }
+
+    .heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat, .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .stat { padding: 17px; }
+    .stat-label { color: var(--muted); font-size: 14px; }
+    .stat-number { font-size: 28px; font-weight: 700; margin-top: 5px; }
+
+    .panel { overflow: hidden; }
+
+    .toolbar {
+      padding: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search {
+      flex: 1;
+      min-width: 190px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #dce3e8;
+      border-radius: 9px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px #0f766e14;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-light { background: var(--primary-light); color: var(--primary); }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    .table-wrap { width: 100%; overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      min-width: 690px;
+    }
+
+    th, td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      background: #fbfcfd;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fbfefd; }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 190px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      overflow: hidden;
+    }
+
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-name { font-weight: 600; }
+    .user-email { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
+    .role {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .role-admin { background: #e0e7ff; color: #4338ca; }
+    .role-user { background: #e5f5e9; color: #187344; }
+    .role-unknown { background: #f1f5f9; color: #475569; }
+
+    .actions { display: flex; align-items: center; gap: 7px; }
+    .actions .btn { padding: 7px 10px; font-size: 12px; }
+
+    .empty {
+      padding: 35px 15px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .message {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 9px;
+      display: none;
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { display: block; background: #fee2e2; color: #991b1b; }
+    .message.success { display: block; background: #dcfce7; color: #166534; }
+    .message.info { display: block; background: #e0f2fe; color: #075985; }
+    .more-wrap { padding: 12px; text-align: center; border-top: 1px solid var(--border); }
+
+    .loading { text-align: center; padding: 35px; color: var(--muted); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: #10202077;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.show { display: flex; }
+
+    .modal {
+      width: 100%;
+      max-width: 440px;
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 20px 60px #0002;
+    }
+
+    .modal h2 { font-size: 21px; margin: 0 0 16px; }
+    .detail-row { margin: 12px 0; overflow-wrap: anywhere; }
+    .detail-row span { display: block; color: var(--muted); font-size: 13px; }
+    .detail-row strong { font-weight: 500; }
+    .modal-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
+
+    /* আইডি + কপি বাটন */
+    .uid-wrap { display: flex; align-items: center; gap: 8px; }
+    .uid-label { display: none; font-weight: 600; flex: none; }
+    .uid-text {
+      display: inline-block;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12.5px;
+    }
+    .copy-btn { flex: none; padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+    .copy-btn.done { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
+    .detail-id { display: flex; align-items: center; gap: 10px; }
+    .detail-id strong { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+
+
+
+
+    @media (max-width: 650px) {
+      main { padding: 15px 11px; }
+      h1 { font-size: 23px; }
+      .stats { gap: 8px; }
+      .stat { padding: 12px 10px; }
+      .stat-label { font-size: 12px; }
+      .stat-number { font-size: 23px; }
+      .toolbar { padding: 12px; }
+      .search { min-width: 100%; }
+      .toolbar select { max-width: none !important; width: 100%; }
+
+      /* টেবিল → কার্ড: স্ক্রল ছাড়াই সব তথ্য দেখা যায় */
+      .table-wrap { overflow-x: visible; }
+      table { min-width: 0; display: block; }
+      thead { display: none; }
+      tbody { display: block; padding: 10px; }
+      tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px 12px;
+        align-items: center;
+        padding: 14px;
+        margin-bottom: 10px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      tbody tr:last-child { margin-bottom: 0; }
+      tbody tr:hover { background: #fff; }
+      tbody td { display: block; padding: 0; border: 0; min-width: 0; }
+      tbody td:only-child { grid-column: 1 / -1; }
+      tbody tr:last-child td { border-bottom: 0; }
+      .user-cell { min-width: 0; }
+      .user-name { overflow-wrap: anywhere; }
+      .uid-cell {
+        grid-column: 1 / -1;
+        padding-top: 10px !important;
+        border-top: 1px dashed var(--border) !important;
+        color: var(--muted);
+        font-size: 12.5px !important;
+        overflow-wrap: anywhere;
+      }
+      .uid-label { display: inline; }
+      .uid-text { flex: 1; min-width: 0; max-width: none; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+      .copy-btn { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+      tbody td:last-child { grid-column: 1 / -1; }
+      .actions { width: 100%; }
+      .actions .btn { flex: 1; min-height: 42px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="heading">
+      <div>
+        <h1>ইউজার ম্যানেজমেন্ট</h1>
+        <p class="sub">নিবন্ধিত ইউজার দেখুন এবং রোল পরিচালনা করুন।</p>
+      </div>
+      <button class="btn btn-light" id="refreshBtn" type="button">↻ রিফ্রেশ</button>
+    </div>
+
+    <div id="message" class="message" role="status"></div>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat-label">মোট ইউজার</div>
+        <div class="stat-number" id="totalCount">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">অ্যাডমিন</div>
+        <div class="stat-number" id="adminCount">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">সাধারণ ইউজার</div>
+        <div class="stat-number" id="userCount">—</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <div class="search">
+          <input id="searchInput" type="search" placeholder="নাম বা ইমেইল দিয়ে খুঁজুন..." aria-label="ইউজার খুঁজুন">
+        </div>
+        <select id="roleFilter" aria-label="রোল অনুযায়ী ফিল্টার" style="max-width:180px">
+          <option value="all">সব রোল</option>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+          <option value="unknown">রোল সেট করা নেই</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ইউজার</th>
+              <th>রোল</th>
+              <th>ইউজার আইডি</th>
+              <th>অ্যাকশন</th>
+            </tr>
+          </thead>
+          <tbody id="userTable">
+            <tr><td colspan="4" class="loading">ইউজার লোড হচ্ছে...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="empty" hidden>কোনো ইউজার পাওয়া যায়নি।</div>
+      <div class="more-wrap" id="moreWrap" hidden><button class="btn btn-light" id="moreBtn" type="button"></button></div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="userModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h2 id="modalTitle">ইউজারের তথ্য</h2>
+      <div id="modalContent"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="closeModal" type="button">বন্ধ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <!-- config.js সাধারণ স্ক্রিপ্ট (window.auth / window.rtdb / window.isAdmin), ES Module নয় -->
+  <script src="./config.js"></script>
+  <script src="./nav.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    const db = window.rtdb;
+    const auth = window.auth;
+
+    const $ = id => document.getElementById(id);
+    let users = [];
+    let currentAdminUid = null;
+    let busy = false;
+
+    const PAGE = 30;            // একবারে কতজন দেখাবে (বেশি সারি আঁকলে পেজ ধীর হয়)
+    let shown = PAGE;
+    const CACHE_KEY = "arn_users_slim_v1";
+    // ইউজারের ভেতরের ভারী ডেটা (নোটিফিকেশন, লাইক/সেভ/পড়ার তালিকা) এই পেজে লাগে না
+    const HEAVY = ["notifications", "readPosts", "likedPosts", "savedPosts", "lastCommentAt"];
+
+    function stripHeavy(u) {
+      const o = {};
+      for (const k in u) if (!HEAVY.includes(k)) o[k] = u[k];
+      return o;
+    }
+
+    // ক্যাশে ছবি রাখি না (base64 ছবি বিশাল হতে পারে) — শুধু ছোট লিংক থাকলে রাখি
+    function saveCache() {
+      try {
+        const slim = users.map(u => {
+          const o = { ...u };
+          ["photoURL", "photoUrl", "photo"].forEach(k => {
+            if (typeof o[k] === "string" && o[k].length > 500) delete o[k];
+          });
+          return o;
+        });
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(slim));
+      } catch (e) { /* ক্যাশ না হলেও চলবে */ }
+    }
+
+    function loadCache() {
+      try {
+        const v = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
+        return Array.isArray(v) ? v : null;
+      } catch (e) { return null; }
+    }
+
+    function showMessage(text, type = "error") {
+      const el = $("message");
+      el.textContent = text;
+      el.className = "message " + type;
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function clearMessage() {
+      $("message").className = "message";
+      $("message").textContent = "";
+    }
+
+    function escapeHTML(value = "") {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function roleOf(user) {
+      const role = String(user.role || user.userRole || "").toLowerCase();
+      if (role === "admin") return "admin";
+      if (role === "user") return "user";
+      return "unknown";
+    }
+
+    function roleLabel(role) {
+      if (role === "admin") return "Admin";
+      if (role === "user") return "User";
+      return "সেট করা নেই";
+    }
+
+    function fmtCreated(v) {
+      if (!v) return "তথ্য নেই";
+      const d = new Date(typeof v === "number" || /^\d+$/.test(String(v)) ? Number(v) : v);
+      if (isNaN(d.getTime())) return String(v);
+      return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(d);
+    }
+
+    function updateStats() {
+      $("totalCount").textContent = users.length;
+      $("adminCount").textContent = users.filter(u => roleOf(u) === "admin").length;
+      $("userCount").textContent = users.filter(u => roleOf(u) === "user").length;
+    }
+
+    async function loadUsers() {
+      if (busy) return;
+      busy = true;
+      clearMessage();
+      $("refreshBtn").disabled = true;
+
+      const hadData = users.length > 0;
+      if (hadData) {
+        // আগের তথ্য সঙ্গে সঙ্গে দেখানো থাকে, পেছনে নতুন তথ্য আনা হয়
+        showMessage("আগের তথ্য দেখানো হচ্ছে, নতুন তথ্য আনা হচ্ছে…", "info");
+      } else {
+        $("userTable").innerHTML =
+          '<tr><td colspan="4" class="loading">ইউজার লোড হচ্ছে... (সবার তথ্য আনতে একটু সময় লাগতে পারে)</td></tr>';
+        $("emptyState").hidden = true;
+      }
+
+      try {
+        const snapshot = await db.ref("users").once("value");
+
+        if (!snapshot.exists()) {
+          users = [];
+        } else {
+          const data = snapshot.val();
+          users = Object.entries(data).map(([uid, value]) => ({
+            uid,
+            ...(value && typeof value === "object" ? stripHeavy(value) : {})
+          }));
+        }
+
+        users.sort((a, b) =>
+          String(a.displayName || a.name || a.email || "")
+            .localeCompare(String(b.displayName || b.name || b.email || ""))
+        );
+
+        saveCache();
+        updateStats();
+        renderUsers();
+        clearMessage();
+      } catch (error) {
+        console.error(error);
+        if (!hadData) $("userTable").innerHTML = "";
+        showMessage("ইউজার লোড করা যায়নি। Firebase Database Rules এবং users ডেটা যাচাই করুন।");
+      } finally {
+        busy = false;
+        $("refreshBtn").disabled = false;
+      }
+    }
+
+    function updateMore(total, visible) {
+      const left = total - visible;
+      $("moreWrap").hidden = left <= 0;
+      if (left > 0) {
+        $("moreBtn").textContent = "আরও দেখুন (" + left.toLocaleString("bn-BD") + " জন বাকি)";
+      }
+    }
+
+    function renderUsers() {
+      const query = $("searchInput").value.trim().toLowerCase();
+      const filter = $("roleFilter").value;
+
+      const filtered = users.filter(user => {
+        const name = String(user.displayName || user.name || "").toLowerCase();
+        const email = String(user.email || "").toLowerCase();
+        const uid = String(user.uid || "").toLowerCase();
+        const matchesText = name.includes(query) || email.includes(query) || uid.includes(query);
+        const matchesRole = filter === "all" || roleOf(user) === filter;
+        return matchesText && matchesRole;
+      });
+
+      $("userTable").innerHTML = "";
+      $("emptyState").hidden = filtered.length > 0;
+
+      const visible = filtered.slice(0, shown);
+      updateMore(filtered.length, visible.length);
+
+      for (const user of visible) {
+        const role = roleOf(user);
+        const name = user.displayName || user.name || "নাম দেওয়া নেই";
+        const email = user.email || "ইমেইল পাওয়া যায়নি";
+        const photo = user.photoURL || user.photoUrl || user.photo || "";
+        const initial = String(name).trim().charAt(0) || "U";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <div class="user-cell">
+              <div class="avatar">${
+                photo
+                  ? `<img src="${escapeHTML(photo)}" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async">`
+                  : escapeHTML(initial)
+              }</div>
+              <div>
+                <div class="user-name">${escapeHTML(name)}</div>
+                <div class="user-email">${escapeHTML(email)}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="role role-${role}">${escapeHTML(roleLabel(role))}</span></td>
+          <td class="uid-cell" data-label="আইডি">
+            <div class="uid-wrap">
+              <span class="uid-label">আইডি:</span>
+              <span class="uid-text" title="${escapeHTML(user.uid)}">${escapeHTML(user.uid)}</span>
+              <button class="btn btn-light copy-btn" type="button" data-action="copy">কপি</button>
+            </div>
+          </td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light" data-action="view">দেখুন</button>
+              <button class="btn btn-primary" data-action="role">রোল পরিবর্তন</button>
+            </div>
+          </td>
+        `;
+
+        tr.querySelector('[data-action="copy"]').addEventListener("click", event => copyUid(user.uid, event.currentTarget));
+        tr.querySelector('[data-action="view"]').addEventListener("click", () => openDetails(user));
+        tr.querySelector('[data-action="role"]').addEventListener("click", () => changeRole(user));
+        $("userTable").appendChild(tr);
+      }
+    }
+
+    async function copyText(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (e) { /* নিচের ফলব্যাক চলবে */ }
+
+      // পুরোনো / অ্যাপ-ব্রাউজারের জন্য ফলব্যাক
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;font-size:16px";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function copyUid(uid, btn) {
+      const ok = await copyText(uid);
+      const old = btn.dataset.label || btn.textContent;
+      btn.dataset.label = old;
+      btn.textContent = ok ? "✓ কপি হয়েছে" : "কপি হয়নি";
+      btn.classList.toggle("done", ok);
+      if (!ok) showMessage("কপি করা যায়নি — আইডিটি চেপে ধরে নিজে কপি করুন।");
+      clearTimeout(btn._t);
+      btn._t = setTimeout(() => {
+        btn.textContent = old;
+        btn.classList.remove("done");
+      }, 1600);
+    }
+
+    function openDetails(user) {
+      const role = roleOf(user);
+      const fields = [
+        ["নাম", user.displayName || user.name || "নাম দেওয়া নেই"],
+        ["ইমেইল", user.email || "পাওয়া যায়নি"],
+        ["রোল", roleLabel(role)],
+        ["ইউজার আইডি", user.uid],
+        ["ফোন", user.phoneNumber || user.phone || "পাওয়া যায়নি"],
+        ["অ্যাকাউন্ট তৈরি", fmtCreated(user.createdAt || user.creationTime)]
+      ];
+
+      $("modalContent").innerHTML = fields.map(([label, value]) => {
+        if (label === "ইউজার আইডি") {
+          return `
+        <div class="detail-row">
+          <span>${escapeHTML(label)}</span>
+          <div class="detail-id">
+            <strong>${escapeHTML(value)}</strong>
+            <button class="btn btn-light copy-btn" type="button" data-copy-uid>কপি</button>
+          </div>
+        </div>`;
+        }
+        return `
+        <div class="detail-row">
+          <span>${escapeHTML(label)}</span>
+          <strong>${escapeHTML(value)}</strong>
+        </div>`;
+      }).join("");
+
+      const modalCopy = $("modalContent").querySelector("[data-copy-uid]");
+      if (modalCopy) modalCopy.addEventListener("click", event => copyUid(user.uid, event.currentTarget));
+
+      $("userModal").classList.add("show");
+    }
+
+    async function changeRole(user) {
+      if (user.uid === currentAdminUid) {
+        showMessage("নিজের অ্যাকাউন্টের রোল এই পেজ থেকে পরিবর্তন করা যাবে না।", "error");
+        return;
+      }
+
+      const currentRole = roleOf(user);
+      const nextRole = currentRole === "admin" ? "user" : "admin";
+      const name = user.displayName || user.name || user.email || user.uid;
+
+      const confirmed = confirm(
+        `${name}-এর রোল ${roleLabel(currentRole)} থেকে ${roleLabel(nextRole)} করতে চান?`
+      );
+      if (!confirmed) return;
+
+      clearMessage();
+
+      try {
+        // Firebase Rules-এ শুধু অনুমোদিত Admin-কে role পরিবর্তনের অনুমতি দিতে হবে।
+        await db.ref("users/" + user.uid).update({
+          role: nextRole
+        });
+
+        user.role = nextRole;
+        saveCache();
+        updateStats();
+        renderUsers();
+        showMessage("ইউজারের রোল পরিবর্তন হয়েছে।", "success");
+      } catch (error) {
+        console.error(error);
+        showMessage("রোল পরিবর্তন করা যায়নি। Firebase Database Rules অনুমতি দিচ্ছে কি না যাচাই করুন।");
+      }
+    }
+
+    $("searchInput").addEventListener("input", () => { shown = PAGE; renderUsers(); });
+    $("roleFilter").addEventListener("change", () => { shown = PAGE; renderUsers(); });
+    $("moreBtn").addEventListener("click", () => { shown += PAGE; renderUsers(); });
+    $("refreshBtn").addEventListener("click", loadUsers);
+    $("closeModal").addEventListener("click", () => $("userModal").classList.remove("show"));
+
+    $("userModal").addEventListener("click", event => {
+      if (event.target === $("userModal")) {
+        $("userModal").classList.remove("show");
+      }
+    });
+
+    if (!auth || !db) {
+      showMessage("Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।");
+      $("userTable").innerHTML = "";
+      return;
+    }
+
+    auth.onAuthStateChanged(async currentUser => {
+      if (!currentUser) {
+        location.replace("./index.html");
+        return;
+      }
+
+      try {
+        if (!(await window.isAdmin(currentUser))) {
+          showMessage("এই পেজ শুধু Admin ব্যবহার করতে পারবেন।");
+          $("userTable").innerHTML = "";
+          $("refreshBtn").disabled = true;
+          setTimeout(() => location.replace("./index.html"), 1800);
+          return;
+        }
+
+        currentAdminUid = currentUser.uid;
+
+        const cached = loadCache();
+        if (cached && cached.length) {
+          users = cached;
+          updateStats();
+          renderUsers();
+        }
+
+        await loadUsers();
+      } catch (error) {
+        console.error(error);
+        showMessage("Admin যাচাই করা যায়নি। Firebase Database Rules যাচাই করুন।");
+        $("userTable").innerHTML = "";
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

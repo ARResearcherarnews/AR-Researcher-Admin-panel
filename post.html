@@ -1,0 +1,1786 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <title>পোস্ট | AR News</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #0b3d91;
+      --primary-dark: #082f73;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #e5e7eb;
+      --background: #f8fafc;
+      --danger: #dc2626;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Noto Sans Bengali",
+        "Hind Siliguri", sans-serif;
+      color: var(--text);
+      background: var(--background);
+      padding-bottom: 85px;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button, a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: 68px;
+      padding: 0 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .brand strong {
+      font-size: 17px;
+    }
+
+    .header-button {
+      padding: 9px 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 23px 15px;
+    }
+
+    .page-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .page-heading h1 {
+      font-size: 23px;
+      margin-bottom: 5px;
+    }
+
+    .page-heading p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .primary-button {
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      padding: 11px 15px;
+      font-weight: 650;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .primary-button:hover {
+      background: var(--primary-dark);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 14px;
+    }
+
+    .stat-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 9px;
+    }
+
+    .stat-card strong {
+      font-size: 25px;
+      font-weight: 750;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 17px;
+      background: #fff;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .search-box {
+      flex: 1 1 220px;
+      min-width: 0;
+      position: relative;
+    }
+
+    .search-box input,
+    .toolbar select {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 9px;
+      padding: 0 12px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .search-box input:focus,
+    .toolbar select:focus {
+      border-color: var(--primary);
+    }
+
+    .toolbar select {
+      flex: 0 1 160px;
+    }
+
+    @keyframes arSk { to { background-position: -200% 0; } }
+
+    .post-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .post-card {
+      min-width: 0;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      transition: border-color 0.2s;
+    }
+
+    .post-card:hover {
+      border-color: #9db7e3;
+    }
+
+    .post-image {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background: #eef2f7;
+    }
+
+    .image-placeholder {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      color: #94a3b8;
+      font-size: 34px;
+    }
+
+    .post-content {
+      padding: 15px;
+    }
+
+    .post-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .category {
+      color: var(--primary-dark);
+      background: #eaf0fb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .status.published {
+      color: #166534;
+      background: #dcfce7;
+    }
+
+    .status.draft {
+      color: #92400e;
+      background: #fef3c7;
+    }
+
+    .post-title {
+      font-size: 16px;
+      line-height: 1.7;
+      margin-bottom: 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .post-date {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+
+
+    /* ---- তিন-ডট মেনু ---- */
+    .post-meta .meta-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .dots-button {
+      flex: none;
+      width: 38px;
+      height: 38px;
+      margin: -6px -8px -6px 0;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #475569;
+    }
+
+    .dots-button:hover,
+    .dots-button[aria-expanded="true"] {
+      background: #eef2f8;
+    }
+
+    .dots-button svg { width: 22px; height: 22px; }
+
+    .post-menu {
+      position: fixed;
+      z-index: 40;
+      min-width: 210px;
+      padding: 6px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 16px 44px rgba(10, 20, 45, 0.2);
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.97);
+      transform-origin: top right;
+      transition: opacity 0.14s, transform 0.14s, visibility 0.14s;
+    }
+
+    .post-menu.show {
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+    }
+
+    .post-menu button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 9px;
+      background: none;
+      color: var(--text);
+      font-size: 15px;
+      text-align: left;
+    }
+
+    .post-menu button:hover { background: #f1f5f9; }
+    .post-menu button svg { flex: none; width: 20px; height: 20px; }
+    .post-menu button.danger { color: var(--danger); }
+    .post-menu button.publish svg { color: #166534; }
+    .post-menu hr { border: 0; border-top: 1px solid var(--border); margin: 5px 4px; }
+
+    .toast {
+      position: fixed;
+      z-index: 50;
+      left: 50%;
+      bottom: calc(90px + env(safe-area-inset-bottom));
+      transform: translate(-50%, 12px);
+      padding: 11px 18px;
+      border-radius: 999px;
+      background: #0f1b33;
+      color: #fff;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    .post-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .action-button {
+      flex: 1;
+      min-width: 65px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 7px;
+      background: #fff;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .action-button:hover {
+      background: #f8fafc;
+    }
+
+    .action-button.publish {
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .action-button.danger {
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+
+    .message {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 15px;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.8;
+      grid-column: 1 / -1;
+    }
+
+    .message.error {
+      color: var(--danger);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 15;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      background: #fff;
+      border-top: 1px solid var(--border);
+    }
+
+    .bottom-nav a {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .bottom-nav a span {
+      display: block;
+      font-size: 21px;
+      margin-bottom: 3px;
+    }
+
+    .bottom-nav a.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    @media (max-width: 600px) {
+      .post-list {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        gap: 8px;
+      }
+
+      .stat-card {
+        padding: 13px 10px;
+      }
+
+      .stat-card strong {
+        font-size: 22px;
+      }
+
+      .stat-card span {
+        font-size: 11px;
+      }
+
+      .page-heading h1 {
+        font-size: 21px;
+      }
+
+      .header {
+        padding: 0 12px;
+      }
+
+      .brand strong {
+        font-size: 15px;
+      }
+
+      .toolbar select {
+        flex: 1 1 130px;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .post-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    /* ====== ফিড-স্টাইল কার্ড: এক কলাম, ছবি এক প্রান্ত থেকে আরেক প্রান্ত (১৬:৯) ====== */
+    .post-list {
+      grid-template-columns: 1fr;
+      gap: 0;
+      max-width: 680px;
+      margin: 0 auto;
+      /* মোবাইলে .main-এর পাশের প্যাডিং ভেঙে পুরো প্রস্থে */
+      margin-left: -15px;
+      margin-right: -15px;
+      max-width: none;
+    }
+
+    .post-card {
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: #fff;
+      overflow: visible;
+    }
+
+    .post-card:hover { border-color: var(--border); }
+
+    .feed-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 14px 6px;
+    }
+
+    .feed-avatar {
+      flex: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #eaf0fb;
+      box-shadow: 0 0 0 1px var(--border);
+    }
+
+    .feed-who {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.35;
+    }
+
+    .feed-who strong { font-size: 16px; }
+
+    .feed-who span {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feed-head .dots-button { margin: 0 -6px 0 0; }
+
+    .feed-text { padding: 4px 14px 12px; }
+
+    .feed-text .post-title {
+      font-size: 17px;
+      line-height: 1.6;
+      margin: 0 0 4px;
+    }
+
+    .feed-excerpt {
+      color: #475569;
+      font-size: 14.5px;
+      line-height: 1.75;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+
+    .post-card .image-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .post-card .post-image,
+    .post-card .image-placeholder {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 0;
+    }
+
+    .feed-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 12px;
+    }
+
+    .feed-stats {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      min-height: 24px;
+    }
+
+    .feed-stats span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #334155;
+    }
+
+    .feed-stats svg { width: 22px; height: 22px; }
+    .feed-stats b { font-size: 15px; font-weight: 600; }
+
+    .feed-share {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #334155;
+      margin-right: -6px;
+    }
+
+    .feed-share:hover { background: #eef2f8; }
+    .feed-share svg { width: 22px; height: 22px; }
+
+    @media (min-width: 720px) {
+      .post-list {
+        max-width: 640px;
+        margin-left: auto;
+        margin-right: auto;
+        gap: 18px;
+      }
+
+      .post-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+    }
+
+    /* ছবি: কাটা নয়, পুরোটা দেখায় — ১৬:৯ ফ্রেমে, পাশে ফাঁকা নেই (ঝাপসা ব্যাকগ্রাউন্ড) */
+    .feed-media {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #e8eef7;
+    }
+
+    .feed-media-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: blur(22px) saturate(1.1);
+      transform: scale(1.2);
+      opacity: 0.85;
+    }
+
+    .feed-media .post-image {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: auto;
+      object-fit: contain;
+      background: transparent;
+    }
+
+    /* ====== ফিড লুক (রেফারেন্স অনুযায়ী) ====== */
+    .post-list { background: #fff; }
+
+    .post-card {
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .feed-head { padding: 14px 14px 4px; gap: 12px; }
+    .feed-avatar { width: 46px; height: 46px; }
+
+    .feed-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .feed-name strong { font-size: 17px; font-weight: 700; }
+    .feed-tick { display: inline-flex; flex: none; }
+    .feed-tick svg { width: 18px; height: 18px; }
+
+    .feed-name .status {
+      margin-left: 2px;
+      padding: 2px 8px;
+      font-size: 11px;
+    }
+
+    .feed-sub {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .feed-text {
+      padding: 6px 14px 12px;
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .feed-clamp {
+      margin: 0;
+      padding: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+
+    .feed-text .post-title {
+      display: inline;
+      margin: 0;
+      font-size: inherit;
+      line-height: inherit;
+      font-weight: 700;
+    }
+
+    .feed-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px 14px;
+    }
+
+    .feed-left { display: flex; align-items: center; gap: 22px; }
+    .feed-stats { gap: 22px; }
+    .feed-stats svg, .feed-views svg { width: 28px; height: 28px; }
+    .feed-stats b, .feed-views b { font-size: 18px; font-weight: 600; }
+
+    .feed-views {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #334155;
+    }
+
+    .feed-share { width: 34px; height: 34px; margin: 0; }
+    .feed-share svg { width: 28px; height: 28px; }
+
+    /* ---- আইকন ---- */
+    .ico {
+      width: 18px;
+      height: 18px;
+      flex: none;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .page-heading { margin-bottom: 16px; }
+    .page-heading h1 { margin-bottom: 0; }
+
+    .stat-card .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .stat-label .ico {
+      width: 30px;
+      height: 30px;
+      padding: 6px;
+      border-radius: 9px;
+    }
+
+    .stat-label.total { color: #1e3a8a; }
+    .stat-label.total .ico { background: #e8eefb; color: var(--primary); }
+    .stat-label.published { color: #166534; }
+    .stat-label.published .ico { background: #dcfce7; color: #16a34a; }
+    .stat-label.draft { color: #92400e; }
+    .stat-label.draft .ico { background: #fef3c7; color: #d97706; }
+
+    .search-box .search-ico {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .search-box input { padding-left: 38px; }
+
+    .refresh-button {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+
+    .refresh-button .ico { width: 20px; height: 20px; }
+
+    /* ---- কমেন্ট প্যানেল ---- */
+    .feed-stats .stat-comment { cursor: pointer; border-radius: 8px; }
+    .feed-stats .stat-comment:active { opacity: 0.6; }
+
+    .c-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(15, 23, 42, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .c-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .c-sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 121;
+      max-width: 680px;
+      margin: 0 auto;
+      height: 75vh;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: 18px 18px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.25s ease;
+    }
+    .c-sheet.show { transform: translateY(0); }
+
+    .c-grip {
+      width: 40px;
+      height: 4px;
+      border-radius: 4px;
+      background: #cbd5e1;
+      margin: 8px auto 0;
+    }
+
+    .c-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 8px 8px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .c-head strong { font-size: 16px; }
+
+    .c-close {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #475569;
+    }
+    .c-close:hover { background: #eef2f8; }
+    .c-close svg { width: 20px; height: 20px; }
+
+    .c-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      overscroll-behavior: contain;
+    }
+
+    .c-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 40px 0;
+    }
+
+    .c-item { display: flex; gap: 10px; padding: 11px 0; }
+
+    .c-avatar {
+      flex: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: grid;
+      place-items: center;
+      background: #e8eefb;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .c-box { min-width: 0; flex: 1; }
+    .c-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .c-top strong { font-size: 13.5px; }
+    .c-top span { color: var(--muted); font-size: 11.5px; }
+    .c-box p {
+      margin-top: 2px;
+      font-size: 14.5px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="main">
+    <div class="page-heading">
+      <h1>পোস্ট</h1>
+
+      <a class="primary-button" href="./create.html">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        নতুন
+      </a>
+    </div>
+
+    <section class="stats">
+      <div class="stat-card">
+        <span class="stat-label total">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+          মোট
+        </span>
+        <strong id="totalCount">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label published">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/></svg>
+          প্রকাশিত
+        </span>
+        <strong id="publishedCount">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label draft">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+          ড্রাফট
+        </span>
+        <strong id="draftCount">—</strong>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <div class="search-box">
+        <svg class="ico search-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="searchInput" type="search"
+               placeholder="খুঁজুন..."
+               aria-label="পোস্ট সার্চ">
+      </div>
+
+      <select id="statusFilter" aria-label="স্ট্যাটাস ফিল্টার">
+        <option value="all">সব</option>
+        <option value="published">প্রকাশিত</option>
+        <option value="draft">ড্রাফট</option>
+      </select>
+
+      <button class="header-button refresh-button" id="refreshButton" type="button" aria-label="রিফ্রেশ" title="রিফ্রেশ">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 4v5h-5"/></svg>
+      </button>
+    </section>
+
+    <section class="post-list" id="postList" aria-live="polite">
+      <div class="message">পোস্ট লোড হচ্ছে...</div>
+    </section>
+  </main>
+
+  <!-- Firebase (compat) + config.js — সব সাধারণ স্ক্রিপ্ট, ES Module নয় -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script src="./config.js"></script>
+  <script src="./nav.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var auth = window.auth;
+    var db = window.rtdb;
+    if (!auth || !db) { document.getElementById("postList").innerHTML = '<div class="message error">Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।</div>'; return; }
+
+    const postList = document.getElementById("postList");
+    const searchInput = document.getElementById("searchInput");
+    const statusFilter = document.getElementById("statusFilter");
+
+    let allPosts = [];
+    let loading = false;
+
+    // দ্রুত লোড: শুধু সাম্প্রতিক পোস্ট আনা হয়, বাকিগুলো "আরও পোস্ট দেখুন" বাটনে
+    const PAGE_SIZE = 20;
+    const SEARCH_LIMIT = 300;
+    let limit = PAGE_SIZE;
+    let hasMore = false;
+    let searchTimer = null;
+
+
+    function showMessage(text, isError = false) {
+      postList.replaceChildren();
+
+      const div = document.createElement("div");
+      div.className = "message" + (isError ? " error" : "");
+      div.textContent = text;
+
+      postList.appendChild(div);
+    }
+
+    function normalizeStatus(post) {
+      const value = String(
+        post.status ?? post.visibility ?? ""
+      ).toLowerCase();
+
+      if (
+        value === "published" ||
+        value === "public" ||
+        value === "publish" ||
+        post.published === true
+      ) {
+        return "published";
+      }
+
+      return "draft";
+    }
+
+    function formatDate(post) {
+      const value = post.createdAt ?? post.date ?? post.timestamp;
+
+      if (!value) return "তারিখ দেওয়া নেই";
+
+      let date;
+
+      if (typeof value === "number") {
+        date = new Date(value);
+      } else {
+        date = new Date(value);
+      }
+
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
+      }
+
+      return date.toLocaleDateString("bn-BD", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    function makeButton(label, className, onClick) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "action-button " + className;
+      button.textContent = label;
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    const ICON = {
+      dots: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>',
+      edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+      publish: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>',
+      draft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14h6M9 17h4"/></svg>',
+      share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
+      trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>'
+    };
+
+    const SITE_NEWS_URL = "https://arnews.info/news/";
+
+    const menuEl = document.createElement("div");
+    menuEl.className = "post-menu";
+    menuEl.setAttribute("role", "menu");
+    document.body.appendChild(menuEl);
+
+    const toastEl = document.createElement("div");
+    toastEl.className = "toast";
+    toastEl.setAttribute("role", "status");
+    document.body.appendChild(toastEl);
+
+    let toastTimer = null;
+    let menuOwner = null;
+
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+    }
+
+    function closePostMenu() {
+      menuEl.classList.remove("show");
+      if (menuOwner) menuOwner.setAttribute("aria-expanded", "false");
+      menuOwner = null;
+    }
+
+    async function sharePost(post) {
+      // https://arnews.info/news/<পোস্ট-আইডি>.html
+      const url = SITE_NEWS_URL + encodeURIComponent(post.id) + ".html";
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: post.title || "AR News", url });
+          return;
+        } catch (error) {
+          if (error && error.name === "AbortError") return;
+        }
+      }
+
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (_) {
+        const input = document.createElement("input");
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        try { document.execCommand("copy"); } catch (__) {}
+        input.remove();
+      }
+
+      showToast("লিংক কপি হয়েছে");
+    }
+
+    function openPostMenu(button, post, status) {
+      if (menuOwner === button) { closePostMenu(); return; }
+      closePostMenu();
+
+      const items = [
+        ["edit", ICON.edit, "এডিট", "", () => {
+          try {
+            const copy = Object.assign({}, post);
+            delete copy.id;
+            sessionStorage.setItem("ar_edit", JSON.stringify({ id: post.id, post: copy }));
+          } catch (_) {}
+          window.location.href = "./create.html?id=" + encodeURIComponent(post.id);
+        }],
+        ["toggle", status === "published" ? ICON.draft : ICON.publish,
+          status === "published" ? "ড্রাফট করুন" : "প্রকাশ করুন",
+          status === "published" ? "" : "publish",
+          () => changeStatus(post, status)],
+        ["share", ICON.share, "শেয়ার", "", () => sharePost(post)],
+        ["hr"],
+        ["delete", ICON.trash, "ডিলিট", "danger", () => deletePost(post)]
+      ];
+
+      menuEl.replaceChildren();
+
+      items.forEach(item => {
+        if (item[0] === "hr") {
+          menuEl.appendChild(document.createElement("hr"));
+          return;
+        }
+
+        const entry = document.createElement("button");
+        entry.type = "button";
+        entry.setAttribute("role", "menuitem");
+        if (item[3]) entry.className = item[3];
+        entry.innerHTML = item[1] + "<span></span>";
+        entry.lastChild.textContent = item[2];
+        entry.addEventListener("click", () => {
+          closePostMenu();
+          item[4]();
+        });
+        menuEl.appendChild(entry);
+      });
+
+      // বাটনের কাছে বসানো; জায়গা না থাকলে উপরে
+      menuEl.classList.add("show");
+      const rect = button.getBoundingClientRect();
+      const width = menuEl.offsetWidth;
+      const height = menuEl.offsetHeight;
+      const gap = 6;
+      const navSpace = 80;
+
+      let top = rect.bottom + gap;
+      if (top + height > window.innerHeight - navSpace) {
+        top = Math.max(8, rect.top - height - gap);
+      }
+
+      let left = rect.right - width;
+      left = Math.min(Math.max(8, left), window.innerWidth - width - 8);
+
+      menuEl.style.top = top + "px";
+      menuEl.style.left = left + "px";
+
+      button.setAttribute("aria-expanded", "true");
+      menuOwner = button;
+      const first = menuEl.querySelector("button");
+      if (first) first.focus({ preventScroll: true });
+    }
+
+    document.addEventListener("click", event => {
+      if (!menuEl.contains(event.target)) closePostMenu();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closePostMenu();
+    });
+    window.addEventListener("scroll", closePostMenu, { passive: true });
+    window.addEventListener("resize", closePostMenu);
+
+    const STAT_ICON = {
+      heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+      comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+      share: ICON.share,
+      send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>',
+      verified: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#16a34a"/><path d="m7.5 12.3 3 3 6-6.3" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    };
+
+    function relativeTime(post) {
+      const value = post.createdAt ?? post.date ?? post.timestamp;
+      const t = typeof value === "number" ? value : new Date(value).getTime();
+      if (!t || Number.isNaN(t)) return "";
+
+      const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+      const n = x => x.toLocaleString("bn-BD");
+
+      if (sec < 60) return "এইমাত্র";
+      if (sec < 3600) return n(Math.floor(sec / 60)) + " মিনিট আগে";
+      if (sec < 86400) return n(Math.floor(sec / 3600)) + " ঘণ্টা আগে";
+      if (sec < 7 * 86400) return n(Math.floor(sec / 86400)) + " দিন আগে";
+      if (sec < 30 * 86400) return n(Math.floor(sec / (7 * 86400))) + " সপ্তাহ আগে";
+      return formatDate(post);
+    }
+
+    const statsCache = {};
+    const statsRequested = {};
+
+    function statsHtml(id) {
+      const st = statsCache[id];
+      const v = key => st ? (Number(st[key]) || 0).toLocaleString("bn-BD") : "–";
+      return (
+        '<span title="লাইক">' + STAT_ICON.heart + '<b data-k="likes">' + v("likes") + "</b></span>" +
+        '<span class="stat-comment" role="button" tabindex="0" title="কমেন্ট দেখুন" aria-label="কমেন্ট দেখুন" data-comment-id="' + String(id).replace(/"/g, "") + '">' + STAT_ICON.comment + '<b data-k="comments">' + v("comments") + "</b></span>"
+      );
+    }
+
+    function viewsHtml(id) {
+      const st = statsCache[id];
+      return STAT_ICON.eye + "<b>" + (st ? (Number(st.views) || 0).toLocaleString("bn-BD") : "–") + "</b>";
+    }
+
+    function fetchStats(ids) {
+      ids.forEach(id => {
+        if (statsRequested[id]) return;
+        statsRequested[id] = true;
+
+        db.ref("postStats/" + id).once("value")
+          .then(snap => { statsCache[id] = snap.val() || {}; })
+          .catch(() => { statsCache[id] = {}; })
+          .then(() => {
+            const el = postList.querySelector('[data-stats="' + id.replace(/"/g, "") + '"]');
+            if (el) el.innerHTML = statsHtml(id);
+            const vw = postList.querySelector('[data-views="' + id.replace(/"/g, "") + '"]');
+            if (vw) vw.innerHTML = viewsHtml(id);
+          });
+      });
+    }
+
+    /* ---------- কমেন্ট দেখার প্যানেল ---------- */
+    // কমেন্ট যে নোডে জমা থাকে: postComments/{postId}/{commentId}
+    const COMMENTS_PATH = "postComments";
+
+    const cOverlay = document.createElement("div");
+    cOverlay.className = "c-overlay";
+
+    const cSheet = document.createElement("div");
+    cSheet.className = "c-sheet";
+    cSheet.setAttribute("role", "dialog");
+    cSheet.setAttribute("aria-modal", "true");
+    cSheet.setAttribute("aria-label", "কমেন্ট");
+    cSheet.innerHTML =
+      '<div class="c-grip"></div>' +
+      '<div class="c-head"><strong>কমেন্ট</strong>' +
+      '<button type="button" class="c-close" aria-label="বন্ধ করুন">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>' +
+      "</button></div>" +
+      '<div class="c-body"></div>';
+
+    document.body.append(cOverlay, cSheet);
+
+    const cBody = cSheet.querySelector(".c-body");
+    const cTitle = cSheet.querySelector(".c-head strong");
+    let cToken = 0;
+
+    function closeComments() {
+      cOverlay.classList.remove("show");
+      cSheet.classList.remove("show");
+      document.body.style.overflow = "";
+      cToken++;
+    }
+
+    cOverlay.addEventListener("click", closeComments);
+    cSheet.querySelector(".c-close").addEventListener("click", closeComments);
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeComments();
+    });
+
+    function commentNote(text) {
+      const note = document.createElement("div");
+      note.className = "c-note";
+      note.textContent = text;
+      cBody.replaceChildren(note);
+    }
+
+    function commentItem(c) {
+      const name = String(c.name || c.userName || c.displayName || c.author || "ব্যবহারকারী");
+      const text = String(c.text || c.comment || c.message || c.body || c.content || "");
+      const photo = c.photo || c.photoURL || c.avatar || c.userPhoto || "";
+      const time = c.createdAt ?? c.timestamp ?? c.time ?? c.date;
+
+      const row = document.createElement("div");
+      row.className = "c-item";
+
+      let avatar;
+      if (photo) {
+        avatar = document.createElement("img");
+        avatar.src = photo;
+        avatar.alt = "";
+        avatar.loading = "lazy";
+        avatar.addEventListener("error", () => {
+          const fb = document.createElement("div");
+          fb.className = "c-avatar";
+          fb.textContent = name.charAt(0);
+          avatar.replaceWith(fb);
+        });
+        avatar.className = "c-avatar";
+      } else {
+        avatar = document.createElement("div");
+        avatar.className = "c-avatar";
+        avatar.textContent = name.charAt(0);
+      }
+
+      const box = document.createElement("div");
+      box.className = "c-box";
+
+      const top = document.createElement("div");
+      top.className = "c-top";
+      const who = document.createElement("strong");
+      who.textContent = name;
+      top.appendChild(who);
+
+      const when = time ? relativeTime({ createdAt: time }) : "";
+      if (when) {
+        const t = document.createElement("span");
+        t.textContent = when;
+        top.appendChild(t);
+      }
+
+      const msg = document.createElement("p");
+      msg.textContent = text;
+
+      box.append(top, msg);
+      row.append(avatar, box);
+      return row;
+    }
+
+    async function openComments(postId) {
+      const token = ++cToken;
+
+      cTitle.textContent = "কমেন্ট";
+      commentNote("লোড হচ্ছে...");
+      cOverlay.classList.add("show");
+      cSheet.classList.add("show");
+      document.body.style.overflow = "hidden";
+
+      try {
+        const snap = await db.ref(COMMENTS_PATH + "/" + postId).limitToLast(100).once("value");
+        if (token !== cToken) return; // মাঝখানে প্যানেল বন্ধ/বদল হয়েছে
+
+        const list = [];
+        snap.forEach(child => {
+          const val = child.val();
+          if (val && typeof val === "object") list.push(val);
+          else if (typeof val === "string") list.push({ text: val });
+        });
+
+        if (!list.length) {
+          commentNote("কোনো কমেন্ট নেই");
+          return;
+        }
+
+        const stamp = c => Number(c.createdAt ?? c.timestamp ?? c.time ?? 0) || 0;
+        list.sort((a, b) => stamp(b) - stamp(a)); // নতুন কমেন্ট আগে
+
+        cTitle.textContent = "কমেন্ট (" + list.length.toLocaleString("bn-BD") + ")";
+        const frag = document.createDocumentFragment();
+        list.forEach(c => frag.appendChild(commentItem(c)));
+        cBody.replaceChildren(frag);
+      } catch (error) {
+        console.error("Load comments error:", error);
+        if (token === cToken) commentNote("কমেন্ট লোড করা যায়নি।");
+      }
+    }
+
+    postList.addEventListener("click", event => {
+      const el = event.target.closest("[data-comment-id]");
+      if (el) openComments(el.getAttribute("data-comment-id"));
+    });
+    postList.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const el = event.target.closest("[data-comment-id]");
+      if (el) {
+        event.preventDefault();
+        openComments(el.getAttribute("data-comment-id"));
+      }
+    });
+
+    function createPostCard(post) {
+      const card = document.createElement("article");
+      card.className = "post-card";
+
+      const status = normalizeStatus(post);
+
+      /* ---------- উপরের সারি: লোগো, নাম, ক্যাটাগরি · তারিখ, স্ট্যাটাস, ⋮ ---------- */
+      const head = document.createElement("div");
+      head.className = "feed-head";
+
+      const avatar = document.createElement("img");
+      avatar.className = "feed-avatar";
+      avatar.src = "./logo.png";
+      avatar.alt = "";
+      avatar.addEventListener("error", () => { avatar.style.visibility = "hidden"; });
+
+      const who = document.createElement("div");
+      who.className = "feed-who";
+
+      const nameRow = document.createElement("div");
+      nameRow.className = "feed-name";
+
+      const name = document.createElement("strong");
+      name.textContent = "AR News";
+
+      const tick = document.createElement("span");
+      tick.className = "feed-tick";
+      tick.innerHTML = STAT_ICON.verified;
+
+      nameRow.append(name, tick);
+
+      // শুধু ড্রাফট হলে ছোট ট্যাগ; প্রকাশিত পোস্টে কিছু দেখায় না (ফিড পরিষ্কার থাকে)
+      if (status !== "published") {
+        const draftTag = document.createElement("span");
+        draftTag.className = "status draft";
+        draftTag.textContent = "ড্রাফট";
+        nameRow.appendChild(draftTag);
+      }
+
+      const sub = document.createElement("span");
+      sub.className = "feed-sub";
+      sub.textContent = (post.category || "অন্যান্য") + " · " + relativeTime(post);
+
+      who.append(nameRow, sub);
+
+      const dots = document.createElement("button");
+      dots.type = "button";
+      dots.className = "dots-button";
+      dots.setAttribute("aria-label", "পোস্ট মেনু");
+      dots.setAttribute("aria-haspopup", "menu");
+      dots.setAttribute("aria-expanded", "false");
+      dots.innerHTML = ICON.dots;
+      dots.addEventListener("click", event => {
+        event.stopPropagation();
+        openPostMenu(dots, post, status);
+      });
+
+      head.append(avatar, who, dots);
+      card.appendChild(head);
+
+      /* ---------- শিরোনাম + সংক্ষিপ্ত লেখা ---------- */
+      const text = document.createElement("div");
+      text.className = "feed-text";
+
+      const clamp = document.createElement("p");
+      clamp.className = "feed-clamp";
+      text.appendChild(clamp);
+
+      const title = document.createElement("strong");
+      title.className = "post-title";
+      title.textContent = post.title || "শিরোনাম নেই";
+      clamp.appendChild(title);
+
+      const body = post.description || post.body || post.content;
+      if (body) {
+        clamp.appendChild(document.createTextNode(" — " + String(body).replace(/\s+/g, " ").slice(0, 240)));
+      }
+
+      card.appendChild(text);
+
+      /* ---------- ছবি: ডান থেকে বাম পর্যন্ত ১৬:৯, পাশে কোনো ফাঁকা নেই ---------- */
+      const imageUrl = post.image || post.thumbnail || post.imageUrl;
+
+      function placeholder() {
+        const ph = document.createElement("div");
+        ph.className = "image-placeholder";
+        ph.textContent = "▧";
+        return ph;
+      }
+
+      if (imageUrl) {
+        // ছবি কাটা/টানা হয় না: পুরো ছবি দেখা যায়, ১৬:৯ ফ্রেমের বাকি অংশ একই ছবির ঝাপসা রূপে ভরা
+        const media = document.createElement("div");
+        media.className = "feed-media";
+
+        const bg = document.createElement("img");
+        bg.className = "feed-media-bg";
+        bg.src = imageUrl;
+        bg.alt = "";
+        bg.setAttribute("aria-hidden", "true");
+        bg.loading = "lazy";
+        bg.decoding = "async";
+
+        const image = document.createElement("img");
+        image.className = "post-image";
+        image.src = imageUrl;
+        image.alt = post.title || "নিউজ ছবি";
+        image.loading = "lazy";
+        image.decoding = "async";
+        image.addEventListener("error", () => media.replaceWith(placeholder()));
+
+        media.append(bg, image);
+        card.appendChild(media);
+      } else {
+        card.appendChild(placeholder());
+      }
+
+      /* ---------- নিচের সারি: লাইক / কমেন্ট / ভিউ + শেয়ার ---------- */
+      const foot = document.createElement("div");
+      foot.className = "feed-foot";
+
+      const stats = document.createElement("div");
+      stats.className = "feed-stats";
+      stats.setAttribute("data-stats", post.id);
+      stats.innerHTML = statsHtml(post.id);
+
+      const share = document.createElement("button");
+      share.type = "button";
+      share.className = "feed-share";
+      share.setAttribute("aria-label", "শেয়ার");
+      share.innerHTML = STAT_ICON.send;
+      share.addEventListener("click", () => sharePost(post));
+
+      const left = document.createElement("div");
+      left.className = "feed-left";
+      left.append(stats, share);
+
+      const views = document.createElement("span");
+      views.className = "feed-views";
+      views.title = "ভিউ";
+      views.setAttribute("data-views", post.id);
+      views.innerHTML = viewsHtml(post.id);
+
+      foot.append(left, views);
+      card.appendChild(foot);
+
+      return card;
+    }
+
+    function renderPosts() {
+      const search = searchInput.value.trim().toLowerCase();
+      const filter = statusFilter.value;
+
+      const filtered = allPosts.filter(post => {
+        const title = String(post.title || "").toLowerCase();
+        const category = String(post.category || "").toLowerCase();
+        const matchesSearch =
+          title.includes(search) || category.includes(search);
+
+        const matchesStatus =
+          filter === "all" || normalizeStatus(post) === filter;
+
+        return matchesSearch && matchesStatus;
+      });
+
+      const plus = hasMore ? "+" : "";
+
+      document.getElementById("totalCount").textContent =
+        allPosts.length.toLocaleString("bn-BD") + plus;
+
+      document.getElementById("publishedCount").textContent =
+        allPosts.filter(p => normalizeStatus(p) === "published")
+          .length.toLocaleString("bn-BD") + plus;
+
+      document.getElementById("draftCount").textContent =
+        allPosts.filter(p => normalizeStatus(p) === "draft")
+          .length.toLocaleString("bn-BD") + plus;
+
+      if (!filtered.length) {
+        showMessage(
+          allPosts.length
+            ? "আপনার সার্চ অনুযায়ী কোনো পোস্ট পাওয়া যায়নি।"
+            : "এখনো কোনো পোস্ট পাওয়া যায়নি। নতুন পোস্ট তৈরি করুন।"
+        );
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      filtered.forEach(post => {
+        fragment.appendChild(createPostCard(post));
+      });
+
+      if (hasMore) {
+        const wrap = document.createElement("div");
+        wrap.style.cssText = "grid-column:1/-1;text-align:center;padding:6px 0";
+
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "action-button";
+        more.style.cssText = "flex:none;padding:12px 24px;font-weight:650;color:var(--primary)";
+        more.textContent = "আরও পোস্ট দেখুন";
+        more.addEventListener("click", () => {
+          more.disabled = true;
+          more.textContent = "লোড হচ্ছে...";
+          limit += PAGE_SIZE;
+          loadPosts();
+        });
+
+        wrap.appendChild(more);
+        fragment.appendChild(wrap);
+      }
+
+      postList.replaceChildren(fragment);
+    }
+
+    function showSkeleton() {
+      postList.replaceChildren();
+      for (let i = 0; i < 6; i++) {
+        const sk = document.createElement("div");
+        sk.style.cssText =
+          "height:290px;border-radius:15px;background:linear-gradient(90deg,#eef2f7 25%,#f6f8fb 50%,#eef2f7 75%);" +
+          "background-size:200% 100%;animation:arSk 1.2s linear infinite";
+        postList.appendChild(sk);
+      }
+    }
+
+    async function loadPosts() {
+      if (loading) return;
+
+      loading = true;
+      if (!allPosts.length) showSkeleton(); // প্রথমবার; পরে পুরোনো তালিকা রেখেই আপডেট হয়
+
+      try {
+        /*
+         * এই উদাহরণে Firebase Realtime Database-এর
+         * "posts" নোড থেকে পোস্ট পড়া হচ্ছে।
+         * আপনার ডেটাবেসে নোডের নাম আলাদা হলে সেটি বদলান।
+         */
+        const snapshot = await db.ref("posts")
+          .orderByChild("createdAt")
+          .limitToLast(limit)
+          .once("value");
+
+        allPosts = [];
+
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+
+          allPosts = Object.entries(data).map(([id, post]) => ({
+            id,
+            ...(post && typeof post === "object" ? post : {})
+          }));
+        }
+
+        allPosts.sort((a, b) => {
+          const timeA = Number(a.createdAt ?? a.timestamp ?? 0) || 0;
+          const timeB = Number(b.createdAt ?? b.timestamp ?? 0) || 0;
+          return timeB - timeA;
+        });
+
+        hasMore = allPosts.length >= limit;
+
+        renderPosts();
+        fetchStats(allPosts.map(p => p.id));
+      } catch (error) {
+        console.error("Load posts error:", error);
+        showMessage(
+          "পোস্ট লোড করা যায়নি। Firebase Database Rules, নোডের নাম এবং সংযোগ পরীক্ষা করুন।",
+          true
+        );
+      } finally {
+        loading = false;
+      }
+    }
+
+    async function changeStatus(post, currentStatus) {
+      const nextStatus =
+        currentStatus === "published" ? "draft" : "published";
+
+      const confirmation =
+        nextStatus === "published"
+          ? "এই পোস্টটি প্রকাশ করতে চান?"
+          : "এই পোস্টটি ড্রাফটে রাখতে চান?";
+
+      if (!window.confirm(confirmation)) return;
+
+      try {
+        const changes = {
+          status: nextStatus,
+          published: nextStatus === "published"
+        };
+
+        await db.ref("posts/" + post.id).update(changes);
+
+        post.status = nextStatus;
+        post.published = nextStatus === "published";
+
+        renderPosts();
+      } catch (error) {
+        console.error("Status update error:", error);
+        alert("স্ট্যাটাস পরিবর্তন করা যায়নি। Firebase Rules পরীক্ষা করুন।");
+      }
+    }
+
+    async function deletePost(post) {
+      if (!window.confirm(
+        "আপনি কি এই পোস্টটি স্থায়ীভাবে ডিলিট করতে চান? এই কাজটি ফিরিয়ে আনা যাবে না।"
+      )) return;
+
+      try {
+        await db.ref("posts/" + post.id).remove();
+        allPosts = allPosts.filter(item => item.id !== post.id);
+        renderPosts();
+      } catch (error) {
+        console.error("Delete post error:", error);
+        alert("পোস্ট ডিলিট করা যায়নি। Firebase Rules পরীক্ষা করুন।");
+      }
+    }
+
+    searchInput.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        // সার্চ করলে একবার বেশি পোস্টের মধ্যে খোঁজা হয়
+        if (searchInput.value.trim() && limit < SEARCH_LIMIT) {
+          limit = SEARCH_LIMIT;
+          loadPosts();
+        } else {
+          renderPosts();
+        }
+      }, 220);
+    });
+    statusFilter.addEventListener("change", renderPosts);
+    document.getElementById("refreshButton")
+      .addEventListener("click", loadPosts);
+
+    auth.onAuthStateChanged(async user => {
+      if (!user) {
+        window.location.replace("./index.html");
+        return;
+      }
+
+      try {
+        if (!(await window.isAdmin(user))) {
+          await auth.signOut();
+          alert("এই পেজ দেখার জন্য অ্যাডমিন অনুমতি প্রয়োজন।");
+          window.location.replace("./index.html");
+          return;
+        }
+
+        await loadPosts();
+      } catch (error) {
+        console.error("Admin verification error:", error);
+        showMessage(
+          "অ্যাডমিন অনুমতি যাচাই করা যায়নি। Firebase Rules পরীক্ষা করুন।",
+          true
+        );
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ইউজার চ্যাট | AR News</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-light: #e6f4f1;
+      --bg: #f7f9fb;
+      --text: #172b2a;
+      --muted: #718096;
+      --border: #e5eaf0;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      font-family: 'Hind Siliguri', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select { font: inherit; }
+
+    main {
+      width: 100%;
+      padding: 22px;
+      margin: 0 auto;
+    }
+
+    .heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    h1 { font-size: 26px; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+    .count-badge {
+      display: none;
+      min-width: 24px;
+      padding: 1px 9px;
+      border-radius: 999px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 22px;
+      text-align: center;
+    }
+    .count-badge.show { display: inline-block; }
+
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-light { background: var(--primary-light); color: var(--primary); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    .message {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 9px;
+      display: none;
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { display: block; background: #fee2e2; color: #991b1b; }
+    .message.success { display: block; background: #dcfce7; color: #166534; }
+    .message.info { display: block; background: #e0f2fe; color: #075985; }
+
+    input, select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #dce3e8;
+      border-radius: 9px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px #0f766e14;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    /* ---------- দুই-ফলক চ্যাট ---------- */
+    .chat-shell {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);   /* সারির উচ্চতা বাঁধা — নইলে ভেতরের অংশ বেড়ে স্ক্রল হারিয়ে যায় */
+      overflow: hidden;
+      height: calc(100vh - 230px);
+      height: calc(100dvh - 230px);
+      min-height: 440px;
+    }
+
+    .pane-list {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+
+    .toolbar {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toolbar-row { display: flex; align-items: center; gap: 8px; }
+
+    /* দুই-বাটনের ছোট টগল */
+    .seg {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      padding: 3px;
+      border-radius: 10px;
+      background: var(--primary-light);
+    }
+
+    .seg-btn {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 8px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--primary);
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .seg-btn.active { background: var(--primary); color: #fff; }
+
+    .icon-btn {
+      flex: none;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 0;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      background: var(--primary-light);
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .icon-btn svg { width: 18px; height: 18px; }
+    .icon-btn.active { background: var(--primary); color: #fff; }
+    .icon-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .icon-btn.spin svg { animation: spin .8s linear infinite; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .list-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px;
+      overscroll-behavior: contain;
+    }
+
+    .chat-row {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 11px 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .chat-row:hover { border-color: #b7d9d4; }
+    .chat-row.active { background: var(--primary-light); border-color: var(--primary); }
+    .chat-row.unread { border-color: #8fcbc4; }
+    .chat-row.unread .row-name { font-weight: 700; }
+
+    .avatar {
+      flex: none;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 17px;
+      overflow: hidden;
+    }
+
+    .row-info { flex: 1; min-width: 0; }
+
+    .row-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .row-name {
+      font-weight: 600;
+      font-size: 14.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .row-time { flex: none; color: var(--muted); font-size: 11.5px; }
+
+    .row-preview {
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    .row-count {
+      flex: none;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: var(--danger);
+      color: #fff;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    .topic-tag {
+      display: inline-block;
+      max-width: 60%;
+      margin-right: 6px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 11.5px;
+      font-weight: 700;
+      line-height: 1.6;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty, .loading {
+      padding: 35px 15px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    /* ---------- কথোপকথন ---------- */
+    .pane-convo {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .convo-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: none;
+      padding: 12px 14px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 rgba(15, 118, 110, .04);
+    }
+
+    .convo-head .avatar {
+      width: 46px;
+      height: 46px;
+      font-size: 19px;
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .convo-who { flex: 1; min-width: 0; line-height: 1.35; }
+
+    .convo-name {
+      font-size: 16.5px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .convo-email {
+      color: var(--muted);
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .convo-meta { margin-top: 1px; color: #94a3b8; font-size: 11.5px; }
+    .convo-meta:empty { display: none; }
+
+    /* ফিরে যাওয়ার গোল বাটন (শুধু মোবাইলে) */
+    .back-btn {
+      flex: none;
+      display: none;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      place-items: center;
+      background: var(--primary-light);
+      color: var(--primary);
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .back-btn:active { background: #cfe9e4; }
+    .back-btn svg { width: 22px; height: 22px; }
+
+    .msgs-empty {
+      margin: auto;
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .convo-placeholder {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .msgs {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 14px;
+      overscroll-behavior: contain;
+    }
+
+    .bubble {
+      flex: none;
+      max-width: 80%;
+      padding: 9px 13px 7px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .bubble.from-user {
+      align-self: flex-start;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 5px;
+    }
+
+    .bubble.from-admin {
+      align-self: flex-end;
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 5px;
+    }
+
+    .bubble .topic-tag { display: table; max-width: 100%; margin: 0 0 4px; }
+    .bubble.from-admin .topic-tag { background: rgba(255, 255, 255, .22); color: #fff; }
+    .bubble .text { white-space: pre-wrap; }
+    .bubble time { display: block; margin-top: 3px; font-size: 10.5px; opacity: .65; text-align: right; }
+
+    .reply-form {
+      display: flex;
+      gap: 8px;
+      flex: none;
+      padding: 10px 12px;
+      background: #fff;
+      border-top: 1px solid var(--border);
+    }
+
+    .reply-form input {
+      flex: 1;
+      min-width: 0;
+      min-height: 42px;
+      border-radius: 999px;
+      padding: 0 16px;
+      font-size: 16px;
+    }
+
+    .reply-form .btn { min-height: 42px; border-radius: 999px; padding: 0 20px; }
+
+    /* ---------- মোবাইল: একবারে একটাই ফলক ---------- */
+    @media (max-width: 760px) {
+      main { padding: 15px 11px; }
+      h1 { font-size: 23px; }
+
+      .chat-shell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        height: calc(100vh - 215px);
+        height: calc(100dvh - 215px);
+      }
+
+      .pane-list { border-right: 0; }
+      .pane-convo { display: none; }
+
+      body.in-convo .heading,
+      body.in-convo #message { display: none; }
+      body.in-convo .pane-list { display: none; }
+      body.in-convo .pane-convo { display: flex; }
+      body.in-convo .chat-shell {
+        height: calc(100vh - 150px);
+        height: calc(100dvh - 150px);
+      }
+      body.in-convo main { padding-top: 11px; }
+
+      .back-btn { display: grid; }
+      .bubble { max-width: 86%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="heading">
+      <div>
+        <h1>ইউজার চ্যাট <span class="count-badge" id="totalBadge">0</span></h1>
+        <p class="sub">ইউজারদের মেসেজ দেখুন এবং সরাসরি উত্তর দিন।</p>
+      </div>
+    </div>
+
+    <div id="message" class="message" role="status"></div>
+
+    <section class="panel">
+      <div class="chat-shell">
+        <!-- বাঁ ফলক: ইউজার তালিকা -->
+        <div class="pane-list">
+          <div class="toolbar">
+            <div class="toolbar-row">
+              <div class="seg" role="tablist" aria-label="তালিকার ধরন">
+                <button type="button" class="seg-btn active" id="modeChats" data-mode="chats" role="tab" aria-selected="true">চ্যাট আছে</button>
+                <button type="button" class="seg-btn" id="modeAll" data-mode="all" role="tab" aria-selected="false">সব ইউজার</button>
+              </div>
+              <button class="icon-btn" id="searchToggle" type="button" title="খুঁজুন" aria-label="খুঁজুন">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              </button>
+              <button class="icon-btn" id="refreshBtn" type="button" title="রিফ্রেশ" aria-label="রিফ্রেশ">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+              </button>
+            </div>
+            <input id="searchInput" type="search" placeholder="নাম বা ইমেইল দিয়ে খুঁজুন" hidden>
+          </div>
+          <div class="list-scroll" id="chatList"><div class="loading">লোড হচ্ছে…</div></div>
+        </div>
+
+        <!-- ডান ফলক: কথোপকথন -->
+        <div class="pane-convo">
+          <div class="convo-placeholder" id="convoPlaceholder">
+            <div>বাঁ পাশ থেকে একজন ইউজার বেছে নিন।</div>
+          </div>
+
+          <div class="convo-head" id="convoHead" hidden>
+            <button class="back-btn" id="backBtn" type="button" title="তালিকায় ফিরুন" aria-label="তালিকায় ফিরুন">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="avatar" id="convoAvatar">?</div>
+            <div class="convo-who">
+              <div class="convo-name" id="convoName"></div>
+              <div class="convo-email" id="convoEmail"></div>
+              <div class="convo-meta" id="convoMeta"></div>
+            </div>
+          </div>
+
+          <div class="msgs" id="msgs" hidden></div>
+
+          <form class="reply-form" id="replyForm" hidden>
+            <input id="replyInput" type="text" placeholder="উত্তর লিখুন…" autocomplete="off">
+            <button class="btn btn-primary" type="submit">পাঠান</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <!-- config.js সাধারণ স্ক্রিপ্ট (window.auth / window.rtdb / window.isAdmin), ES Module নয় -->
+  <script src="./config.js"></script>
+  <script src="./nav.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    /*
+      ডেটা কাঠামো (Firebase Realtime Database):
+        chats/{uid}/meta      { userName, userEmail, lastMessage, lastMessageAt, lastSender,
+                                unreadByAdmin, unreadByUser }
+        chats/{uid}/messages  { pushId: { sender: "user" | "admin", text, at } }
+      ইউজার ধরন বাছলে মেসেজের শুরুতে "[ধরন] " যোগ হয় — এখানে সেটা আলাদা ট্যাগ হিসেবে দেখানো হয়।
+    */
+
+    var db = window.rtdb;
+    var auth = window.auth;
+    var $ = function (id) { return document.getElementById(id); };
+
+    var state = {
+      me: null,
+      mode: "chats",       // chats = শুধু যাদের চ্যাট আছে, all = সব ইউজার
+      chatUids: [],        // chats নোডের চাবি (shallow)
+      users: null,         // শুধু "সব ইউজার" মোডে লোড হয়: uid -> {name,email,role}
+      meta: {},            // uid -> chats/{uid}/meta
+      metaRefs: {},        // uid -> ref
+      activeUid: null,
+      msgsRef: null,
+      msgsHandler: null,
+      query: "",
+      busy: false
+    };
+
+    function esc(v) {
+      return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function showMessage(text, type) {
+      var el = $("message");
+      el.textContent = text;
+      el.className = "message " + (type || "error");
+    }
+
+    function clearMessage() {
+      $("message").className = "message";
+      $("message").textContent = "";
+    }
+
+    /* ---------- সময় ---------- */
+    function fmtClock(ts) {
+      try { return new Intl.DateTimeFormat("bn-BD", { hour: "2-digit", minute: "2-digit" }).format(new Date(ts)); }
+      catch (e) { return ""; }
+    }
+
+    function fmtListTime(ts) {
+      if (!ts) return "";
+      var d = new Date(ts), now = new Date();
+      if (d.toDateString() === now.toDateString()) return fmtClock(ts);
+      try {
+        return new Intl.DateTimeFormat("bn-BD", { day: "numeric", month: "short" }).format(d);
+      } catch (e) { return ""; }
+    }
+
+    /* ---------- "[ধরন] মেসেজ" ভাগ করা ---------- */
+    function splitTopic(text) {
+      var m = /^\[([^\]\n]{1,40})\]\s*([\s\S]*)$/.exec(String(text || ""));
+      return m ? { topic: m[1], body: m[2] } : { topic: "", body: String(text || "") };
+    }
+
+    /* ---------- ইউজারের তথ্য ---------- */
+    function userOf(uid) { return (state.users && state.users[uid]) || {}; }
+    function metaOf(uid) { return state.meta[uid] || {}; }
+
+    function displayName(uid) {
+      var u = userOf(uid), m = metaOf(uid);
+      return u.name || u.displayName || m.userName || u.email || m.userEmail || "ব্যবহারকারী";
+    }
+
+    function emailOf(uid) {
+      return userOf(uid).email || metaOf(uid).userEmail || "";
+    }
+
+    function currentUids() {
+      var list;
+      if (state.mode === "all" && state.users) {
+        list = Object.keys(state.users).filter(function (uid) {
+          var u = state.users[uid];
+          return u && u.role !== "admin";
+        });
+      } else {
+        list = state.chatUids.slice();
+      }
+      return list.filter(function (uid) { return !state.me || uid !== state.me.uid; });
+    }
+
+    /* ---------- মোট অপঠিত ব্যাজ ---------- */
+    function recomputeBadge() {
+      var total = 0;
+      Object.keys(state.meta).forEach(function (uid) {
+        total += Number(state.meta[uid].unreadByAdmin || 0);
+      });
+      var b = $("totalBadge");
+      b.textContent = total.toLocaleString("bn-BD");
+      b.classList.toggle("show", total > 0);
+    }
+
+    /* ---------- তালিকা ---------- */
+    function renderList() {
+      var box = $("chatList");
+      var q = state.query.trim().toLowerCase();
+
+      var uids = currentUids().filter(function (uid) {
+        if (!q) return true;
+        var m = metaOf(uid);
+        return (displayName(uid) + " " + emailOf(uid) + " " + (m.lastMessage || "")).toLowerCase().indexOf(q) !== -1;
+      });
+
+      uids.sort(function (a, b) {
+        var d = Number(metaOf(b).lastMessageAt || 0) - Number(metaOf(a).lastMessageAt || 0);
+        return d || displayName(a).localeCompare(displayName(b));
+      });
+
+      if (!uids.length) {
+        box.innerHTML = '<div class="empty">' +
+          (q ? "কোনো ইউজার পাওয়া যায়নি।"
+             : state.mode === "chats" ? "এখনো কেউ মেসেজ পাঠায়নি। সব ইউজার দেখতে উপরের মেনু বদলান।"
+             : "এখনো কোনো রেজিস্টার করা ইউজার নেই।") + "</div>";
+        return;
+      }
+
+      box.innerHTML = uids.map(function (uid) {
+        var m = metaOf(uid);
+        var name = displayName(uid);
+        var unread = Number(m.unreadByAdmin || 0);
+        var preview;
+        if (m.lastMessage) {
+          var p = splitTopic(m.lastMessage);
+          preview = (m.lastSender === "admin" ? "আপনি: " : "") +
+            (p.topic ? '<span class="topic-tag">' + esc(p.topic) + "</span>" : "") + esc(p.body);
+        } else {
+          preview = "নতুন কথোপকথন শুরু করুন";
+        }
+
+        return (
+          '<button type="button" class="chat-row' + (unread > 0 ? " unread" : "") +
+            (uid === state.activeUid ? " active" : "") + '" data-uid="' + esc(uid) + '">' +
+            '<span class="avatar">' + esc(name.trim().charAt(0) || "?") + "</span>" +
+            '<span class="row-info">' +
+              '<span class="row-top"><span class="row-name">' + esc(name) + "</span>" +
+              '<span class="row-time">' + esc(fmtListTime(m.lastMessageAt)) + "</span></span>" +
+              '<div class="row-preview">' + preview + "</div>" +
+            "</span>" +
+            (unread > 0 ? '<span class="row-count">' + unread.toLocaleString("bn-BD") + "</span>" : "") +
+          "</button>"
+        );
+      }).join("");
+    }
+
+    /* ---------- মেটা লিসনার (প্রতিটি চ্যাটের শেষ মেসেজ ও অপঠিত সংখ্যা) ---------- */
+    function syncMetaListeners() {
+      var uids = currentUids();
+
+      Object.keys(state.metaRefs).forEach(function (uid) {
+        if (uids.indexOf(uid) === -1 && uid !== state.activeUid) {
+          state.metaRefs[uid].off();
+          delete state.metaRefs[uid];
+          delete state.meta[uid];
+        }
+      });
+
+      uids.forEach(function (uid) {
+        if (state.metaRefs[uid]) return;
+        var ref = db.ref("chats/" + uid + "/meta");
+        ref.on("value", function (snap) {
+          state.meta[uid] = snap.val() || {};
+          recomputeBadge();
+          renderList();
+
+          if (state.activeUid === uid) {
+            updateConvoHead(uid);
+            // কথোপকথন খোলা থাকা অবস্থায় আসা মেসেজ "পড়া" ধরা হয়
+            if (Number(state.meta[uid].unreadByAdmin || 0) > 0) {
+              db.ref("chats/" + uid + "/meta/unreadByAdmin").set(0).catch(function () {});
+            }
+          }
+        }, function (err) {
+          console.error("meta error", uid, err);
+        });
+        state.metaRefs[uid] = ref;
+      });
+
+      recomputeBadge();
+    }
+
+    function setModeUI(mode) {
+      $("modeChats").classList.toggle("active", mode === "chats");
+      $("modeAll").classList.toggle("active", mode === "all");
+      $("modeChats").setAttribute("aria-selected", String(mode === "chats"));
+      $("modeAll").setAttribute("aria-selected", String(mode === "all"));
+    }
+
+    /* ---------- রোস্টার লোড ---------- */
+    async function shallowKeys(path) {
+      var base = db.ref().toString().replace(/\/$/, "");
+      var token = await state.me.getIdToken();
+      var res = await fetch(base + "/" + path + ".json?shallow=true&auth=" + encodeURIComponent(token));
+      if (!res.ok) throw new Error("shallow " + path + " " + res.status);
+      var j = await res.json();
+      return j ? Object.keys(j) : [];
+    }
+
+    async function loadUsersOnce() {
+      if (state.users) return;
+      var snap = await db.ref("users").once("value");
+      var val = snap.val() || {};
+      var slim = {};
+      Object.keys(val).forEach(function (uid) {
+        var u = val[uid] || {};
+        slim[uid] = { name: u.name, displayName: u.displayName, email: u.email, role: u.role };
+      });
+      state.users = slim;
+    }
+
+    async function loadRoster() {
+      if (state.busy) return;
+      state.busy = true;
+      $("refreshBtn").disabled = true;
+      $("refreshBtn").classList.add("spin");
+
+      try {
+        if (state.mode === "all") {
+          state.users = null;           // রিফ্রেশে নতুন ইউজারও আসে
+          await loadUsersOnce();
+        } else {
+          try {
+            state.chatUids = await shallowKeys("chats");
+          } catch (e) {
+            // chats নোডের শীর্ষস্তরে পড়ার অনুমতি না থাকলে সব ইউজার দিয়ে চালাই
+            console.warn("chats shallow ব্যর্থ — সব ইউজার মোডে যাচ্ছি:", e);
+            state.mode = "all";
+            setModeUI("all");
+            await loadUsersOnce();
+          }
+        }
+        syncMetaListeners();
+        renderList();
+      } catch (err) {
+        console.error(err);
+        $("chatList").innerHTML = '<div class="empty">তালিকা লোড করা যায়নি।</div>';
+        showMessage("ইউজার তালিকা আনা যায়নি। Firebase Database Rules ও সংযোগ দেখুন।");
+      } finally {
+        state.busy = false;
+        $("refreshBtn").disabled = false;
+        $("refreshBtn").classList.remove("spin");
+      }
+    }
+
+    /* ---------- কথোপকথন ---------- */
+    function updateConvoHead(uid) {
+      var name = displayName(uid);
+      $("convoAvatar").textContent = name.trim().charAt(0) || "?";
+      $("convoName").textContent = name;
+      $("convoEmail").textContent = emailOf(uid);
+
+      var at = metaOf(uid).lastMessageAt;
+      $("convoMeta").textContent = at ? "শেষ মেসেজ · " + fmtListTime(at) : "";
+    }
+
+    function detachMessages() {
+      if (state.msgsRef && state.msgsHandler) {
+        state.msgsRef.off("child_added", state.msgsHandler);
+      }
+      state.msgsRef = null;
+      state.msgsHandler = null;
+    }
+
+    function appendBubble(box, data) {
+      var parts = splitTopic(data.text);
+      var div = document.createElement("div");
+      div.className = "bubble " + (data.sender === "admin" ? "from-admin" : "from-user");
+      div.innerHTML =
+        (parts.topic ? '<span class="topic-tag">' + esc(parts.topic) + "</span>" : "") +
+        '<div class="text">' + esc(parts.body) + "</div>" +
+        "<time>" + esc(fmtClock(data.at)) + "</time>";
+      box.appendChild(div);
+    }
+
+    function openConversation(uid) {
+      state.activeUid = uid;
+      document.body.classList.add("in-convo");
+
+      $("convoPlaceholder").hidden = true;
+      $("convoHead").hidden = false;
+      $("msgs").hidden = false;
+      $("replyForm").hidden = false;
+      updateConvoHead(uid);
+
+      db.ref("chats/" + uid + "/meta/unreadByAdmin").set(0).catch(function () {});
+
+      detachMessages();
+      var box = $("msgs");
+      box.innerHTML = '<div class="msgs-empty" id="msgsEmpty">এখনো কোনো মেসেজ নেই।<br>নিচে প্রথম উত্তরটি লিখুন।</div>';
+
+      // সর্বশেষ ১০০টি মেসেজ — দীর্ঘ চ্যাটে ধীর হবে না
+      var ref = db.ref("chats/" + uid + "/messages").orderByKey().limitToLast(100);
+      state.msgsHandler = ref.on("child_added", function (snap) {
+        var empty = $("msgsEmpty");
+        if (empty) empty.remove();
+        appendBubble(box, snap.val() || {});
+        box.scrollTop = box.scrollHeight;
+      }, function (err) {
+        console.error("messages error", err);
+        var em = $("msgsEmpty");
+        if (em) em.remove();
+        showMessage("মেসেজ লোড করা যায়নি। Firebase Database Rules দেখুন।");
+      });
+      state.msgsRef = ref;
+
+      renderList();
+      setTimeout(function () { $("replyInput").focus({ preventScroll: true }); }, 50);
+    }
+
+    function closeConversation() {
+      detachMessages();
+      state.activeUid = null;
+      document.body.classList.remove("in-convo");
+      $("convoPlaceholder").hidden = false;
+      $("convoHead").hidden = true;
+      $("msgs").hidden = true;
+      $("replyForm").hidden = true;
+      renderList();
+    }
+
+    async function sendReply(event) {
+      event.preventDefault();
+      var uid = state.activeUid;
+      var input = $("replyInput");
+      var text = input.value.trim();
+      if (!uid || !text) return;
+
+      input.value = "";
+      try {
+        var TS = firebase.database.ServerValue.TIMESTAMP;
+        await db.ref("chats/" + uid + "/messages").push({ sender: "admin", text: text, at: TS });
+        await db.ref("chats/" + uid + "/meta").update({
+          lastMessage: text,
+          lastMessageAt: TS,
+          lastSender: "admin"
+        });
+        await db.ref("chats/" + uid + "/meta/unreadByUser").transaction(function (v) { return (v || 0) + 1; });
+      } catch (err) {
+        console.error(err);
+        input.value = text;
+        showMessage(
+          err && err.code === "PERMISSION_DENIED"
+            ? "মেসেজ পাঠানোর অনুমতি নেই। Database Rules ও অ্যাডমিন role দেখুন।"
+            : "মেসেজ পাঠানো যায়নি: " + (err && err.message ? err.message : err)
+        );
+      }
+      input.focus({ preventScroll: true });
+    }
+
+    /* ---------- ইভেন্ট ---------- */
+    $("chatList").addEventListener("click", function (event) {
+      var row = event.target.closest(".chat-row");
+      if (row) openConversation(row.dataset.uid);
+    });
+
+    $("backBtn").addEventListener("click", closeConversation);
+    $("replyForm").addEventListener("submit", sendReply);
+
+    $("searchInput").addEventListener("input", function (event) {
+      state.query = event.target.value;
+      renderList();
+    });
+
+    async function switchMode(mode) {
+      if (state.mode === mode) return;   // একই মোডে আবার চাপলে কিছু করার নেই
+      state.mode = mode;
+      setModeUI(mode);
+      clearMessage();
+      $("chatList").innerHTML = '<div class="loading">লোড হচ্ছে…</div>';
+      state.busy = false;
+      await loadRoster();
+    }
+
+    $("modeChats").addEventListener("click", function () { switchMode("chats"); });
+    $("modeAll").addEventListener("click", function () { switchMode("all"); });
+
+    $("searchToggle").addEventListener("click", function () {
+      var input = $("searchInput");
+      var open = input.hidden;
+      input.hidden = !open;
+      $("searchToggle").classList.toggle("active", open);
+      if (open) {
+        input.focus();
+      } else {
+        input.value = "";
+        state.query = "";
+        renderList();
+      }
+    });
+
+    $("refreshBtn").addEventListener("click", function () {
+      clearMessage();
+      loadRoster();
+    });
+
+    // নতুন ইউজার মেসেজ করলে তালিকায় আসতে: প্রতি মিনিটে হালকা (শুধু চাবির) আপডেট
+    setInterval(function () {
+      if (!document.hidden && state.me && state.mode === "chats" && !state.busy) {
+        shallowKeys("chats").then(function (keys) {
+          if (keys.length !== state.chatUids.length) {
+            state.chatUids = keys;
+            syncMetaListeners();
+            renderList();
+          }
+        }).catch(function () {});
+      }
+    }, 60000);
+
+    /* ---------- শুরু ---------- */
+    if (!auth || !db) {
+      showMessage("Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।");
+      $("chatList").innerHTML = "";
+      $("refreshBtn").disabled = true;
+      return;
+    }
+
+    var started = false;
+    auth.onAuthStateChanged(async function (user) {
+      if (!user) {
+        location.replace("./index.html");
+        return;
+      }
+
+      try {
+        if (!(await window.isAdmin(user))) {
+          showMessage("এই পেজ শুধু Admin ব্যবহার করতে পারবেন।");
+          $("chatList").innerHTML = "";
+          $("refreshBtn").disabled = true;
+          setTimeout(function () { location.replace("./index.html"); }, 1800);
+          return;
+        }
+
+        state.me = user;
+        if (started) return;
+        started = true;
+        await loadRoster();
+      } catch (error) {
+        console.error(error);
+        showMessage("Admin যাচাই করা যায়নি। Firebase Rules যাচাই করুন।");
+        $("chatList").innerHTML = "";
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

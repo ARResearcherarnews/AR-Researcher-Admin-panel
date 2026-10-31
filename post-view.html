@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post Preview | AR News</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #f5f7fa;
+  color: #17212b;
+  font-family: "Hind Siliguri", sans-serif;
+}
+header {
+  background: #fff;
+  border-bottom: 1px solid #e5eaf0;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.brand { font-size: 20px; font-weight: 700; color: #0f766e; }
+button {
+  padding: 10px 15px;
+  background: #0f766e;
+  border: 0;
+  color: white;
+  border-radius: 9px;
+  font: inherit;
+  cursor: pointer;
+}
+main {
+  width: 100%;
+  max-width: 1000px;
+  margin: 24px auto;
+  padding: 0 20px;
+}
+.preview-label {
+  background: #e6f5f2;
+  color: #0f766e;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+article {
+  background: white;
+  border: 1px solid #e5eaf0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.article-content { padding: 26px; }
+.category {
+  display: inline-block;
+  background: #e6f5f2;
+  color: #0f766e;
+  border-radius: 5px;
+  padding: 5px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+h1 {
+  font-size: clamp(25px, 4vw, 38px);
+  line-height: 1.45;
+  margin: 0 0 18px;
+  overflow-wrap: anywhere;
+}
+.article-image {
+  display: none;
+  width: 100%;
+  max-height: 560px;
+  object-fit: contain;
+  background: #f1f5f9;
+}
+.article-body {
+  font-size: 18px;
+  line-height: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid #e5eaf0;
+  color: #64748b;
+  font-size: 14px;
+}
+@media(max-width:600px) {
+  header { padding: 12px; }
+  .brand { font-size: 17px; }
+  main { padding: 0 10px; margin: 16px auto; }
+  .article-content { padding: 17px; }
+  .article-body { font-size: 16px; line-height: 1.9; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">AR News</div>
+  <button onclick="window.close(); setTimeout(function(){ location.href = './create.html'; }, 150)">প্রিভিউ বন্ধ করুন</button>
+</header>
+
+<main>
+  <div class="preview-label">👁 পাঠকের ভিউ — এটি শুধু প্রিভিউ, এখনো প্রকাশিত নয়।</div>
+
+  <article>
+    <img id="articleImage" class="article-image" alt="খবরের ছবি">
+    <div class="article-content">
+      <div id="category" class="category">বিভাগ</div>
+      <h1 id="title">শিরোনাম</h1>
+      <div id="details" class="article-body"></div>
+      <div class="footer">AR News — খবর, তথ্য ও বিশ্লেষণ</div>
+    </div>
+  </article>
+</main>
+
+<script>
+try {
+  const data = JSON.parse(sessionStorage.getItem("arnews_post_preview") || "null");
+
+  if (!data) {
+    document.getElementById("title").textContent =
+      "প্রিভিউ ডেটা পাওয়া যায়নি। create.html থেকে আবার প্রিভিউ বাটন চাপুন।";
+  } else {
+    document.title = (data.title || "Post Preview") + " | AR News";
+    document.getElementById("title").textContent = data.title || "";
+    document.getElementById("category").textContent = data.category || "অন্যান্য";
+    document.getElementById("details").textContent = data.details || "";
+
+    const image = document.getElementById("articleImage");
+
+    if (data.imageUrl) {
+      image.src = data.imageUrl;
+      image.style.display = "block";
+      image.onerror = () => {
+        image.style.display = "none";
+      };
+    }
+  }
+} catch (error) {
+  document.getElementById("title").textContent = "প্রিভিউ খুলতে সমস্যা হয়েছে।";
+}
+</script>
+</body>
+</html>

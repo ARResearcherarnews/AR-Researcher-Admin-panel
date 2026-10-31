@@ -1,0 +1,1048 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>মন্তব্য রিপোর্ট | AR News Admin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary: #0f766e;
+  --primary-light: #e6f5f2;
+  --bg: #f5f7fa;
+  --white: #fff;
+  --text: #17212b;
+  --muted: #64748b;
+  --border: #e5eaf0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Hind Siliguri", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 15px;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+
+
+
+
+.btn {
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-weight: 600;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background: #115e59;
+}
+
+main {
+  width: 100%;
+  max-width: none;
+  padding: 24px;
+  margin: 0;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 27px;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin: 3px 0 0;
+}
+
+.message {
+  display: none;
+  padding: 12px 15px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 18px;
+  overflow-wrap: anywhere;
+}
+
+.message.show {
+  display: block;
+}
+
+.message.error {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.message.success {
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card, .panel, .filter-panel {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  box-shadow: 0 3px 15px rgba(15, 23, 42, .035);
+}
+
+.stat-card {
+  padding: 20px;
+  min-width: 0;
+}
+
+.stat-label {
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.stat-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.filter-toggle {
+  width: 100%;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 13px 16px;
+}
+
+.filter-panel {
+  display: none;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.filter-panel.open {
+  display: block;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+
+.field input, .field select {
+  width: 100%;
+  height: 45px;
+  padding: 9px 12px;
+  border: 1px solid #dce3e9;
+  border-radius: 9px;
+  background: white;
+  color: var(--text);
+  outline: none;
+}
+
+.field input:focus, .field select:focus, .search-input:focus {
+  border-color: var(--primary);
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 17px;
+}
+
+.panel {
+  width: 100%;
+  padding: 22px;
+  margin-bottom: 20px;
+  min-width: 0;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.panel-heading h2 {
+  font-size: 21px;
+  margin: 0;
+}
+
+.panel-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.chart-list {
+  display: grid;
+  gap: 16px;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 180px) minmax(40px, 1fr) 45px;
+  gap: 12px;
+  align-items: center;
+}
+
+.chart-name {
+  overflow-wrap: anywhere;
+}
+
+.bar-track {
+  height: 10px;
+  background: #edf1f5;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 20px;
+}
+
+.chart-count {
+  text-align: right;
+  font-weight: 700;
+}
+
+.table-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-heading {
+  padding: 22px 24px 16px;
+  margin: 0;
+}
+
+.table-tools {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 24px 18px;
+}
+
+.search-input {
+  width: min(100%, 440px);
+  height: 44px;
+  border: 1px solid #dce3e9;
+  border-radius: 9px;
+  padding: 10px 13px;
+  outline: none;
+  background: white;
+}
+
+.visible-count {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-top: 1px solid var(--border);
+}
+
+table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: auto;
+  background: white;
+}
+
+thead {
+  background: #f8fafc;
+}
+
+th {
+  padding: 15px 20px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 16px 20px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: #fafdfd;
+}
+
+th:first-child, td:first-child {
+  width: 38%;
+}
+
+.post-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  min-width: 160px;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-published {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.badge-draft {
+  color: #9a3412;
+  background: #fff7ed;
+}
+
+.edit-link {
+  color: var(--primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.empty-state {
+  padding: 32px 15px;
+  text-align: center;
+  color: var(--muted);
+}
+
+
+
+
+
+
+@media (min-width: 1500px) {
+  main {
+    padding: 30px;
+  }
+
+  .stats-grid {
+    gap: 20px;
+  }
+
+  .panel {
+    padding: 26px;
+  }
+
+  .table-panel {
+    padding: 0;
+  }
+
+  .table-heading {
+    padding: 26px 28px 18px;
+  }
+
+  .table-tools {
+    padding: 0 28px 20px;
+  }
+
+  th, td {
+    padding: 18px 24px;
+  }
+}
+
+@media (max-width: 850px) {
+  main {
+    padding: 18px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filter-grid .field:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .panel {
+    padding: 18px;
+  }
+
+  .table-panel {
+    padding: 0;
+  }
+
+  .table-heading {
+    padding: 18px 18px 14px;
+  }
+
+  .table-tools {
+    padding: 0 18px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+
+
+
+
+  main {
+    padding: 14px 10px;
+  }
+
+  h1 {
+    font-size: 23px;
+  }
+
+  .stats-grid {
+    gap: 9px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 25px;
+  }
+
+  .filter-panel {
+    padding: 14px;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-grid .field:last-child {
+    grid-column: auto;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .table-panel {
+    padding: 0;
+  }
+
+  .table-heading {
+    padding: 16px 13px 12px;
+  }
+
+  .table-heading .panel-heading h2 {
+    font-size: 19px;
+  }
+
+  .table-tools {
+    padding: 0 13px 14px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .chart-row {
+    grid-template-columns: 80px minmax(30px, 1fr) 28px;
+    gap: 7px;
+  }
+
+}
+
+/* ===== ট্যাব ও মন্তব্য রিপোর্ট (reports.js থেকে যুক্ত) ===== */
+[hidden] { display: none !important; }
+
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.view-tabs::-webkit-scrollbar { display: none; }
+.tab-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tab-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+.tab-count {
+  display: none;
+  vertical-align: middle;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: white;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+.tab-count.show { display: inline-block; }
+
+#viewComments .filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+#viewComments .filter-row::-webkit-scrollbar { display: none; }
+#viewComments .filter-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 15px;
+  font-size: 14px;
+  font-weight: 600;
+}
+#viewComments .filter-btn.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+#viewComments .report-list {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+#viewComments .report-item {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .05);
+  min-width: 0;
+}
+#viewComments .report-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+#viewComments .reason-tag {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+#viewComments .report-status {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+#viewComments .status-pending .report-status   { background: #fef3c7; color: #b45309; }
+#viewComments .status-reviewed .report-status  { background: var(--primary-light); color: var(--primary); }
+#viewComments .status-dismissed .report-status { background: var(--border); color: var(--muted); }
+
+#viewComments .report-comment {
+  margin: 0 0 10px;
+  padding: 10px 12px 11px;
+  background: var(--bg);
+  border-left: 3px solid var(--border);
+  border-radius: 4px 10px 10px 4px;
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+#viewComments .status-pending .report-comment { border-left-color: #dc2626; }
+#viewComments .report-comment .by {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+#viewComments .report-meta {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+#viewComments .report-meta a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+#viewComments .item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+#viewComments .item-actions .btn {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 7px 14px;
+  font-size: 14px;
+}
+#viewComments .btn.danger { background: #dc2626; border-color: #dc2626; color: white; }
+#viewComments .btn.danger:hover { background: #b91c1c; }
+#viewComments .btn.secondary { background: var(--primary-light); border-color: var(--primary-light); color: var(--primary); }
+#viewComments .btn:disabled { opacity: .6; cursor: wait; }
+
+@media (max-width: 600px) {
+  #viewComments .report-list { grid-template-columns: 1fr; }
+}
+
+#viewComments .btn.danger-outline { background: white; border-color: #dc2626; color: #dc2626; }
+#viewComments .btn.danger-outline:hover { background: #fef2f2; }
+#viewComments .bulk-bar { margin: -4px 0 14px; }
+#viewComments .bulk-bar .btn { min-height: 38px; padding: 7px 14px; font-size: 14px; }
+</style>
+</head>
+
+<body>
+<main>
+  <div class="page-heading">
+    <div>
+      <h1>মন্তব্য রিপোর্ট <span class="tab-count" id="pendingCount">0</span></h1>
+      <p class="subtitle">ইউজাররা রিপোর্ট করা মন্তব্য এখানে রিভিউ করুন</p>
+    </div>
+  </div>
+
+  <div id="statusMessage" class="message" role="status"></div>
+
+  <!-- মন্তব্য রিপোর্ট মডারেশন (আগের reports.js-এর কাজ) -->
+  <div id="viewComments">
+    <section class="panel">
+      <div class="filter-row" id="reportFilters">
+        <button class="filter-btn active" data-status="pending" type="button">অপেক্ষমাণ</button>
+        <button class="filter-btn" data-status="reviewed" type="button">রিভিউড</button>
+        <button class="filter-btn" data-status="dismissed" type="button">খারিজ</button>
+        <button class="filter-btn" data-status="all" type="button">সব</button>
+      </div>
+
+      <div class="bulk-bar" id="bulkBar" hidden></div>
+
+      <div id="report-list"><div class="empty-state">লোড হচ্ছে…</div></div>
+    </section>
+  </div>
+</main>
+
+<!-- post.html / create.html-এর মতোই: Firebase (compat) + config.js — সাধারণ স্ক্রিপ্ট, ES Module নয় -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="./config.js"></script>
+<script src="./nav.js"></script>
+<script>
+(function () {
+"use strict";
+
+const $ = id => document.getElementById(id);
+const auth = window.auth;
+const db = window.rtdb;
+
+if (!auth || !db) {
+  $("statusMessage").textContent =
+    "Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।";
+  $("statusMessage").className = "message show error";
+  $("report-list").innerHTML =
+    '<div class="empty-state">Firebase সংযোগ নেই।</div>';
+  return;
+}
+
+let currentUser = null;
+
+function showMessage(text, type = "") {
+  const el = $("statusMessage");
+  el.textContent = text;
+  el.className = "message show" + (type ? " " + type : "");
+}
+
+function hideMessage() {
+  $("statusMessage").className = "message";
+  $("statusMessage").textContent = "";
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  })[c]);
+}
+
+function getDateValue(post) {
+  const value = post?.createdAt ?? post?.date ??
+    post?.timestamp ?? post?.updatedAt;
+
+  if (value === undefined || value === null || value === "") return null;
+
+  let date;
+  if (typeof value === "number" || /^\d+$/.test(String(value))) {
+    let number = Number(value);
+    if (!Number.isFinite(number)) return null;
+    if (number > 0 && number < 1000000000000) number *= 1000;
+    date = new Date(number);
+  } else {
+    date = new Date(value);
+  }
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/* ================= মন্তব্য রিপোর্ট মডারেশন ================= */
+var commentReports = {};
+var commentFilter = "pending";
+var commentsStarted = false;
+
+var REASON_LABEL = {
+  spam: "স্প্যাম",
+  abusive: "আপত্তিকর / হয়রানিমূলক",
+  misinformation: "ভুয়া তথ্য",
+  other: "অন্যান্য"
+};
+var STATUS_LABEL = { pending: "অপেক্ষমাণ", reviewed: "রিভিউড", dismissed: "খারিজ" };
+
+function fmtDateTime(v) {
+  var date = getDateValue({ createdAt: v });
+  if (!date) return "তারিখ নেই";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  }).format(date);
+}
+
+function reportStatus(r) { return (r && r.status) || "pending"; }
+
+// Rules অনুযায়ী বৈধ মন্তব্য-রিপোর্টে postId ও commentId থাকতেই হয়।
+// এগুলো ছাড়া এন্ট্রি (যেমন অন্য কাজে ব্যবহৃত `reports` ডেটা) এখানে দেখানো হয় না।
+function isCommentReport(r) {
+  return !!(r && typeof r === "object" &&
+    typeof r.postId === "string" && r.postId &&
+    typeof r.commentId === "string" && r.commentId);
+}
+
+function updatePendingCount() {
+  var count = Object.keys(commentReports).filter(function (k) {
+    return isCommentReport(commentReports[k]) &&
+      reportStatus(commentReports[k]) === "pending";
+  }).length;
+  var badge = $("pendingCount");
+  badge.textContent = count.toLocaleString("bn-BD");
+  badge.classList.toggle("show", count > 0);
+}
+
+function renderCommentReports() {
+  var list = $("report-list");
+  if (!list) return;
+
+  var entries = Object.entries(commentReports)
+    .filter(function (e) {
+      return isCommentReport(e[1]) &&
+        (commentFilter === "all" || reportStatus(e[1]) === commentFilter);
+    })
+    .sort(function (a, b) {
+      return (Number(b[1].createdAt) || 0) - (Number(a[1].createdAt) || 0);
+    });
+
+  // রিভিউড / খারিজ তালিকায় একসাথে সব রিপোর্ট মোছার বাটন
+  var bulk = $("bulkBar");
+  if (bulk) {
+    if ((commentFilter === "reviewed" || commentFilter === "dismissed") && entries.length) {
+      bulk.hidden = false;
+      bulk.innerHTML = '<button class="btn danger-outline" data-action="bulk-delete" type="button">এই তালিকার সব রিপোর্ট মুছুন (' +
+        entries.length.toLocaleString("bn-BD") + ')</button>';
+    } else {
+      bulk.hidden = true;
+      bulk.innerHTML = "";
+    }
+  }
+
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state">এই তালিকায় কোনো রিপোর্ট নেই।</div>';
+    return;
+  }
+
+  list.innerHTML = '<div class="report-list">' + entries.map(function (entry) {
+    var key = entry[0];
+    var r = entry[1];
+    var status = reportStatus(r);
+    var k = escapeHTML(key);
+
+    return (
+      '<article class="report-item status-' + escapeHTML(status) + '">' +
+        '<div class="report-top">' +
+          '<span class="reason-tag">' + escapeHTML(REASON_LABEL[r.reason] || r.reason || "অন্যান্য") + '</span>' +
+          '<span class="report-status">' + escapeHTML(STATUS_LABEL[status] || status) + '</span>' +
+        '</div>' +
+        '<div class="report-comment"><span class="by">' +
+          escapeHTML(r.commentAuthorName || "অজানা") + ' লিখেছেন' + (r.replyId ? ' (উত্তর)' : '') +
+        '</span>' + escapeHTML(r.commentText || "") + '</div>' +
+        '<div class="report-meta">পোস্ট: <a href="./feed.html#post/' + encodeURIComponent(r.postId || "") +
+          '" target="_blank" rel="noopener">' + escapeHTML(r.postTitle || "দেখুন") + '</a></div>' +
+        '<div class="report-meta">রিপোর্ট করেছেন: ' + escapeHTML(r.reporterName || "অজানা") +
+          ' · ' + escapeHTML(fmtDateTime(r.createdAt)) + '</div>' +
+        '<div class="item-actions">' +
+          (status !== "dismissed" ? '<button class="btn danger" data-action="delete-comment" data-key="' + k + '" type="button">কমেন্ট মুছে ফেলুন</button>' : '') +
+          (status !== "reviewed" ? '<button class="btn secondary" data-action="mark-reviewed" data-key="' + k + '" type="button">রিভিউড করুন</button>' : '') +
+          (status !== "dismissed" ? '<button class="btn" data-action="dismiss" data-key="' + k + '" type="button">খারিজ করুন</button>' : '') +
+          '<button class="btn danger-outline" data-action="delete-report" data-key="' + k + '" type="button">রিপোর্ট মুছুন</button>' +
+        '</div>' +
+      '</article>'
+    );
+  }).join("") + '</div>';
+}
+
+async function handleReportAction(btn) {
+  var key = btn.dataset.key;
+  var action = btn.dataset.action;
+  var r = commentReports[key];
+  if (!isCommentReport(r)) return;
+
+  // কোন ধাপে ব্যর্থ হলো তা বোঝাতে প্রতিটি লেখা আলাদা ধাপে করা হয়
+  var step = "";
+  try {
+    if (action === "delete-comment") {
+      if (!confirm("এই মন্তব্যটি স্থায়ীভাবে মুছে ফেলতে চান?")) return;
+      btn.disabled = true;
+
+      // ধাপ ১: মন্তব্য / উত্তর মোছা
+      step = "মন্তব্য মোছা";
+      if (r.replyId) {
+        await db.ref("commentReplies/" + r.postId + "/" + r.commentId + "/" + r.replyId).remove();
+      } else {
+        await db.ref("postComments/" + r.postId + "/" + r.commentId).remove();
+      }
+
+      // ধাপ ২: রিপোর্টের স্ট্যাটাস "রিভিউড"
+      step = "রিপোর্টের স্ট্যাটাস বদলানো";
+      await db.ref("reports/" + key + "/status").set("reviewed");
+
+      // ধাপ ৩: কমেন্ট সংখ্যা কমানো (শুধু মূল মন্তব্যের ক্ষেত্রে) — ব্যর্থ হলেও মোছা বাতিল হয় না
+      if (!r.replyId) {
+        try {
+          await db.ref("postStats/" + r.postId + "/comments")
+            .set(firebase.database.ServerValue.increment(-1));
+        } catch (statErr) {
+          console.warn("Comment count update failed:", statErr);
+          showMessage("মন্তব্য মোছা হয়েছে, কিন্তু কমেন্ট সংখ্যা কমানো যায়নি (postStats/comments-এর Rules দেখুন)।", "error");
+        }
+      }
+    } else if (action === "delete-report") {
+      if (!confirm("এই রিপোর্টটি তালিকা থেকে স্থায়ীভাবে মুছে ফেলতে চান? (মূল মন্তব্য মুছবে না)")) return;
+      btn.disabled = true;
+      step = "রিপোর্ট মোছা";
+      await db.ref("reports/" + key).remove();
+    } else if (action === "mark-reviewed") {
+      btn.disabled = true;
+      step = "রিপোর্টের স্ট্যাটাস বদলানো";
+      await db.ref("reports/" + key + "/status").set("reviewed");
+    } else if (action === "dismiss") {
+      btn.disabled = true;
+      step = "রিপোর্টের স্ট্যাটাস বদলানো";
+      await db.ref("reports/" + key + "/status").set("dismissed");
+    }
+  } catch (err) {
+    console.error("Report action error [" + step + "]:", err);
+    btn.disabled = false;
+    var denied = err && err.code === "PERMISSION_DENIED";
+    showMessage(
+      denied
+        ? "অনুমতি নেই — ধাপ: " + step + "। Database Rules ও অ্যাডমিন role দেখুন।"
+        : "করা যায়নি (" + step + "): " + (err && err.message ? err.message : err),
+      "error"
+    );
+  }
+}
+
+async function bulkDeleteReports(btn) {
+  var keys = Object.keys(commentReports).filter(function (k) {
+    return isCommentReport(commentReports[k]) && reportStatus(commentReports[k]) === commentFilter;
+  });
+  if (!keys.length) return;
+  if (!confirm("এই তালিকার " + keys.length.toLocaleString("bn-BD") +
+      "টি রিপোর্ট স্থায়ীভাবে মুছে ফেলতে চান? (মূল মন্তব্য মুছবে না)")) return;
+
+  btn.disabled = true;
+  try {
+    var updates = {};
+    keys.forEach(function (k) { updates[k] = null; });
+    await db.ref("reports").update(updates);
+    showMessage(keys.length.toLocaleString("bn-BD") + "টি রিপোর্ট মুছে ফেলা হয়েছে।", "success");
+  } catch (err) {
+    console.error("Bulk delete error:", err);
+    btn.disabled = false;
+    showMessage(
+      err && err.code === "PERMISSION_DENIED"
+        ? "অনুমতি নেই — ধাপ: রিপোর্ট মোছা। Database Rules ও অ্যাডমিন role দেখুন।"
+        : "মোছা যায়নি: " + (err && err.message ? err.message : err),
+      "error"
+    );
+  }
+}
+
+function startCommentReports() {
+  if (commentsStarted) return;
+  commentsStarted = true;
+
+  $("reportFilters").addEventListener("click", function (event) {
+    var b = event.target.closest(".filter-btn");
+    if (!b) return;
+    $("reportFilters").querySelectorAll(".filter-btn").forEach(function (x) {
+      x.classList.remove("active");
+    });
+    b.classList.add("active");
+    commentFilter = b.dataset.status;
+    renderCommentReports();
+  });
+
+  $("bulkBar").addEventListener("click", function (event) {
+    var b = event.target.closest('[data-action="bulk-delete"]');
+    if (b) bulkDeleteReports(b);
+  });
+
+  $("report-list").addEventListener("click", function (event) {
+    var btn = event.target.closest("[data-action]");
+    if (btn) handleReportAction(btn);
+  });
+
+  db.ref("reports").on("value", function (snap) {
+    commentReports = snap.val() || {};
+    updatePendingCount();
+    renderCommentReports();
+  }, function (error) {
+    console.error("Reports listen error:", error);
+    $("report-list").innerHTML =
+      '<div class="empty-state">মন্তব্য রিপোর্ট লোড করা যায়নি। Database Rules দেখুন।</div>';
+  });
+}
+
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    window.location.replace("./index.html");
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    if (!(await window.isAdmin(user))) {
+      showMessage("এই পেজ দেখার অনুমতি শুধু অ্যাডমিনের রয়েছে।", "error");
+      setTimeout(() => {
+        window.location.replace("./index.html");
+      }, 1500);
+      return;
+    }
+
+    startCommentReports();
+  } catch (error) {
+    console.error(error);
+    showMessage("অ্যাডমিন যাচাই করা যায়নি। Firebase Rules পরীক্ষা করুন।", "error");
+  }
+});
+})();
+</script>
+</body>
+</html>

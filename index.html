@@ -1,443 +1,572 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AR News — অ্যাডমিন প্যানেল</title>
-<link rel="icon" href="logo.png">
-<meta name="theme-color" content="#0b3d91">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Hind+Siliguri:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#f4f6fb;
-    --surface:#fff;
-    --ink:#14201f;
-    --muted:#5e6a80;
-    --line:#e4e9f2;
-    --brand:#0b3d91;
-    --brand-ink:#0b3d91;
-    --brand-soft:#e6ecf7;
-    --nav-bg:#0b3d91;
-    --nav-ink:#fff;
-    --nav-muted:#c9d8f5;
-    --danger:#b42318;
-    --danger-soft:#fde8e6;
-    --warn:#b45309;
-    --warn-soft:#fdf0dc;
-    --ok:#15803d;
-    --shadow:0 1px 2px rgba(11,61,145,.06),0 6px 18px rgba(11,61,145,.06);
-    --font-display:'Tiro Bangla',Georgia,serif;
-    --hh:64px;
-    --safe-b: env(safe-area-inset-bottom, 0px);
-    --safe-t: env(safe-area-inset-top, 0px);
-  }
-  /* ডার্ক মোড: সব ফাইলের ডিজাইন আপডেট শেষ হলে নিচের রুলটা @media(prefers-color-scheme:dark) এর ভেতরে বসিয়ে অটো চালু করা যাবে।
-     এখন শুধু <html data-theme="dark"> দিলে চালু হয়। */
-  :root[data-theme="dark"]{
-    --bg:#0a1228;--surface:#111b38;--ink:#e8edf8;--muted:#9aa8c6;--line:#22305a;
-    --brand:#6ea0ff;--brand-ink:#b9d0ff;--brand-soft:#192a55;--nav-bg:#0a1a3d;
-    --danger:#f28b82;--danger-soft:#3a1a18;--warn:#f0b35a;--warn-soft:#33260f;--ok:#5fd08a;--shadow:none;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0}
-  body{
-    background:var(--bg);
-    color:var(--ink);
-    font-family:'Hind Siliguri',system-ui,sans-serif;
-    line-height:1.5;
-    padding-bottom:calc(96px + var(--safe-b));
-  }
-  a{color:inherit}
-  button{-webkit-tap-highlight-color:transparent}
-  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-  /* hidden অ্যাট্রিবিউট যেন .btn, .top-nav ইত্যাদির display রুল ছাপিয়ে না যায় */
-  [hidden]{display:none !important}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="AR News Admin Panel">
+  <title>AR News Admin</title>
 
-  /* ---------- header ---------- */
-  .ar-nav{
-    position:sticky;top:0;z-index:30;
-    height:calc(var(--hh) + var(--safe-t));
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:var(--safe-t) 16px 0;
-    background:var(--nav-bg);color:var(--nav-ink);
-    border-radius:0;
-  }
-  .ar-brand{
-    display:flex;align-items:center;gap:11px;
-    font-family:var(--font-display);font-weight:400;font-size:18px;line-height:1.15;
-    text-decoration:none;min-width:0;color:var(--nav-ink);
-  }
-  .ar-brand img{width:34px;height:34px;border-radius:9px;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.16)}
-  .ar-brand small{
-    display:block;font-family:'Hind Siliguri',sans-serif;
-    font-weight:400;font-size:11.5px;color:var(--nav-muted);margin-top:2px;
-  }
-  #nav-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-  .who{
-    font-size:12.5px;color:var(--nav-muted);max-width:140px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none;
-  }
-  @media(min-width:520px){.who{display:inline-block}}
-
-  /* ---------- navigation: মোবাইলে নিচের বার (৪টি প্রধান ট্যাব + মাঝে "নতুন" বাটন + "আরও") ---------- */
-  .top-nav{
-    position:fixed;left:0;right:0;bottom:0;z-index:40;
-    display:flex;align-items:flex-end;
-    padding:10px 8px calc(8px + var(--safe-b));
-    background:var(--surface);
-    border-top:1px solid var(--line);
-    box-shadow:0 -4px 18px rgba(11,61,145,.07);
-  }
-  .top-nav[hidden]{display:none !important}
-  .top-nav button{
-    flex:1 1 0;min-width:0;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    min-height:52px;padding:4px 2px 0;
-    border:0;background:none;color:var(--muted);
-    font:inherit;font-size:12px;font-weight:600;
-    cursor:pointer;position:relative;
-  }
-  .top-nav button svg{width:24px;height:24px}
-  .top-nav button.active{color:var(--brand);font-weight:700}
-  .top-nav button.active::before{
-    content:"";position:absolute;top:-10px;left:50%;width:28px;height:3px;margin-left:-14px;
-    border-radius:0 0 3px 3px;background:var(--brand);
-  }
-  .top-nav .nav-secondary{display:none}
-  .top-nav .nav-fab .fab-circle{
-    display:flex;align-items:center;justify-content:center;
-    width:56px;height:56px;margin-top:-30px;border-radius:50%;
-    background:var(--brand);color:#fff;border:4px solid var(--surface);
-    box-shadow:0 4px 14px rgba(11,61,145,.35);
-  }
-  .top-nav .nav-fab .fab-circle svg{width:26px;height:26px}
-  .top-nav .nav-fab.active::before{display:none}
-  :root[data-theme="dark"] .top-nav .nav-fab .fab-circle{color:#06143a}
-  .nav-badge{
-    position:absolute;top:0;left:calc(50% + 6px);
-    min-width:17px;height:17px;padding:0 5px;
-    border-radius:999px;background:var(--danger);color:#fff;
-    font-size:10.5px;font-weight:700;line-height:1;
-    display:none;align-items:center;justify-content:center;
-  }
-  .nav-badge.show{display:flex}
-
-  /* ---------- "আরও" শিট (মোবাইল) ---------- */
-  .sheet-backdrop{position:fixed;inset:0;z-index:55;background:rgba(8,20,52,.55)}
-  .sheet{
-    position:fixed;left:0;right:0;bottom:0;z-index:60;
-    max-width:680px;margin:0 auto;max-height:82vh;overflow-y:auto;
-    background:var(--surface);border-radius:26px 26px 0 0;
-    padding:12px 18px calc(18px + var(--safe-b));
-    box-shadow:0 -10px 30px rgba(8,20,52,.25);
-  }
-  .sheet:not([hidden]){animation:sheet-up .22s ease-out}
-  @keyframes sheet-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
-  @media(prefers-reduced-motion:reduce){.sheet:not([hidden]){animation:none}}
-  .sheet-grip{width:40px;height:4px;border-radius:999px;background:var(--line);margin:0 auto 12px}
-  .sheet h2{font-family:var(--font-display);font-weight:400;font-size:22px;margin:0 0 6px}
-  .sheet-row{
-    display:flex;align-items:center;gap:14px;width:100%;
-    min-height:68px;padding:8px 4px;border:0;border-top:1px solid var(--line);
-    background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;
-  }
-  .sheet-ic{
-    flex:none;display:inline-flex;align-items:center;justify-content:center;
-    width:46px;height:46px;border-radius:14px;background:var(--brand-soft);color:var(--brand-ink);
-  }
-  .sheet-ic svg{width:22px;height:22px}
-  .sheet-txt{flex:1;min-width:0}
-  .sheet-txt b{display:block;font-size:16px;font-weight:600}
-  .sheet-txt small{display:block;font-size:13px;color:var(--muted);line-height:1.4}
-  .sheet-chev{color:var(--muted);display:inline-flex}
-  .sheet-chev svg{width:20px;height:20px}
-  .sheet-badge{
-    min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--danger);color:#fff;
-    font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;
-  }
-
-  /* ---------- buttons ---------- */
-  .btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:7px;
-    text-align:center;text-decoration:none;
-    border:0;border-radius:12px;padding:10px 16px;min-height:44px;
-    background:var(--brand);color:#fff;
-    font:inherit;font-weight:600;font-size:14px;cursor:pointer;
-  }
-  .btn:active{opacity:.85}
-  .btn.secondary{background:var(--brand-soft);color:var(--brand-ink)}
-  .btn.danger{background:var(--danger-soft);color:var(--danger)}
-  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
-  .btn.small{padding:7px 14px;font-size:13px;border-radius:10px;min-height:40px}
-  .btn.icon{width:44px;height:44px;padding:0;border-radius:50%}
-  .btn[disabled]{opacity:.55;cursor:default}
-  .btn svg{width:17px;height:17px}
-
-  /* ---------- shell / gate ---------- */
-  .shell{max-width:680px;margin:0 auto;padding:0 14px 30px}
-  .gate{
-    max-width:400px;margin:10vh auto;
-    background:var(--surface);border:1px solid var(--line);border-radius:22px;
-    padding:30px 24px;box-shadow:var(--shadow);
-  }
-  .gate h2{font-family:var(--font-display);font-weight:400;margin:0 0 6px;font-size:24px}
-  .gate p{color:var(--muted);font-size:13.5px;margin:0 0 18px;line-height:1.6}
-  .field{margin-bottom:14px}
-  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
-  .field input,.field textarea,.field select{
-    width:100%;border:1px solid var(--line);border-radius:12px;
-    padding:12px 14px;font:inherit;font-size:15px;background:var(--surface);color:var(--ink);
-  }
-  .field input:focus,.field textarea:focus,.field select:focus{
-    outline:none;border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent);
-  }
-  .field textarea{min-height:150px;resize:vertical;line-height:1.6}
-  .img-hint{display:block;font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
-  .img-hint.ok{color:var(--ok)}
-  .img-hint.bad{color:var(--danger)}
-  .img-preview-wrap{
-    margin-top:10px;border:1px solid var(--line);border-radius:12px;
-    overflow:hidden;background:var(--bg);
-  }
-  .img-preview{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
-  .error{
-    background:var(--danger-soft);color:var(--danger);
-    font-size:13px;padding:10px 12px;border-radius:10px;margin-bottom:14px;
-    display:none;line-height:1.5;
-  }
-  .error.show{display:block}
-  .msg{font-size:12.5px;margin-top:8px;min-height:16px}
-  .msg.ok{color:var(--ok)}
-  .msg.bad{color:var(--danger)}
-  .loading-line{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
-
-  /* ---------- panels / cards ---------- */
-  .panel{
-    background:var(--surface);border:1px solid var(--line);
-    border-radius:20px;padding:18px;margin:16px 0;box-shadow:var(--shadow);
-  }
-  .panel h2{font-family:var(--font-display);font-weight:400;font-size:22px;line-height:1.25;margin:0 0 4px}
-  .panel .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
-  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .empty{
-    color:var(--muted);text-align:center;padding:30px 12px;font-size:13.5px;
-    border:1px dashed var(--line);border-radius:14px;background:var(--surface);
-  }
-  /* পোস্ট প্যানেলের কার্ড নিজেই posts.js থেকে আসে, তাই বাইরের প্যানেল স্বচ্ছ */
-  #panel-posts{background:none;border:0;box-shadow:none;padding:0;margin-top:0}
-
-  /* list cards (বিজ্ঞাপন প্যানেল ইত্যাদিতে ব্যবহৃত) */
-  .post-list{display:grid;gap:10px}
-  .post-item{border:1px solid var(--line);border-radius:14px;padding:13px;background:var(--surface)}
-  .post-item img{
-    width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;
-    margin-bottom:10px;background:var(--bg);display:block;
-  }
-  .post-item h3{
-    font-family:var(--font-display);font-weight:400;font-size:16.5px;margin:0 0 6px;
-    display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.4;
-  }
-  .post-item p{margin:5px 0;font-size:13.5px;color:var(--muted);overflow-wrap:anywhere;line-height:1.6}
-  .post-meta{font-size:12px;color:var(--muted)}
-  .post-engage{display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--muted)}
-  .post-engage span{display:inline-flex;align-items:center;gap:4px}
-  .post-engage svg{width:14px;height:14px}
-  .item-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
-  .status-tag{
-    display:inline-block;font-size:11.5px;font-weight:600;
-    padding:2px 9px;border-radius:999px;background:var(--brand-soft);color:var(--brand-ink);
-  }
-  .status-tag.draft{background:var(--line);color:var(--muted)}
-  .status-tag.ad-badge{background:var(--warn-soft);color:var(--warn)}
-  .search-box{margin-bottom:14px}
-  .search-box input{
-    width:100%;border:1px solid var(--line);border-radius:12px;
-    padding:11px 14px;font:inherit;font-size:14.5px;background:var(--surface);color:var(--ink);
-  }
-  .search-box input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
-
-  /* stats — জোড়া লাগানো একটা স্ট্রিপ */
-  .stats-row{
-    display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
-    background:var(--line);border:1px solid var(--line);border-radius:14px;
-    overflow:hidden;margin-bottom:8px;
-  }
-  .stat-card{padding:14px 14px 13px;background:var(--surface)}
-  .stat-card .label{display:block;color:var(--muted);font-size:12px}
-  .stat-card strong{
-    display:block;color:var(--ink);font-size:27px;line-height:1.25;margin-top:4px;
-    font-family:var(--font-display);font-weight:400;
-  }
-  @media(min-width:460px){.stats-row{grid-template-columns:repeat(3,1fr)}}
-  .top-post-row{
-    display:flex;align-items:center;gap:12px;padding:11px 0;
-    border-bottom:1px solid var(--line);
-  }
-  .top-post-row:last-child{border-bottom:0}
-  .top-post-row .rank{
-    width:26px;height:26px;border-radius:8px;flex-shrink:0;
-    background:var(--brand-soft);color:var(--brand-ink);
-    display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:13px;
-  }
-  .top-post-row .ttl{
-    flex:1;min-width:0;font-size:14px;font-weight:600;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .top-post-row .sc{font-size:12px;color:var(--muted);flex-shrink:0}
-
-  /* reports */
-  .filter-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
-  .filter-btn{
-    border:1px solid var(--line);background:var(--surface);color:var(--muted);
-    font:inherit;font-weight:600;font-size:13.5px;padding:6px 16px;min-height:40px;
-    border-radius:999px;cursor:pointer;
-  }
-  .filter-btn.active{background:var(--ink);border-color:var(--ink);color:var(--surface)}
-  .report-list{display:grid;gap:10px}
-  .report-item{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surface)}
-  .report-item.status-pending{border-left:4px solid var(--danger)}
-  .report-item.status-reviewed{border-left:4px solid var(--brand)}
-  .report-item.status-dismissed{border-left:4px solid var(--line);opacity:.75}
-  .report-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
-  .reason-tag{
-    display:inline-block;font-size:11.5px;font-weight:600;
-    padding:2px 10px;border-radius:999px;background:var(--danger-soft);color:var(--danger);
-  }
-  .report-status{font-size:12px;font-weight:600;color:var(--muted);margin-left:auto}
-  .report-comment{
-    background:var(--bg);border-radius:10px;padding:10px 12px;
-    font-size:13.5px;margin:9px 0;overflow-wrap:anywhere;line-height:1.6;
-  }
-  .report-comment .by{
-    display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px;font-weight:600;
-  }
-  .report-meta{font-size:12.5px;color:var(--muted);margin-bottom:3px;line-height:1.6}
-  .report-meta a{color:var(--brand-ink);font-weight:600;text-decoration:none}
-  .report-meta a:hover{text-decoration:underline}
-
-  /* users */
-  .user-list{display:grid;gap:8px}
-  .user-row{
-    display:flex;align-items:center;gap:12px;
-    border:1px solid var(--line);border-radius:14px;padding:11px 13px;background:var(--surface);
-  }
-  .user-avatar{
-    width:40px;height:40px;border-radius:50%;
-    background:var(--brand-soft);color:var(--brand-ink);font-size:15px;font-weight:700;
-    display:flex;align-items:center;justify-content:center;
-    flex-shrink:0;text-transform:uppercase;overflow:hidden;
-  }
-  .user-avatar img{width:100%;height:100%;object-fit:cover}
-  .user-info{min-width:0;flex:1}
-  .user-name{
-    font-size:14px;font-weight:600;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .user-email{
-    font-size:12px;color:var(--muted);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .role-badge{
-    font-size:11.5px;font-weight:600;
-    padding:2px 10px;border-radius:999px;background:var(--brand-soft);color:var(--brand-ink);
-    flex-shrink:0;
-  }
-  .role-badge.admin{background:var(--ink);color:var(--surface)}
-
-  /* header right actions */
-  .nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
-
-  /* হেডারের লগআউট বাটন: আইকন, বড় স্ক্রিনে পাশে "লগআউট" লেখা */
-  #nav-actions #logout-btn.icon,
-  #nav-actions #ar-chat-nav-btn{
-    width:44px;height:44px;padding:0;border-radius:12px;
-    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
-    color:var(--nav-ink);
-  }
-  #nav-actions #logout-btn.icon:hover{background:rgba(255,255,255,.16)}
-  #nav-actions #logout-btn.icon svg{width:18px;height:18px}
-  @media(min-width:520px){
-    #nav-actions #logout-btn.icon{width:auto;padding:0 14px}
-    #nav-actions #logout-btn.icon::after{content:"লগআউট";font-size:13px;font-weight:600}
-  }
-  /* "অনুমতি নেই" পেজে বসা লগআউট বাটন হেডারের গাঢ় রঙে পড়া সহজ রাখে */
-  #nav-actions #logout-btn.secondary{background:rgba(255,255,255,.1);color:var(--nav-ink)}
-
-  /* ---------- ডেস্কটপ: বাঁ পাশে সাইডবারে সব ট্যাব ---------- */
-  @media(min-width:900px){
-    body{padding-bottom:calc(20px + var(--safe-b))}
-    .ar-nav{border-radius:0;box-shadow:none}
-    .top-nav{
-      left:0;right:auto;top:calc(var(--hh) + var(--safe-t));bottom:0;width:236px;
-      flex-direction:column;align-items:stretch;gap:4px;padding:18px 12px;
-      border-top:0;border-right:1px solid var(--line);box-shadow:none;overflow-y:auto;
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    .top-nav button{
-      flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:12px;
-      min-width:0;min-height:44px;padding:10px 14px;font-size:14.5px;
-      border-radius:12px;text-align:left;
+
+    :root {
+      --primary: #0b3d91;
+      --primary-dark: #082f73;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #e5e7eb;
+      --background: #f8fafc;
     }
-    .top-nav button svg{width:20px;height:20px}
-    .top-nav button.active{background:var(--brand-soft);color:var(--brand-ink)}
-    .top-nav button.active::before{display:none}
-    .top-nav .nav-secondary{display:flex}
-    #nav-more{display:none}
-    .top-nav .nav-fab .fab-circle{
-      width:auto;height:auto;margin:0;border:0;background:none;box-shadow:none;color:inherit;display:inline-flex;
+
+    body {
+      font-family: system-ui, -apple-system, "Noto Sans Bengali",
+        "Hind Siliguri", sans-serif;
+      color: var(--text);
+      background: var(--background);
+      min-height: 100vh;
+      padding-bottom: 85px;
     }
-    :root[data-theme="dark"] .top-nav .nav-fab .fab-circle{color:inherit}
-    .top-nav .nav-fab .fab-circle svg{width:20px;height:20px}
-    .nav-badge{position:static;order:3;margin-left:auto}
-    .sheet,.sheet-backdrop{display:none !important}
-    .shell{max-width:none;margin:0 0 0 236px;padding:30px 44px 40px}
-    .shell>section{max-width:860px}
-    .top-nav[hidden] ~ .shell{margin:0 auto;max-width:680px}
-    .stat-card strong{font-size:32px}
-  }
-</style>
+
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .header {
+      height: 70px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 43px;
+      height: 43px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 750;
+      letter-spacing: -0.4px;
+    }
+
+    .menu-button {
+      width: 43px;
+      height: 43px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+      font-size: 23px;
+      color: var(--text);
+    }
+
+    .main {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    .welcome {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 25px 20px;
+      margin-bottom: 20px;
+    }
+
+    .welcome h2 {
+      font-size: 23px;
+      margin-bottom: 8px;
+    }
+
+    .welcome p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .section-title {
+      font-size: 17px;
+      margin-bottom: 14px;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .action-card {
+      text-decoration: none;
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 18px 15px;
+      min-height: 105px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .action-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .action-icon {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .action-card strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .action-card small {
+      display: block;
+      color: var(--muted);
+      margin-top: 5px;
+      font-size: 12px;
+    }
+
+    .login-open-card {
+      margin-top: 20px;
+      padding: 18px;
+      background: #eaf0fb;
+      border: 1px solid #cfdcf5;
+      border-radius: 15px;
+    }
+
+    .login-open-card p {
+      font-size: 14px;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+
+    .primary-button {
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 18px;
+      font-weight: 650;
+    }
+
+    .primary-button:hover {
+      background: var(--primary-dark);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 20;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      padding: 8px 5px calc(8px + env(safe-area-inset-bottom));
+      background: #fff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .bottom-nav a {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 5px 1px;
+    }
+
+    .bottom-nav a span {
+      display: block;
+      font-size: 21px;
+      margin-bottom: 3px;
+    }
+
+    .bottom-nav a.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      z-index: 30;
+      opacity: 0;
+      visibility: hidden;
+      transition: 0.25s;
+    }
+
+    .backdrop.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .login-drawer {
+      position: fixed;
+      z-index: 31;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      padding: 12px 22px calc(25px + env(safe-area-inset-bottom));
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(110%);
+      transition: transform 0.3s ease;
+    }
+
+    .login-drawer.show {
+      transform: translateY(0);
+    }
+
+    .drawer-handle {
+      width: 42px;
+      height: 4px;
+      background: #d1d5db;
+      border-radius: 10px;
+      margin: 0 auto 22px;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .drawer-header h2 {
+      font-size: 21px;
+    }
+
+    .close-button {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: #fff;
+      font-size: 22px;
+    }
+
+    .drawer-description {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 22px;
+      line-height: 1.7;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 650;
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      height: 49px;
+      padding: 0 13px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      outline: none;
+      background: #fff;
+    }
+
+    .form-group input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(11, 61, 145, 0.12);
+    }
+
+    .submit-button {
+      width: 100%;
+      min-height: 49px;
+      margin-top: 4px;
+    }
+
+    .submit-button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    #loginMessage {
+      font-size: 13px;
+      line-height: 1.7;
+      margin-top: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .menu-links {
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
+      display: none;
+      position: fixed;
+      z-index: 25;
+      top: 78px;
+      right: 12px;
+      width: 205px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .menu-links.show {
+      display: block;
+    }
+
+    .menu-links a,
+    .menu-links button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 12px;
+      border: 0;
+      border-radius: 8px;
+      background: #fff;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .menu-links a:hover,
+    .menu-links button:hover {
+      background: #f1f5f9;
+    }
+
+    @media (min-width: 700px) {
+      .header {
+        padding: 0 32px;
+      }
+
+      .main {
+        padding: 35px 25px;
+      }
+
+      .welcome {
+        padding: 35px;
+      }
+
+      .quick-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .login-drawer {
+        left: 50%;
+        right: auto;
+        width: min(460px, 95vw);
+        bottom: 50%;
+        border-radius: 22px;
+        padding: 22px 28px 28px;
+        transform: translate(-50%, 120%);
+      }
+
+      .login-drawer.show {
+        transform: translate(-50%, 50%);
+      }
+
+      .drawer-handle {
+        display: none;
+      }
+
+      .bottom-nav {
+        padding-left: max(10px, calc((100vw - 800px) / 2));
+        padding-right: max(10px, calc((100vw - 800px) / 2));
+      }
+    }
+
+    @media (max-width: 360px) {
+      .brand h1 {
+        font-size: 16px;
+      }
+
+      .brand img {
+        width: 38px;
+        height: 38px;
+      }
+
+      .header {
+        padding: 0 12px;
+      }
+
+      .welcome h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <header class="ar-nav">
-    <a class="ar-brand" href="feed.html">
-      <img src="logo.png" alt="AR News">
-      <span>AR News<small>অ্যাডমিন প্যানেল</small></span>
-    </a>
-    <div class="nav-right">
-      <div id="nav-actions"></div>
-    </div>
-  </header>
 
-  <!-- উপরের ছোট বক্স নেভিগেশন (নিচের নেভ সরিয়ে এখানে) -->
-  <nav class="top-nav" id="bottom-nav"></nav>
+  <main class="main">
+    <section class="welcome">
+      <h2>স্বাগতম, AR News Admin</h2>
+      <p>
+        আপনার নিউজ অ্যাডমিন প্যানেলে স্বাগতম।
+        পোস্ট তৈরি, প্রকাশ এবং অন্যান্য অ্যাডমিন কার্যক্রম
+        পরিচালনা করতে লগইন করুন।
+      </p>
 
-  <main class="shell" id="app">
-    <div class="loading-line">লোড হচ্ছে…</div>
+      <div class="login-open-card">
+        <p>অ্যাডমিন প্যানেল ব্যবহার করতে আপনার অ্যাকাউন্ট দিয়ে লগইন করুন।</p>
+        <button class="primary-button" id="welcomeLogin"
+                type="button">অ্যাডমিন লগইন করুন</button>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">দ্রুত অ্যাক্সেস</h2>
+
+      <div class="quick-actions">
+        <a class="action-card" href="./post.html">
+          <span class="action-icon">📰</span>
+          <strong>পোস্ট পরিচালনা</strong>
+          <small>নিউজ দেখুন ও সম্পাদনা করুন</small>
+        </a>
+
+        <a class="action-card" href="./create.html">
+          <span class="action-icon">✍️</span>
+          <strong>নতুন পোস্ট</strong>
+          <small>নতুন নিউজ তৈরি করুন</small>
+        </a>
+
+        <a class="action-card" href="./reports.html">
+          <span class="action-icon">📊</span>
+          <strong>রিপোর্ট</strong>
+          <small>রিপোর্ট দেখুন</small>
+        </a>
+
+        <a class="action-card" href="./user.html">
+          <span class="action-icon">👥</span>
+          <strong>ইউজার</strong>
+          <small>ব্যবহারকারী পরিচালনা</small>
+        </a>
+      </div>
+    </section>
   </main>
 
-  <!-- "আরও" শিট (মোবাইল): বিজ্ঞাপন, অর্ডার, ইউজার ও চ্যাট। login.js ভেতরের তালিকা বসায় -->
-  <div class="sheet-backdrop" id="more-backdrop" hidden></div>
-  <div class="sheet" id="more-sheet" role="dialog" aria-modal="true" aria-labelledby="more-title" hidden>
-    <div class="sheet-grip" aria-hidden="true"></div>
-    <h2 id="more-title">আরও</h2>
-    <div id="more-list"></div>
-  </div>
+  <div class="backdrop" id="loginBackdrop"></div>
 
+  <section class="login-drawer" id="loginDrawer"
+           role="dialog" aria-modal="true"
+           aria-labelledby="loginTitle"
+           aria-hidden="true">
+    <div class="drawer-handle"></div>
+
+    <div class="drawer-header">
+      <h2 id="loginTitle">অ্যাডমিন লগইন</h2>
+      <button class="close-button" id="closeLogin"
+              type="button" aria-label="বন্ধ করুন">×</button>
+    </div>
+
+    <p class="drawer-description">
+      অ্যাডমিন অ্যাকাউন্টের ইমেইল ও পাসওয়ার্ড দিয়ে প্রবেশ করুন।
+    </p>
+
+    <form id="fallbackLogin">
+      <div class="form-group">
+        <label for="email">ইমেইল ঠিকানা</label>
+        <input id="email" name="email" type="email"
+               placeholder="admin@example.com"
+               autocomplete="username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">পাসওয়ার্ড</label>
+        <input id="password" name="password" type="password"
+               placeholder="আপনার পাসওয়ার্ড"
+               autocomplete="current-password" required>
+      </div>
+
+      <button class="primary-button submit-button"
+              type="submit">লগইন করুন</button>
+
+      <p id="loginMessage" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <script>
+    const loginDrawer = document.getElementById("loginDrawer");
+    const loginBackdrop = document.getElementById("loginBackdrop");
+
+    function openLoginPanel() {
+      loginBackdrop.classList.add("show");
+      loginDrawer.classList.add("show");
+      loginDrawer.setAttribute("aria-hidden", "false");
+
+      setTimeout(() => {
+        document.getElementById("email").focus();
+      }, 250);
+    }
+
+    function closeLoginPanel() {
+      loginBackdrop.classList.remove("show");
+      loginDrawer.classList.remove("show");
+      loginDrawer.setAttribute("aria-hidden", "true");
+    }
+
+    document.addEventListener("ar:open-login", openLoginPanel); // nav.js-এর মেনু থেকে
+
+    document.getElementById("welcomeLogin")
+      .addEventListener("click", openLoginPanel);
+
+    document.getElementById("closeLogin")
+      .addEventListener("click", closeLoginPanel);
+
+    loginBackdrop.addEventListener("click", closeLoginPanel);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeLoginPanel();
+      }
+    });
+
+    // পেজ খোলার পর লগইন প্যানেল দেখাবে
+    window.addEventListener("DOMContentLoaded", () => {
+      openLoginPanel();
+    });
+  </script>
+
+  <!-- Firebase (compat) + config.js + login.js — সব সাধারণ স্ক্রিপ্ট, ES Module নয় -->
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
-  <script src="config.js"></script>
-
-  <script src="login.js?v=3"></script>
-  <script src="create.js?v=2"></script>
-  <script src="posts.js?v=3"></script>
-  <script src="reports.js?v=2"></script>
-  <script src="users.js?v=2"></script>
-  <script src="stats.js?v=2"></script>
-  <script src="ad.js?v=2"></script>
-  <script src="advertise.js?v=2"></script>
-  <script src="contact.js?v=2"></script>
-  <script src="drafts.js?v=4"></script>
+  <script src="./config.js"></script>
+  <script src="./login.js?v=5"></script>
+  <script src="./nav.js"></script>
 </body>
 </html>
