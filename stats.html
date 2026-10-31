@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>পরিসংখ্যান | AR News</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-light: #e6f4f1;
+      --bg: #f7f9fb;
+      --text: #172b2a;
+      --muted: #718096;
+      --border: #e5eaf0;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      font-family: 'Hind Siliguri', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    main {
+      width: 100%;
+      padding: 22px;
+      margin: 0 auto;
+    }
+
+    .heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-light { background: var(--primary-light); color: var(--primary); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    .message {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 9px;
+      display: none;
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { display: block; background: #fee2e2; color: #991b1b; }
+    .message.success { display: block; background: #dcfce7; color: #166534; }
+    .message.info { display: block; background: #e0f2fe; color: #075985; }
+
+    /* ---------- সংখ্যার কার্ড ---------- */
+    .stats {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .stats-visits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stats-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 20px; }
+
+    .stat, .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .stat { padding: 17px; display: block; }
+    .stat-label { color: var(--muted); font-size: 14px; line-height: 1.35; }
+    .stat-number { font-size: 28px; font-weight: 700; margin-top: 5px; }
+    .stats-visits .stat-number { font-size: 34px; }
+
+    a.stat:hover { border-color: #cfe5e1; }
+    .stat.alert .stat-number { color: var(--danger); }
+
+    /* ---------- সেরা পোস্ট ---------- */
+    .panel { overflow: hidden; }
+
+    .panel-head {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-head h2 { margin: 0 0 2px; font-size: 19px; }
+    .panel-head p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .top-row:last-child { border-bottom: 0; }
+
+    .rank {
+      flex: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .top-row:first-child .rank { background: var(--primary); color: #fff; }
+
+    .top-main { flex: 1; min-width: 0; }
+
+    .top-title {
+      display: block;
+      font-weight: 600;
+      font-size: 14.5px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    a.top-title:hover { color: var(--primary); }
+
+    .draft-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 8px;
+      border-radius: 20px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11.5px;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+
+    .top-meta { margin-top: 3px; color: var(--muted); font-size: 12.5px; }
+
+    .bar {
+      display: block;
+      height: 4px;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--primary-light);
+    }
+
+    .bar i { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+
+    .score {
+      flex: none;
+      min-width: 70px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .score b { display: block; color: var(--text); font-size: 17px; }
+
+    .empty, .loading {
+      padding: 35px 15px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (min-width: 900px) {
+      .stats-visits .stat-number { font-size: 38px; }
+      .stats-counts .stat-number { font-size: 32px; }
+    }
+
+    @media (max-width: 650px) {
+      main { padding: 15px 11px; }
+      h1 { font-size: 23px; }
+      .stats { gap: 8px; }
+      .stat { padding: 12px 10px; }
+      .stat-label { font-size: 12px; }
+      .stat-number { font-size: 23px; }
+      .stats-visits .stat-number { font-size: 28px; }
+      .top-row { padding: 12px; gap: 10px; }
+      .score { min-width: 58px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="heading">
+      <div>
+        <h1>পরিসংখ্যান</h1>
+        <p class="sub">ভিজিট, পোস্ট, ইউজার ও সেরা পোস্টের সারসংক্ষেপ।</p>
+      </div>
+      <button class="btn btn-light" id="refreshBtn" type="button">↻ রিফ্রেশ</button>
+    </div>
+
+    <div id="message" class="message" role="status"></div>
+
+    <section class="stats stats-visits">
+      <div class="stat">
+        <div class="stat-label">মোট ভিজিট</div>
+        <div class="stat-number" id="statTotal">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">আজকের ভিজিট</div>
+        <div class="stat-number" id="statToday">—</div>
+      </div>
+    </section>
+
+    <section class="stats stats-counts">
+      <div class="stat">
+        <div class="stat-label">মোট পোস্ট</div>
+        <div class="stat-number" id="statPosts">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">মোট ইউজার</div>
+        <div class="stat-number" id="statUsers">—</div>
+      </div>
+      <a class="stat" id="statPendingCard" href="./reports.html" title="রিপোর্ট পেজে যান">
+        <div class="stat-label">অপেক্ষমাণ রিপোর্ট</div>
+        <div class="stat-number" id="statPending">—</div>
+      </a>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>সেরা ১০ পোস্ট</h2>
+        <p>এনগেজমেন্ট অনুযায়ী (লাইক × ৩ + কমেন্ট × ২ + ভিউ × ১)</p>
+      </div>
+      <div id="topPosts"><div class="loading">লোড হচ্ছে…</div></div>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <!-- config.js সাধারণ স্ক্রিপ্ট (window.auth / window.rtdb / window.isAdmin), ES Module নয় -->
+  <script src="./config.js"></script>
+  <script src="./nav.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var SITE = "https://arnews.info";   // পোস্টের পাবলিক লিংকের জন্য
+
+    var db = window.rtdb;
+    var auth = window.auth;
+
+    var $ = function (id) { return document.getElementById(id); };
+    var posts = {};
+    var postStats = {};
+    var currentUser = null;
+    var started = false;
+    var busy = false;
+
+    function num(n) { return Number(n || 0).toLocaleString("bn-BD"); }
+
+    function esc(v) {
+      return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function showMessage(text, type) {
+      var el = $("message");
+      el.textContent = text;
+      el.className = "message " + (type || "error");
+    }
+
+    function clearMessage() {
+      $("message").className = "message";
+      $("message").textContent = "";
+    }
+
+    /* ---------- সেরা পোস্ট ---------- */
+    function statOf(id) {
+      var s = postStats[id] || {};
+      return {
+        likes: Number(s.likes) || 0,
+        comments: Number(s.comments) || 0,
+        views: Number(s.views) || 0
+      };
+    }
+
+    function scoreOf(id) {
+      var s = statOf(id);
+      return s.likes * 3 + s.comments * 2 + s.views;
+    }
+
+    function isPublished(p) {
+      return !!p && (p.status === "published" || p.published === true);
+    }
+
+    function renderTopPosts() {
+      var el = $("topPosts");
+
+      var ranked = Object.keys(posts)
+        .map(function (id) { return { id: id, post: posts[id] || {}, score: scoreOf(id) }; })
+        .filter(function (r) { return r.score > 0; })
+        .sort(function (a, b) { return b.score - a.score; })
+        .slice(0, 10);
+
+      if (!ranked.length) {
+        el.innerHTML = '<div class="empty">এখনো কোনো এনগেজমেন্ট (লাইক/কমেন্ট/ভিউ) নেই।</div>';
+        return;
+      }
+
+      var top = ranked[0].score || 1;
+
+      el.innerHTML = ranked.map(function (r, i) {
+        var pct = Math.max(3, Math.round((r.score / top) * 100));
+        var s = statOf(r.id);
+        var title = esc(r.post.title || "শিরোনামহীন");
+        var pub = isPublished(r.post);
+
+        var titleHtml = pub
+          ? '<a class="top-title" href="' + SITE + "/news/" + encodeURIComponent(r.id) +
+            '.html" target="_blank" rel="noopener">' + title + "</a>"
+          : '<span class="top-title">' + title + '<span class="draft-tag">ড্রাফট</span></span>';
+
+        return (
+          '<div class="top-row">' +
+            '<span class="rank">' + num(i + 1) + "</span>" +
+            '<div class="top-main">' +
+              titleHtml +
+              '<div class="top-meta">❤ ' + num(s.likes) + " · 💬 " + num(s.comments) + " · 👁 " + num(s.views) + "</div>" +
+              '<span class="bar"><i style="width:' + pct + '%"></i></span>' +
+            "</div>" +
+            '<div class="score">স্কোর<b>' + num(r.score) + "</b></div>" +
+          "</div>"
+        );
+      }).join("");
+    }
+
+    /* ---------- মোট ইউজার: শুধু চাবি গোনা (ছবিসহ পুরো ডেটা নামে না) ---------- */
+    async function countUsers() {
+      try {
+        var base = db.ref().toString().replace(/\/$/, "");
+        var token = await currentUser.getIdToken();
+        var res = await fetch(base + "/users.json?shallow=true&auth=" + encodeURIComponent(token));
+        if (res.ok) {
+          var j = await res.json();
+          return j ? Object.keys(j).length : 0;
+        }
+      } catch (e) { /* নিচের সাধারণ পদ্ধতিতে যাব */ }
+      var snap = await db.ref("users").once("value");
+      return snap.numChildren();
+    }
+
+    /* ---------- ভারী ডেটা (রিফ্রেশে আবার আনা হয়) ---------- */
+    async function loadHeavy() {
+      if (busy) return;
+      busy = true;
+      $("refreshBtn").disabled = true;
+
+      try {
+        var results = await Promise.allSettled([
+          db.ref("posts").once("value"),
+          countUsers()
+        ]);
+
+        if (results[0].status === "fulfilled") {
+          posts = results[0].value.val() || {};
+          $("statPosts").textContent = num(Object.keys(posts).length);
+          renderTopPosts();
+        } else {
+          console.error(results[0].reason);
+          $("topPosts").innerHTML = '<div class="empty">পোস্ট লোড করা যায়নি।</div>';
+          showMessage("পোস্টের তথ্য আনা যায়নি। Firebase Database Rules ও সংযোগ দেখুন।");
+        }
+
+        if (results[1].status === "fulfilled") {
+          $("statUsers").textContent = num(results[1].value);
+        } else {
+          console.error(results[1].reason);
+          $("statUsers").textContent = "—";
+        }
+      } finally {
+        busy = false;
+        $("refreshBtn").disabled = false;
+      }
+    }
+
+    /* ---------- লাইভ সংখ্যা ---------- */
+    function onError(label) {
+      return function (err) {
+        console.error(label, err);
+        showMessage(label + " পড়া যায়নি। Firebase Database Rules দেখুন।");
+      };
+    }
+
+    function startLive() {
+      var today = new Date().toISOString().slice(0, 10);
+
+      db.ref("stats/totalVisits").on("value", function (snap) {
+        $("statTotal").textContent = num(snap.val());
+      }, onError("মোট ভিজিট"));
+
+      db.ref("stats/dailyVisits/" + today).on("value", function (snap) {
+        $("statToday").textContent = num(snap.val());
+      }, onError("আজকের ভিজিট"));
+
+      db.ref("postStats").on("value", function (snap) {
+        postStats = snap.val() || {};
+        renderTopPosts();
+      }, onError("পোস্টের স্ট্যাটাস"));
+
+      db.ref("reports").on("value", function (snap) {
+        var r = snap.val() || {};
+        // reports.html-এর মতোই: শুধু বৈধ মন্তব্য-রিপোর্ট (postId ও commentId আছে) গোনা হয়
+        var pending = Object.keys(r).filter(function (k) {
+          var x = r[k];
+          return x && typeof x === "object" &&
+            typeof x.postId === "string" && x.postId &&
+            typeof x.commentId === "string" && x.commentId &&
+            (x.status || "pending") === "pending";
+        }).length;
+        $("statPending").textContent = num(pending);
+        $("statPendingCard").classList.toggle("alert", pending > 0);
+      }, onError("রিপোর্ট"));
+    }
+
+    $("refreshBtn").addEventListener("click", function () {
+      clearMessage();
+      loadHeavy();
+    });
+
+    if (!auth || !db) {
+      showMessage("Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।");
+      $("topPosts").innerHTML = "";
+      $("refreshBtn").disabled = true;
+      return;
+    }
+
+    auth.onAuthStateChanged(async function (user) {
+      if (!user) {
+        location.replace("./index.html");
+        return;
+      }
+
+      try {
+        if (!(await window.isAdmin(user))) {
+          showMessage("এই পেজ শুধু Admin ব্যবহার করতে পারবেন।");
+          $("topPosts").innerHTML = "";
+          $("refreshBtn").disabled = true;
+          setTimeout(function () { location.replace("./index.html"); }, 1800);
+          return;
+        }
+
+        currentUser = user;
+        if (started) return;
+        started = true;
+
+        startLive();
+        await loadHeavy();
+      } catch (error) {
+        console.error(error);
+        showMessage("Admin যাচাই করা যায়নি। Firebase Rules যাচাই করুন।");
+        $("topPosts").innerHTML = "";
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
