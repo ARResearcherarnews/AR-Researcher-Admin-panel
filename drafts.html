@@ -1,1323 +1,1206 @@
-// AR News — Cloudflare Worker (স্ট্যাটিক অ্যাসেটসহ একই "ar-news" Worker প্রজেক্টে চলে)
-// নীতি: মানুষ ও গুগল-সহ সব বট একই কন্টেন্ট পায় — কোনো ইউজার-এজেন্ট ভিত্তিক আলাদা আচরণ নেই (ক্লোকিং নয়)
-// ১) /news/ID.html — ফাইল থাকলে সেটাই; না থাকলে (নতুন পোস্ট) Firebase থেকে একই টেমপ্লেটে বানিয়ে দেয়
-// ২) পুরোনো /feed.html?post=ID লিংক — স্থায়ী (301) রিডাইরেক্ট /news/ID.html-এ, সবার জন্য
-// ৩) বাকি সবকিছু env.ASSETS (আপনার সাইটের ফাইল) থেকে যায়
-
-const SITE = "https://arnews.info";
-const DB = "https://ar-news-ai-default-rtdb.firebaseio.com";
-
-const esc = (s) =>
-  String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-
-const isPublished = (p) => p && (p.status === "published" || p.published === true);
-
-const fmtDate = (ms) =>
-  new Intl.DateTimeFormat("bn-BD", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Asia/Dhaka",
-  }).format(new Date(Number(ms)));
-
-async function getPost(id) {
-  if (!/^[\w-]+$/.test(id)) return null;
-  const res = await fetch(`${DB}/posts/${id}.json`);
-  if (!res.ok) return null;
-  const p = await res.json();
-  return isPublished(p) ? p : null;
-}
-
-function pageHTML(id, p, related = "") {
-  const url = `${SITE}/news/${id}.html`;
-  const title = p.title || "AR News";
-  const body = p.description || p.body || "";
-  const desc = body.replace(/\s+/g, " ").trim().slice(0, 160);
-  const img = p.imageUrl || `${SITE}/logo.png`;
-  const published = p.createdAt ? new Date(Number(p.createdAt)).toISOString() : undefined;
-  const modified = p.updatedAt ? new Date(Number(p.updatedAt)).toISOString() : published;
-  const category = p.category || "সাধারণ";
-  const author = p.authorName || "AR News";
-
-  // তথ্যসূত্র ও যাচাইয়ের লিংক (এআই-সহায়তার খবরে পোস্টের সাথে সংরক্ষিত sources থেকে)
-  const srcList = (Array.isArray(p.sources) ? p.sources : Object.values(p.sources || {}))
-    .filter((x) => x && /^https?:\/\//i.test(String(x.url || "")))
-    .slice(0, 10);
-  const sourcesHtml = srcList.length
-    ? `<section class="src-list" style="margin:20px 0 6px;font-size:14px;line-height:1.8"><h2 style="font-size:15px;margin:0 0 6px">তথ্যসূত্র ও যাচাইয়ের লিংক</h2><ul style="margin:0;padding-left:18px">` +
-      srcList.map((x) => `<li><a href="${esc(x.url)}" target="_blank" rel="nofollow noopener noreferrer">${esc(x.title || x.url)}</a></li>`).join("") +
-      `</ul></section>`
-    : "";
-
-  const ld = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    headline: title.slice(0, 110),
-    description: desc,
-    image: [img],
-    datePublished: published,
-    dateModified: modified,
-    author: { "@type": "Organization", name: author },
-    publisher: {
-      "@type": "Organization",
-      name: "AR News",
-      logo: { "@type": "ImageObject", url: `${SITE}/logo.png` },
-    },
-    mainEntityOfPage: url,
-  };
-
-  return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="bn">
 <head>
-<meta charset="UTF-8">
-<script>
-(function(){try{var t=localStorage.getItem("ar-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);var i=parseInt(localStorage.getItem("ar-fontsize-idx"),10),F=[14,15.5,17,18.5,20];if(i>=0&&i<F.length)document.documentElement.style.setProperty("--article-font-size",F[i]+"px");}catch(e){}})();
-</script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<title>${esc(title)} | AR News</title>
-<meta name="description" content="${esc(desc)}">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<link rel="canonical" href="${esc(url)}">
-<link rel="icon" href="/logo.png">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="AR News">
-<meta property="og:locale" content="bn_BD">
-<meta property="og:title" content="${esc(title)}">
-<meta property="og:description" content="${esc(desc)}">
-<meta property="og:url" content="${esc(url)}">
-<meta property="og:image" content="${esc(img)}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${esc(title)}">
-<meta name="twitter:description" content="${esc(desc)}">
-<meta name="twitter:image" content="${esc(img)}">
-<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/news-actions.css?v=20261025">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0F1B2D">
+  <title>AI নিউজরুম | AR News</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- কভার ছবিতে বাংলা লেখা আঁকতে Hind Siliguri লাগে -->
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    :root {
+      --brand: #0b3d91; --brand-ink: #082f73; --brand-soft: #eaf0fb;
+      --ink: #172033; --muted: #64748b; --line: #e5e7eb; --bg: #f8fafc; --surface: #fff;
+      --danger: #dc2626; --danger-soft: #fee2e2; --warn: #b45309; --warn-soft: #fef3c7;
+      --shadow: none;
+      --font-display: system-ui, -apple-system, "Noto Sans Bengali", "Hind Siliguri", sans-serif;
+    }
+    body { font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif; color: #0F1B2D; background: #F3F5F8; padding-bottom: 85px; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .main { max-width: none; margin: 0; padding: 0; }
+    .msg { margin-top: 10px; font-size: 13.5px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+    .msg:empty { display: none; }
+
+    /* ===== AR News — AI নিউজরুম প্যানেল (ফুল স্ক্রিন) ===== */
+    #ar-drafts-overlay { position: static; --d-ink:#0F1B2D; --d-mut:#4A5568; --d-line:#E1E5EC; --d-red:#B3122A; --d-red2:#8E0E21; --d-navy:#0F1B2D; --d-navy2:#1C2B45; --d-ok:#14703F; --d-okb:#E3F4EA; --d-warn:#8A5300; --d-warnb:#FFF1D6; --d-bad:#B3122A; --d-badb:#FDE7EA; --d-blue:#1F4E9C; --d-blueb:#E8EEF9; }
+    #ar-drafts-overlay .dr-wrap { max-width: none; }
+    #ar-drafts-overlay .dr-app { display: grid; grid-template-columns: 240px minmax(0,1fr); min-height: 100vh; }
+    #ar-drafts-overlay .dr-side { background: var(--d-navy); color: #fff; padding: 22px 16px; display: flex; flex-direction: column; gap: 6px; position: sticky; top: 0; height: 100vh; align-self: start; overflow-y: auto; }
+    #ar-drafts-overlay .dr-brand { padding: 4px 12px 16px; }
+    #ar-drafts-overlay .dr-brand small { display: block; font-size: 12px; color: #B8C2D6; letter-spacing: .05em; }
+    #ar-drafts-overlay .dr-brand b { font-size: 21px; font-weight: 700; }
+    #ar-drafts-overlay .dr-nav { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; border: 0; background: transparent; color: #C7D0E0; padding: 11px 12px; border-radius: 10px; font-size: 15px; min-height: 44px; }
+    #ar-drafts-overlay .dr-nav:hover { background: var(--d-navy2); }
+    #ar-drafts-overlay .dr-nav.on { background: var(--d-navy2); color: #fff; font-weight: 600; }
+    #ar-drafts-overlay .dr-content { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    #ar-drafts-overlay .dr-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    #ar-drafts-overlay .dr-top h2 { flex: 1; margin: 0; font-size: 24px; font-weight: 700; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-sub { font-size: 14px; color: var(--d-mut); margin-top: 2px; }
+    #ar-drafts-overlay .dr-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+    #ar-drafts-overlay .dr-stat { background: #fff; border: 1px solid var(--d-line); border-radius: 14px; padding: 16px; }
+    #ar-drafts-overlay .dr-stat b { display: block; font-size: 28px; line-height: 1.2; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-stat span { font-size: 13px; color: var(--d-mut); }
+    #ar-drafts-overlay .btn { border: 0; border-radius: 10px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; background: var(--d-red); color: #fff; }
+    #ar-drafts-overlay .btn:hover { background: var(--d-red2); }
+    #ar-drafts-overlay .btn:disabled { opacity: .55; cursor: not-allowed; }
+    #ar-drafts-overlay .btn.secondary, #ar-drafts-overlay .btn.ghost { background: #fff; color: var(--d-ink); border: 1px solid #CBD2DE; }
+    #ar-drafts-overlay .btn.secondary:hover, #ar-drafts-overlay .btn.ghost:hover { background: #F3F5F8; }
+    #ar-drafts-overlay .btn.danger { background: var(--d-badb); color: var(--d-bad); }
+    #ar-drafts-overlay .btn.dark { background: var(--d-navy); color: #fff; }
+    #ar-drafts-overlay .btn.small { min-height: 40px; padding: 0 14px; font-size: 14px; }
+    #ar-drafts-overlay .msg.ok { color: var(--d-ok); }
+    #ar-drafts-overlay .msg.bad { color: var(--d-bad); }
+    #ar-drafts-overlay .dr-seg { display: flex; gap: 8px; flex-wrap: wrap; }
+    #ar-drafts-overlay .dr-seg button { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DE; background: #fff; color: var(--d-ink); font-weight: 600; font-size: 14.5px; }
+    #ar-drafts-overlay .dr-seg button.on { background: var(--d-navy); color: #fff; border-color: var(--d-navy); }
+    #ar-drafts-overlay .dr-seg .gap { margin-left: auto; }
+    #ar-drafts-overlay .dr-table { background: #fff; border: 1px solid var(--d-line); border-radius: 14px; overflow: hidden; }
+    #ar-drafts-overlay .dr-row { display: grid; grid-template-columns: minmax(0,3fr) 130px 140px 70px 70px 84px; gap: 14px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--d-line); cursor: pointer; }
+    #ar-drafts-overlay .dr-row:hover { background: #F8F9FB; }
+    #ar-drafts-overlay .dr-row.hd { border-top: 0; background: #F8F9FB; font-size: 12px; font-weight: 600; color: var(--d-mut); cursor: default; }
+    #ar-drafts-overlay .dr-row .t { font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--d-ink); overflow-wrap: anywhere; }
+    #ar-drafts-overlay .dr-row .m, #ar-drafts-overlay .dr-meta { font-size: 13px; color: var(--d-mut); line-height: 1.6; }
+    #ar-drafts-overlay .dr-row .n { font-size: 14px; font-weight: 600; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-row .mob { display: none; margin-top: 4px; }
+    #ar-drafts-overlay .dr-pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; margin-right: 6px; background: var(--d-blueb); color: var(--d-blue); white-space: nowrap; }
+    #ar-drafts-overlay .st-verified, #ar-drafts-overlay .rv-approved, #ar-drafts-overlay .p-ok { background: var(--d-okb); color: var(--d-ok); }
+    #ar-drafts-overlay .st-partially_verified, #ar-drafts-overlay .p-warn { background: var(--d-warnb); color: var(--d-warn); }
+    #ar-drafts-overlay .st-unverified, #ar-drafts-overlay .rv-pending_review { background: #EEF0F4; color: #3B4557; }
+    #ar-drafts-overlay .st-false_misleading, #ar-drafts-overlay .rv-review_required, #ar-drafts-overlay .rv-rejected, #ar-drafts-overlay .p-bad { background: var(--d-badb); color: var(--d-bad); }
+    #ar-drafts-overlay .dr-two { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 18px; align-items: start; }
+    #ar-drafts-overlay .dr-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    #ar-drafts-overlay .dr-card { background: #fff; border: 1px solid var(--d-line); border-radius: 14px; padding: 16px; }
+    #ar-drafts-overlay .dr-card h4 { margin: 0 0 10px; font-size: 16px; font-weight: 700; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-warn { background: var(--d-warnb); color: var(--d-warn); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; line-height: 1.6; margin-bottom: 10px; }
+    #ar-drafts-overlay .dr-claim { border-top: 1px solid var(--d-line); padding: 10px 0; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+    #ar-drafts-overlay .dr-claim:first-of-type { border-top: 0; }
+    #ar-drafts-overlay .dr-claim small, #ar-drafts-overlay .dr-note { display: block; color: var(--d-mut); font-size: 13px; line-height: 1.6; }
+    #ar-drafts-overlay .dr-claim a, #ar-drafts-overlay ul.dr-links a { color: var(--d-blue); text-decoration: underline; overflow-wrap: anywhere; }
+    #ar-drafts-overlay ul.dr-links { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; }
+    #ar-drafts-overlay .dr-gate { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.6; padding: 4px 0; }
+    #ar-drafts-overlay .dr-gate .dr-pill { min-width: 48px; text-align: center; margin-right: 0; }
+    #ar-drafts-overlay .dr-f { margin-bottom: 12px; }
+    #ar-drafts-overlay .dr-f label { display: block; font-size: 13px; font-weight: 600; color: var(--d-mut); margin-bottom: 5px; }
+    #ar-drafts-overlay .dr-f input[type=text], #ar-drafts-overlay .dr-f textarea, #ar-drafts-overlay .dr-f select { width: 100%; font-size: 16px; padding: 10px 12px; border: 1px solid #CBD2DE; border-radius: 10px; background: #fff; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-f select { min-height: 46px; padding: 0 12px; }
+    #ar-drafts-overlay .dr-f textarea { line-height: 1.8; min-height: 90px; resize: vertical; }
+    #ar-drafts-overlay #dr-content { min-height: 320px; font-size: 17px; }
+    #ar-drafts-overlay #dr-title { font-size: 19px; font-weight: 700; }
+    #ar-drafts-overlay .dr-f input:focus, #ar-drafts-overlay .dr-f textarea:focus, #ar-drafts-overlay .dr-f select:focus { outline: 2px solid var(--d-blue); outline-offset: 1px; }
+    #ar-drafts-overlay .dr-chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin: 8px 0; line-height: 1.6; }
+    #ar-drafts-overlay .dr-chk input { margin-top: 5px; width: 18px; height: 18px; }
+    #ar-drafts-overlay .dr-imgprev { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; border: 1px solid var(--d-line); margin-top: 8px; }
+    #ar-drafts-overlay .dr-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    #ar-drafts-overlay .dr-actions .btn { flex: 1 1 auto; }
+    #ar-drafts-overlay .dr-empty { color: var(--d-mut); text-align: center; padding: 34px 12px; font-size: 14px; border: 1px dashed #CBD2DE; border-radius: 14px; background: #fff; }
+    #ar-drafts-overlay .dr-opt { display: block; width: 100%; text-align: left; margin: 0 0 8px; padding: 12px 14px; border: 1px solid #CBD2DE; border-radius: 12px; background: #fff; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-opt b { display: block; font-size: 15px; line-height: 1.5; font-weight: 600; }
+    #ar-drafts-overlay .dr-opt small { display: block; margin-top: 2px; color: var(--d-mut); font-size: 13px; line-height: 1.5; }
+    #ar-drafts-overlay .dr-opt:hover { border-color: var(--d-blue); }
+    #ar-drafts-overlay .dr-opt.on { border-color: var(--d-blue); background: var(--d-blueb); }
+    #ar-drafts-overlay .dr-ul { margin: 6px 0 0; padding-left: 20px; font-size: 14.5px; line-height: 1.8; }
+    #ar-drafts-overlay #dr-cover { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--d-line); margin: 8px 0; }
+    #ar-drafts-overlay .dr-sthead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #ar-drafts-overlay .dr-sthead h4 { flex: 1; margin: 0; }
+    #ar-drafts-overlay .dr-mrow { padding: 10px 0; border-top: 1px solid var(--d-line); }
+    #ar-drafts-overlay .dr-mrow:first-of-type { border-top: 0; }
+    #ar-drafts-overlay .dr-mname { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; align-items: baseline; }
+    #ar-drafts-overlay .dr-mname span { color: var(--d-mut); font-size: 13px; white-space: nowrap; }
+    #ar-drafts-overlay .dr-mrow small { display: block; color: var(--d-mut); font-size: 12.5px; line-height: 1.6; margin-top: 3px; }
+    #ar-drafts-overlay .dr-bar { height: 7px; border-radius: 99px; background: var(--d-line); overflow: hidden; margin-top: 5px; }
+    #ar-drafts-overlay .dr-bar i { display: block; height: 100%; background: var(--d-navy); border-radius: 99px; }
+    #ar-drafts-overlay .dr-bar i.hi { background: var(--d-bad); }
+    #ar-drafts-overlay .dr-sum { font-size: 14px; line-height: 1.8; margin: 8px 0 2px; }
+    #ar-drafts-overlay .bad { color: var(--d-bad); }
+    #ar-drafts-overlay .dr-lg { font-size: 13px; line-height: 1.6; padding: 7px 0; border-top: 1px solid var(--d-line); overflow-wrap: anywhere; }
+    #ar-drafts-overlay .dr-lg time { color: var(--d-mut); margin-right: 6px; }
+    #ar-drafts-overlay .dr-lg.bad b { color: var(--d-bad); }
+    #ar-drafts-overlay .dr-lg small { display: block; color: var(--d-bad); }
+    #ar-drafts-overlay .dr-tabn { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: var(--d-red); color: #fff; font-size: 11.5px; line-height: 20px; text-align: center; }
+    @media (max-width: 900px) {
+      #ar-drafts-overlay .dr-app { grid-template-columns: minmax(0,1fr); }
+      #ar-drafts-overlay .dr-side { position: static; height: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 12px; gap: 4px; }
+      #ar-drafts-overlay .dr-brand { display: none; }
+      #ar-drafts-overlay .dr-nav { white-space: nowrap; width: auto; flex: 0 0 auto; }
+      #ar-drafts-overlay .dr-content { padding: 16px; }
+      #ar-drafts-overlay .dr-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      #ar-drafts-overlay .dr-row { grid-template-columns: minmax(0,1fr) auto; }
+      #ar-drafts-overlay .dr-row .hide, #ar-drafts-overlay .dr-row.hd { display: none; }
+      #ar-drafts-overlay .dr-row .mob { display: block; }
+      #ar-drafts-overlay .dr-two { grid-template-columns: minmax(0,1fr); }
+      #ar-drafts-overlay .dr-seg .gap { margin-left: 0; }
+    }
+  </style>
 </head>
 <body>
-<div class="detail-top">
-  <a class="detail-back" href="/feed.html" aria-label="ফিরে যান">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-  </a>
-  <span>Full Story</span>
-</div>
-<main class="detail-body">
-  <article>
-    ${p.imageUrl ? `<img class="cover" src="${esc(p.imageUrl)}" alt="${esc(title)}" onerror="this.remove()">` : ""}
-    <div id="post-actions-mount"></div>
-    <div class="post-meta"><span class="dot"></span><span>${esc(category)}</span><span>·</span><span class="date">${p.createdAt ? esc(fmtDate(p.createdAt)) : ""}</span></div>
-    <h1 id="detail-title">${esc(title)}</h1>
-    <p class="body-text" id="detail-text">${esc(body)}</p>
-    ${sourcesHtml}
-    <div class="author">Posted by: <strong>${esc(author)}</strong></div>
-  </article>
-  ${related}
-</main>
-<footer class="site-foot">
-  <a href="/about.html">About Us</a>
-  <a href="/contact.html">Contact Us</a>
-  <a href="/privacy.html">Privacy Policy</a>
-</footer>
-<script src="/news-actions.js?v=20261025" data-post-id="${esc(id)}" defer></script>
+
+  <main class="main">
+    <div id="ar-drafts-overlay"><div class="dr-wrap" id="dr-wrap"><div class="dr-empty">লোড হচ্ছে...</div></div></div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script src="./config.js"></script>
+  <script src="./nav.js"></script>
+  <script>
+(function () {
+  "use strict";
+
+  // create.js-এর মতোই একই ImgBB key (AI-ছবি ও ছবি আপলোডের জন্য)
+  var IMGBB_API_KEY = "99e869a5e930f58f491beb611c8f1bcd";
+
+  var VERIFY_LABEL = {
+    verified: "যাচাইকৃত",
+    partially_verified: "আংশিক যাচাইকৃত",
+    unverified: "অযাচাইকৃত",
+    false_misleading: "ভুল/বিভ্রান্তিকর",
+  };
+  var REVIEW_LABEL = {
+    pending_review: "রিভিউয়ের অপেক্ষায়",
+    review_required: "রিভিউ প্রয়োজন",
+    approved: "প্রকাশিত",
+    rejected: "বাতিল",
+  };
+  var RESULT_LABEL = {
+    published: "প্রকাশিত", draft_dry_run: "ড্রাফট (DRY-RUN)", held_for_review: "গেটে আটকা — রিভিউ লাগবে",
+    insufficient: "প্রমাণ অপর্যাপ্ত", skipped_duplicate: "আগেই করা হয়েছে", skipped_few_sources: "সূত্র কম",
+    daily_limit: "দৈনিক সীমা", time_budget: "সময় শেষ", discarded_weak_evidence: "যাচাই/মান গেটে উত্তীর্ণ হয়নি — বাতিল ও মুছে ফেলা হয়েছে", error: "ত্রুটি", pick_failed: "বিষয় বাছা যায়নি",
+  };
+
+  var user = null;
+  var drafts = {};
+  var aiStat = null;
+  var statErr = "";
+  var statBusy = false;
+  var nr = null;
+  var nrErr = "";
+  var view = "pending"; // pending | held | published | rejected
+  var section = "drafts"; // drafts | report | status | newsroom
+  var openId = null;
+  var imageAi = false;
+  var overlay = null;
+
+  /* ---------- ছোট সহায়ক ---------- */
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function toArr(x) {
+    if (!x) return [];
+    return Array.isArray(x) ? x.filter(Boolean) : Object.keys(x).map(function (k) { return x[k]; });
+  }
+  function safeUrl(u) {
+    return /^https?:\/\//i.test(String(u || "")) ? String(u) : "";
+  }
+  function fmt(ms) {
+    if (!ms) return "";
+    try {
+      return new Intl.DateTimeFormat("bn-BD", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Dhaka" }).format(new Date(Number(ms)));
+    } catch (e) { return ""; }
+  }
+  function $(id) { return document.getElementById(id); }
+  function isPending(d) { return d.reviewStatus === "pending_review" || d.reviewStatus === "review_required"; }
+
+  /* ---------- হেডার বাটন ও ব্যাজ ---------- */
+  function pendingCount() {
+    return Object.keys(drafts).filter(function (k) { return isPending(drafts[k]); }).length;
+  }
+  function updateBadge() {
+    var b = $("dr-nav-badge");
+    if (!b) return;
+    var n = pendingCount();
+    b.textContent = n > 99 ? "99+" : String(n);
+    b.hidden = n === 0;
+  }
+
+  var BN = "০১২৩৪৫৬৭৮৯";
+  function bn(n) { return String(n).replace(/\d/g, function (d) { return BN.charAt(d); }); }
+  function dayKey(ms) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(new Date(ms)); }
+  function isHeld(d) { return d.reviewStatus === "review_required" || (isPending(d) && toArr(d.gateFailures).length > 0); }
+  function qaScore(d) {
+    var q = d.qa;
+    if (!q) return null;
+    var k = ["accuracy", "neutrality", "language", "originality", "headline"], s = 0, n = 0;
+    k.forEach(function (x) { if (typeof q[x] === "number") { s += q[x]; n++; } });
+    return n ? Math.round(s / n) : null;
+  }
+  function kindLabel(d) { return d.kind === "evergreen" ? "পুরোনো-প্রাসঙ্গিক" : d.kind === "fresh" ? "নতুন খবর" : "ম্যানুয়াল"; }
+  function inView(d) {
+    if (view === "pending") return d.reviewStatus === "pending_review" && !isHeld(d);
+    if (view === "held") return isHeld(d);
+    if (view === "published") return d.reviewStatus === "approved";
+    return d.reviewStatus === "rejected";
+  }
+
+  /* ---------- ওভারলে ---------- */
+  function ensureOverlay() {
+    if (overlay) return overlay;
+    overlay = $("ar-drafts-overlay");
+    overlay.addEventListener("click", onClick);
+    overlay.addEventListener("input", function (e) {
+      if (e.target && e.target.id === "dr-image") { imageAi = false; updatePreview(); }
+      if (e.target && e.target.id === "dr-xpost") updateXCount();
+    });
+    overlay.addEventListener("change", function (e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === "dr-file") uploadFile(t);
+      else if (t.getAttribute && t.getAttribute("data-act") === "nrset") {
+        var isSel = t.tagName === "SELECT", v = isSel ? (t.getAttribute("data-str") ? t.value : Number(t.value)) : t.checked;
+        setNr(t.getAttribute("data-k"), v, t);
+      }
+    });
+    return overlay;
+  }
+  function openOverlay() {
+    setTimeout(loadStatus, 0);
+    setTimeout(loadNr, 0);
+    ensureOverlay();
+    render();
+  }
+
+  var NAV = [["drafts", "ড্রাফট ও রিভিউ"], ["report", "নতুন রিপোর্ট"], ["status", "AI অবস্থা"], ["newsroom", "নিউজরুম সেটিং"]];
+  function shell(inner) {
+    return '<div class="dr-app"><aside class="dr-side"><div class="dr-brand"><small>AR NEWS</small><b>AI নিউজরুম</b></div>' +
+      NAV.map(function (n) {
+        var cnt = n[0] === "drafts" && pendingCount() ? '<span class="dr-tabn">' + bn(pendingCount()) + "</span>" : "";
+        return '<button type="button" class="dr-nav' + (n[0] === section ? " on" : "") + '" data-act="nav" data-s="' + n[0] + '"><span>' + esc(n[1]) + "</span>" + cnt + "</button>";
+      }).join("") + '</aside><main class="dr-content">' + inner + "</main></div>";
+  }
+
+  function render() {
+    if (!overlay) return;
+    var wrap = $("dr-wrap");
+    if (openId && drafts[openId]) {
+      if (wrap.getAttribute("data-open") !== openId) {
+        wrap.innerHTML = shell(detailHtml(openId, drafts[openId]));
+        wrap.setAttribute("data-open", openId);
+        imageAi = !!drafts[openId].imageAi;
+        updatePreview();
+        updateXCount();
+        window.scrollTo(0, 0);
+      }
+      return; // সম্পাদনার সময় ফর্ম নতুন করে আঁকা হয় না
+    }
+    openId = null;
+    wrap.removeAttribute("data-open");
+    var keepT = val("dr-newtitle"), keepC = val("dr-newcat"), keepU = val("dr-newurl"), keepX = val("dr-newtext"), keepN = val("dr-nrtopic");
+    wrap.innerHTML = shell(sectionHtml());
+    if (keepT && $("dr-newtitle")) $("dr-newtitle").value = keepT;
+    if (keepC && $("dr-newcat")) $("dr-newcat").value = keepC;
+    if (keepU && $("dr-newurl")) $("dr-newurl").value = keepU;
+    if (keepX && $("dr-newtext")) $("dr-newtext").value = keepX;
+    if (keepN && $("dr-nrtopic")) $("dr-nrtopic").value = keepN;
+  }
+
+  function sectionHtml() {
+    if (section === "report") return reportHtml();
+    if (section === "status") return '<div class="dr-top"><h2>AI অবস্থা ও ব্যবহার</h2></div>' + statusHtml();
+    if (section === "newsroom") return '<div class="dr-top"><h2>নিউজরুম সেটিং</h2></div><div id="dr-nrbox">' + nrInner() + "</div>";
+    return dashHtml();
+  }
+
+  /* ---------- AI অবস্থা ও ব্যবহার (Worker থেকে) ---------- */
+  var KIND_LABEL = { report: "রিপোর্ট", draft: "ড্রাফট", image: "ছবি", status: "অবস্থা", newsroom: "নিউজরুম" };
+
+  function pct(a, b) { return b > 0 ? Math.min(100, Math.round((a * 100) / b)) : 0; }
+  function bar(a, b) {
+    var p = pct(a, b);
+    return '<div class="dr-bar"><i class="' + (p >= 80 ? "hi" : "") + '" style="width:' + p + '%"></i></div>';
+  }
+
+  function statusInner() {
+    var h = '<div class="dr-sthead"><h4>AI অবস্থা ও ব্যবহার</h4>' +
+      '<button type="button" class="btn ghost small" data-act="refreshstat" id="dr-statrefresh">রিফ্রেশ</button></div>';
+    if (statErr && !aiStat) return h + '<div class="dr-note">লোড করা যায়নি: ' + esc(statErr) + "</div>";
+    if (!aiStat) return h + '<div class="dr-note">লোড হচ্ছে…</div>';
+
+    var s = aiStat, cfg = s.config || {}, u = s.usage || {}, gu = u.gemini || {};
+    var lim = (s.limits && s.limits.gemini) || {};
+    var names = toArr(cfg.geminiModels).slice();
+    Object.keys(gu).forEach(function (k) { if (names.indexOf(k) < 0) names.push(k); });
+
+    h += '<div class="dr-sum">আজকের রিপোর্ট: <b>' + (s.reportsToday || 0) + " / " + (s.reportLimit || 0) + "</b>";
+    h += "</div>" + bar(s.reportsToday || 0, s.reportLimit || 0);
+
+    h += '<div style="margin-top:8px"><b style="font-size:13px">Gemini (ফ্রি টিয়ার)</b></div>';
+    h += names.map(function (m) {
+      var g = gu[m] || {}, l = lim[m] || {}, ok = g.ok || 0, errs = [];
+      if (g.e429) errs.push("কোটা/সীমা (৪২৯): " + g.e429);
+      if (g.e404) errs.push("মডেল নেই (৪০৪): " + g.e404);
+      if (g.eOther) errs.push("অন্য ত্রুটি: " + g.eOther);
+      return '<div class="dr-mrow"><div class="dr-mname"><b>' + esc(m) + "</b><span>" + ok + (l.rpd ? " / " + l.rpd : "") + " সফল কল</span></div>" +
+        (l.rpd ? bar(ok, l.rpd) : "") +
+        "<small>টোকেন: ইনপুট " + (g.inTok || 0) + " · আউটপুট " + (g.outTok || 0) +
+        (errs.length ? '<br><span class="bad">' + esc(errs.join(" · ")) + "</span>" : "") + "</small></div>";
+    }).join("");
+
+    var w = u.workers || {};
+    h += '<div style="margin-top:10px"><b style="font-size:13px">Cloudflare Workers AI (ফলব্যাক)</b></div>';
+    if (cfg.workersAi) {
+      h += '<div class="dr-mrow"><div class="dr-mname"><b>' + esc(cfg.workersAiModel || "") + "</b><span>" + (w.ok || 0) + " সফল কল</span></div>" +
+        "<small>ব্যর্থ: " + (w.fail || 0) + " · টোকেন: ইনপুট " + (w.inTok || 0) + " · আউটপুট " + (w.outTok || 0) +
+        "<br>Neurons-এর আসল হিসাব: Cloudflare → AI → Workers AI (দিনে ১০,০০০ ফ্রি)</small></div>";
+    } else {
+      h += '<div class="dr-note">বন্ধ — Worker-এ AI_MODEL সেট করা নেই।</div>';
+    }
+
+    var log = toArr(s.log).slice(0, 10);
+    h += '<div style="margin-top:12px"><b style="font-size:13px">সাম্প্রতিক কার্যকলাপ</b></div>';
+    h += log.length
+      ? log.map(function (e) {
+          return '<div class="dr-lg ' + (e.ok ? "" : "bad") + '"><time>' + esc(fmt(e.at)) + "</time><b>" + esc(KIND_LABEL[e.kind] || e.kind || "") +
+            "</b> " + (e.ok ? "✓ " : "✗ ") + esc(e.msg || "") + (e.error ? "<small>" + esc(e.error) + "</small>" : "") + "</div>";
+        }).join("")
+      : '<div class="dr-note">এখনো কিছু নেই।</div>';
+
+    h += '<div class="dr-note" style="margin-top:10px">এটা শুধু এই Worker-এর নিজের গোনা (প্রতিদিন ঢাকার সময়ে নতুন)। Google-এর আসল কোটা দেখতে AI Studio → Rate limit পেজ।</div>';
+    return h;
+  }
+
+  function statusHtml() { return '<div class="dr-card" id="dr-status">' + statusInner() + "</div>"; }
+
+  function loadStatus() {
+    if (statBusy) return;
+    statBusy = true;
+    var b = $("dr-statrefresh");
+    if (b) b.textContent = "…";
+    callWorker("/api/ai/status", {})
+      .then(function (r) { aiStat = r; statErr = ""; })
+      .catch(function (e) { statErr = e.message; })
+      .then(function () {
+        statBusy = false;
+        var el = $("dr-status");
+        if (el) el.innerHTML = statusInner();
+      });
+  }
+
+  /* ---------- নিউজরুম সেটিং (Worker: /api/ai/newsroom) ---------- */
+  function nrPill() {
+    if (!nr) return { cls: "p-warn", text: "অবস্থা লোড হচ্ছে…" };
+    if (nr.config.enabled === false) return { cls: "p-bad", text: "নিউজরুম বন্ধ" };
+    return nr.config.autoPublish ? { cls: "p-ok", text: "অটো-প্রকাশ চালু" } : { cls: "p-warn", text: "অটো-প্রকাশ বন্ধ — সব ড্রাফটে যাচ্ছে" };
+  }
+  function refreshNr() {
+    var el = $("dr-nrbox");
+    if (el) el.innerHTML = nrInner();
+    var p = $("dr-nrpill"), i = nrPill();
+    if (p) { p.className = "dr-pill " + i.cls; p.textContent = i.text; }
+  }
+  function loadNr() {
+    return callWorker("/api/ai/newsroom", { action: "get" })
+      .then(function (r) { nr = r; nrErr = ""; })
+      .catch(function (e) { nrErr = e.message; })
+      .then(refreshNr);
+  }
+  function setNr(key, on, box) {
+    if (key === "autoPublish" && on === true && !window.confirm("অটো-প্রকাশ চালু করলে সব গেট পাস করা খবর নিজে থেকে সাইটে প্রকাশ হবে। চালু করবেন?")) { box.checked = false; return; }
+    var body = { action: "set" };
+    body[key] = on;
+    setMsg("dr-nrmsg", "সংরক্ষণ হচ্ছে…", "");
+    callWorker("/api/ai/newsroom", body)
+      .then(function (r) { nr = r; refreshNr(); setMsg("dr-nrmsg", "✓ সংরক্ষণ হয়েছে", "ok"); })
+      .catch(function (e) { refreshNr(); setMsg("dr-nrmsg", "সংরক্ষণ হয়নি: " + e.message, "bad"); });
+  }
+  function runNr() {
+    var btn = $("dr-nrrun");
+    if (btn) btn.disabled = true;
+    setMsg("dr-nrmsg", "নিউজরুম চলছে… একটি খবর না পেলে নিজে অন্য বিষয় চেষ্টা করবে (৪ মিনিট পর্যন্ত লাগতে পারে; পেজ বন্ধ করবেন না)", "");
+    callWorker("/api/ai/newsroom", { action: "run", topic: val("dr-nrtopic") })
+      .then(function (r) {
+        var n = toArr(r.items).length;
+        if (r.kept) setMsg("dr-nrmsg", "✓ " + bn(r.kept) + "টি খবর পাওয়া গেছে (" + bn(n) + "টি বিষয় চেষ্টা হয়েছে)। ড্রাফট/প্রকাশিত তালিকা দেখুন।", "ok");
+        else setMsg("dr-nrmsg", "এবার যাচাই-উত্তীর্ণ কোনো খবর পাওয়া যায়নি (" + bn(n) + "টি বিষয় চেষ্টা হয়েছে)। নিচের রান-লগে কারণ দেখুন; সময়সূচি অনুযায়ী আবার চেষ্টা হবে।", "bad");
+        return loadNr();
+      })
+      .catch(function (e) { setMsg("dr-nrmsg", "রান হয়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-nrrun"); if (b) b.disabled = false; loadStatus(); });
+  }
+  function nrInner() {
+    if (nrErr && !nr) return '<div class="dr-card"><div class="dr-note">লোড করা যায়নি: ' + esc(nrErr) + "</div></div>";
+    if (!nr) return '<div class="dr-card"><div class="dr-note">লোড হচ্ছে…</div></div>';
+    var c = nr.config || {};
+    var runs = toArr(nr.runs).map(function (r) {
+      return '<div class="dr-lg"><time>' + esc(fmt(r.at)) + "</time><b>" + (r.manual ? "ম্যানুয়াল" : "স্বয়ংক্রিয়") + (r.dryRun ? " · DRY-RUN" : "") + (r.cleaned ? " · পুরোনো " + bn(r.cleaned) + "টি ড্রাফট মোছা হয়েছে" : "") + "</b>" +
+        toArr(r.items).map(function (i) {
+          return "<small style=\"color:#4A5568\">" + esc(i.kind === "evergreen" ? "পুরোনো-প্রাসঙ্গিক" : "নতুন") + ": " + esc(i.topic || "") + " — <b>" + esc(RESULT_LABEL[i.result] || i.result || "") + "</b>" +
+            (toArr(i.fails).length ? " (" + esc(toArr(i.fails).slice(0, 2).join("; ")) + ")" : "") + (i.error ? " " + esc(i.error) : "") + "</small>";
+        }).join("") + "</div>";
+    }).join("");
+    function sel(key, label, opts, cur, str) {
+      return '<div class="dr-f"><label for="dr-s-' + key + '">' + label + '</label><select id="dr-s-' + key + '" data-act="nrset" data-k="' + key + '"' + (str ? ' data-str="1"' : "") + ">" +
+        opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(cur) ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></div>";
+    }
+    var caps = nr.caps || {};
+    var capWarn = (!caps.workersAi ? "<br>⚠ Workers AI চালু নয় (AI বাইন্ডিং ও AI_MODEL সেট করুন) — এখন Gemini লিখছে।" : "") +
+      (!caps.image ? "<br>⚠ ছবি তৈরি বন্ধ: Worker-এ AI বাইন্ডিং ও IMGBB_API_KEY (secret) দরকার।" : "");
+    return '<div class="dr-card"><h4>স্বয়ংক্রিয় নিউজরুম</h4>' +
+      '<div class="dr-note" style="margin-bottom:8px">প্রতি রানে ২টি খবর: একটি নতুন ও একটি পুরোনো-কিন্তু-প্রাসঙ্গিক। সংবেদনশীল বা পর্যাপ্ত যাচাই না হওয়া খবর কখনো নিজে প্রকাশ হয় না।' + capWarn + "</div>" +
+      '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="enabled"' + (c.enabled !== false ? " checked" : "") + "> নিউজরুম চালু (বন্ধ করলে নির্ধারিত রান হবে না)</label>" +
+      '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="autoPublish"' + (c.autoPublish ? " checked" : "") + "> অটো-প্রকাশ (যাচাই পাস করলে নিজে প্রকাশ; বন্ধ থাকলে সব ড্রাফটে যাবে, আপনি অনুমোদন দিলে প্রকাশ হবে)</label>" +
+      '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="autoDelete"' + (c.autoDelete !== false ? " checked" : "") + "> যাচাই/মানে উত্তীর্ণ না হলে খবরটি ঝুলিয়ে না রেখে নিজে বাতিল ও মুছে ফেলুক (শুধু সংবেদনশীল খবর রিভিউয়ের জন্য থাকবে; পুরোনো \"রিভিউ প্রয়োজন\" ড্রাফট ২৪ ঘণ্টা পর মুছবে)</label>" +
+      '<div style="height:8px"></div>' +
+      sel("intervalHours", "কত পর পর চলবে", [[0, "দিনে ২ বার — সকাল ৮টা ও সন্ধ্যা ৭টা"], [1, "প্রতি ১ ঘণ্টা পর পর"], [2, "প্রতি ২ ঘণ্টা পর পর"], [3, "প্রতি ৩ ঘণ্টা পর পর"], [5, "প্রতি ৫ ঘণ্টা পর পর"]], c.intervalHours) +
+      '<div class="dr-note" style="margin:-6px 0 12px">ঘণ্টা-ভিত্তিক হলে প্রতি রানে ১টি খবর (নতুন ও পুরোনো পালাক্রমে), ঢাকার সকাল ৮টা–রাত ১১টার মধ্যে। দিনে ২ বার হলে প্রতি রানে ২টি খবর।</div>' +
+      sel("retryHours", "কোনো যাচাইকৃত খবর না পেলে আবার চেষ্টা", [[1, "১ ঘণ্টা পর"], [2, "২ ঘণ্টা পর"], [3, "৩ ঘণ্টা পর"], [5, "৫ ঘণ্টা পর"]], c.retryHours) +
+      sel("dailyMax", "দিনে সর্বোচ্চ কতটি খবর", [[2, "২টি"], [4, "৪টি"], [6, "৬টি"], [10, "১০টি"], [20, "২০টি"]], c.dailyMax) +
+      sel("minSources", "ন্যূনতম স্বাধীন সূত্র (যাচাই)", [[2, "২টি মাধ্যম"], [3, "৩টি মাধ্যম (বেশি নিরাপদ)"]], c.minSources) +
+      sel("writer", "লেখক (শিরোনাম, বিস্তারিত, বিভাগ, সামাজিক পোস্ট)", [["workers", "Workers AI (ব্যর্থ হলে Gemini)"], ["gemini", "Gemini"]], c.writer, true) +
+      '<div class="msg" id="dr-nrmsg"></div></div>' +
+      '<div class="dr-card" style="margin-top:16px"><h4>এখনই চালান</h4>' +
+      '<div class="dr-f"><label for="dr-nrtopic">বিষয় (ঐচ্ছিক — ফাঁকা রাখলে AI নিজে বাছবে)</label><input type="text" id="dr-nrtopic" placeholder="যেমন: কোনো নির্দিষ্ট খবরের বিষয়"></div>' +
+      '<div class="dr-actions"><button type="button" class="btn" data-act="nrrun" id="dr-nrrun">নিউজরুম চালান</button></div></div>' +
+      '<div class="dr-card" style="margin-top:16px"><h4>সাম্প্রতিক রান</h4>' + (runs || '<div class="dr-note">এখনো কোনো রান নেই।</div>') + "</div>";
+  }
+
+  /* ---------- ড্যাশবোর্ড ও তালিকা ---------- */
+  function nextRunText() {
+    var p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()).split(":");
+    var m = Number(p[0]) * 60 + Number(p[1]);
+    return m < 480 ? "আজ সকাল ৮:০০" : m < 1140 ? "আজ সন্ধ্যা ৭:০০" : "আগামীকাল সকাল ৮:০০";
+  }
+  function countBy(status) {
+    return Object.keys(drafts).filter(function (k) { return drafts[k].reviewStatus === status; }).length;
+  }
+  function bulkHtml() {
+    var isRej = view === "rejected";
+    if (!isRej && view !== "held") return "";
+    var n = isRej ? countBy("rejected") : countBy("review_required");
+    if (!n) return "";
+    return '<div class="dr-actions" style="margin:0"><button type="button" class="btn danger small" data-act="' + (isRej ? "delrejected" : "delreview") + '" style="flex:0 0 auto">' +
+      (isRej ? "বাতিল করা সব (" + bn(n) + "টি) মুছুন" : "\"রিভিউ প্রয়োজন\" সব (" + bn(n) + "টি) মুছুন") + "</button></div>";
+  }
+
+  function dashHtml() {
+    var all = Object.keys(drafts), today = dayKey(Date.now());
+    var pubToday = all.filter(function (k) { var d = drafts[k]; return d.reviewStatus === "approved" && d.publishedAt && dayKey(d.publishedAt) === today; }).length;
+    var pend = all.filter(function (k) { return drafts[k].reviewStatus === "pending_review" && !isHeld(drafts[k]); }).length;
+    var held = all.filter(function (k) { return isHeld(drafts[k]); }).length;
+    var qs = all.map(function (k) { return qaScore(drafts[k]); }).filter(function (x) { return x != null; });
+    var avg = qs.length ? bn(Math.round(qs.reduce(function (a, b) { return a + b; }, 0) / qs.length)) : "—";
+    var pill = nrPill();
+
+    var ids = all.filter(function (id) { return inView(drafts[id]); })
+      .sort(function (a, b) { return (drafts[b].createdAt || 0) - (drafts[a].createdAt || 0); });
+    var rows = ids.map(function (id) {
+      var d = drafts[id], st = d.verificationStatus || "unverified", q = qaScore(d);
+      var vp = '<span class="dr-pill st-' + esc(st) + '">' + esc(VERIFY_LABEL[st] || "অযাচাইকৃত") + "</span>";
+      var why = isHeld(d) && toArr(d.gateFailures).length ? " · কারণ: " + esc(toArr(d.gateFailures)[0]) : (d.reviewStatus === "review_required" && d.reviewNote ? " · " + esc(d.reviewNote) : "");
+      return '<div class="dr-row" data-act="open" data-id="' + esc(id) + '">' +
+        '<div><div class="t">' + esc(d.title || "(শিরোনাম নেই)") + '</div><div class="m">' + esc(d.category || "") + (d.category ? " · " : "") + esc(fmt(d.createdAt)) + why + "</div>" +
+        '<div class="mob">' + vp + '<span class="dr-pill">' + esc(kindLabel(d)) + "</span></div></div>" +
+        '<div class="hide"><span class="dr-pill">' + esc(kindLabel(d)) + "</span></div>" +
+        '<div class="hide">' + vp + "</div>" +
+        '<div class="hide n">' + bn(Number(d.independentSources) || toArr(d.sources).length) + "</div>" +
+        '<div class="hide n">' + (q == null ? "—" : bn(q)) + "</div>" +
+        '<button type="button" class="btn dark small" data-act="open" data-id="' + esc(id) + '">খুলুন</button></div>';
+    }).join("");
+
+    function seg(v, label, n) { return '<button type="button" data-act="view" data-v="' + v + '" class="' + (view === v ? "on" : "") + '">' + label + (n ? " (" + bn(n) + ")" : "") + "</button>"; }
+    return '<div class="dr-top"><div style="flex:1"><h2>আজকের নিউজরুম</h2><div class="dr-sub">পরবর্তী রান: ' + nextRunText() + '</div></div>' +
+        '<span class="dr-pill ' + pill.cls + '" id="dr-nrpill" style="font-size:13px;padding:6px 14px;margin:0">' + esc(pill.text) + "</span></div>" +
+      '<div class="dr-stats"><div class="dr-stat"><b>' + bn(pubToday) + "</b><span>আজ প্রকাশিত</span></div>" +
+        '<div class="dr-stat"><b>' + bn(pend) + "</b><span>রিভিউ অপেক্ষায়</span></div>" +
+        '<div class="dr-stat"><b>' + bn(held) + "</b><span>গেটে আটকা</span></div>" +
+        '<div class="dr-stat"><b>' + avg + "</b><span>গড় QA স্কোর</span></div></div>" +
+      '<div class="dr-seg">' + seg("pending", "অপেক্ষায়", pend) + seg("held", "আটকা", held) + seg("published", "প্রকাশিত", 0) + seg("rejected", "বাতিল", 0) +
+        '<button type="button" class="btn gap" data-act="nav" data-s="report">নতুন রিপোর্ট</button></div>' +
+      '<div class="msg" id="dr-runmsg" style="margin:0"></div>' + bulkHtml() +
+      (rows ? '<div class="dr-table"><div class="dr-row hd"><div>শিরোনাম</div><div>ধরন</div><div>যাচাই</div><div>সূত্র</div><div>QA</div><div></div></div>' + rows + "</div>"
+            : '<div class="dr-empty">এখানে কিছু নেই।</div>');
+  }
+
+  function reportHtml() {
+    var catOpts = '<option value="">AI ঠিক করুক</option>' + REPORT_CATS.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("");
+    return '<div class="dr-top"><h2>নতুন রিপোর্ট (শিরোনাম থেকে)</h2></div>' +
+      '<div class="dr-card" id="dr-newreport" style="max-width:760px">' +
+      '<div class="dr-note" style="margin-bottom:10px">একটি শিরোনাম বা বিষয় লিখুন। সূত্র খুঁজে AI একবার তথ্য মিলিয়ে রিপোর্ট ও আরও ভালো শিরোনামের বিকল্প দেবে (ওয়েব-সার্চ নয়; খবরের লিংক বা তথ্য সাথে দিলে আরও নির্ভুল হয়)। প্রকাশ হবে শুধু আপনার অনুমোদনে।</div>' +
+      '<div class="dr-f"><label for="dr-newtitle">শিরোনাম / বিষয়</label><input type="text" id="dr-newtitle" placeholder="যেমন: পিএইচপিতে নতুন নিরাপত্তাত্রুটি"></div>' +
+      '<div class="dr-f"><label for="dr-newurl">খবরের লিংক (ঐচ্ছিক)</label><input type="text" id="dr-newurl" placeholder="https://…"></div>' +
+      '<div class="dr-f"><label for="dr-newtext">অতিরিক্ত তথ্য / পেস্ট করা লেখা (ঐচ্ছিক)</label><textarea id="dr-newtext" placeholder="খবরের লেখা বা নিশ্চিত তথ্য এখানে দিন"></textarea></div>' +
+      '<div class="dr-f"><label for="dr-newcat">বিভাগ</label><select id="dr-newcat">' + catOpts + "</select></div>" +
+      '<div class="dr-actions"><button type="button" class="btn" data-act="report" id="dr-reportbtn">রিপোর্ট তৈরি করুন</button></div>' +
+      '<div class="msg" id="dr-reportmsg"></div></div>';
+  }
+
+  /* ---------- বিস্তারিত ---------- */
+  function linkList(arr) {
+    return (
+      '<ul class="dr-links">' +
+      arr.map(function (s) {
+        var u = safeUrl(s.url);
+        var label = esc(s.title || s.name || s.url || "লিংক");
+        return "<li>" + (u ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + label + "</a>" : label) + "</li>";
+      }).join("") + "</ul>"
+    );
+  }
+
+  function detailHtml(id, d) {
+    var claims = toArr(d.claims);
+    var warnings = toArr(d.warnings);
+    var unc = toArr(d.uncertainties);
+    var sources = toArr(d.sources);
+    var outlets = toArr(d.event && d.event.outlets);
+    var rr = d.reviewStatus === "review_required";
+    var done = d.reviewStatus === "approved" || d.reviewStatus === "rejected";
+
+    var claimsHtml = claims.map(function (c) {
+      return (
+        '<div class="dr-claim"><span class="dr-pill st-' + esc(c.status) + '">' + esc(VERIFY_LABEL[c.status] || c.status) + "</span> " + esc(c.claim) +
+        (c.evidence ? "<small>প্রমাণ: " + esc(c.evidence) + "</small>" : "<small>প্রমাণ পাওয়া যায়নি</small>") +
+        (toArr(c.supportedBy).length ? "<small>সমর্থন করছে: " + esc(toArr(c.supportedBy).join(", ")) + "</small>" : "") +
+        (toArr(c.links).length ? "<small>যাচাইয়ের লিংক: " + toArr(c.links).map(function (l) {
+          var u = safeUrl(l.url);
+          return u ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(l.name || "লিংক") + "</a>" : esc(l.name || "");
+        }).join(" · ") + "</small>" : "") +
+        (toArr(c.contradictedBy).length ? "<small>বিরোধিতা করছে: " + esc(toArr(c.contradictedBy).join(", ")) + "</small>" : "") +
+        "</div>"
+      );
+    }).join("");
+
+    var verifyBox =
+      '<div class="dr-card"><h4>যাচাইয়ের ফল</h4>' +
+      '<span class="dr-pill st-' + esc(d.verificationStatus || "unverified") + '">' + esc(VERIFY_LABEL[d.verificationStatus] || "অযাচাইকৃত") + "</span>" +
+      '<span class="dr-note" style="margin-top:6px">স্বাধীন উৎস (AI-এর হিসাব): ' + (d.independentSources || 0) + " · মূল বিবৃতি/নথি পাওয়া গেছে: " + (d.primarySource ? "হ্যাঁ" : "না") +
+      "<br>AI-এর যাচাই সহায়ক মাত্র, প্রমাণ নয় — প্রকাশের আগে নিজে মিলিয়ে নিন।</span>" +
+      (rr ? '<div class="dr-warn" style="margin-top:10px">⚠ ' + esc(d.reviewNote || "রিভিউ প্রয়োজন") + "</div>" : "") +
+      (warnings.length ? '<div class="dr-warn" style="margin-top:10px"><b>সতর্কতা / পরস্পরবিরোধী তথ্য:</b><br>' + warnings.map(esc).join("<br>") + "</div>" : "") +
+      (unc.length ? '<div class="dr-note" style="margin-top:10px"><b>অনিশ্চিত বিষয়:</b><br>' + unc.map(esc).join("<br>") + "</div>" : "") +
+      "</div>" +
+      (claimsHtml ? '<div class="dr-card"><h4>গুরুত্বপূর্ণ দাবি ও প্রমাণ</h4>' + claimsHtml + "</div>" : "") +
+      (sources.length ? '<div class="dr-card"><h4>যাচাইয়ে পাওয়া সূত্র</h4>' + linkList(sources) + "</div>" : "") +
+      (outlets.length ? '<div class="dr-card"><h4>মূল উৎস (শুধু দেখার জন্য — কপি করা যাবে না)</h4>' + linkList(outlets) + "</div>" : "");
+
+    var form =
+      '<div class="dr-card"><h4>' + (rr ? "কোনো লেখা তৈরি হয়নি" : "সংবাদ (সম্পাদনা করা যায়)") + "</h4>" +
+      field("dr-title", "শিরোনাম", d.title) +
+      field("dr-category", "ক্যাটাগরি", d.category) +
+      area("dr-summary", "সারসংক্ষেপ", d.summary) +
+      area("dr-content", "বিস্তারিত লেখা", d.content) +
+      area("dr-meta", "মেটা বিবরণ", d.metaDescription) +
+      '<div class="dr-f"><label for="dr-image">ছবির লিংক</label><input type="text" id="dr-image" inputmode="url" value="' + esc(d.imageUrl || "") + '">' +
+        '<img class="dr-imgprev" id="dr-imgprev" alt="" hidden>' +
+        '<div class="dr-actions" style="margin-top:8px"><button type="button" class="btn secondary small" data-act="genimg" id="dr-genimg">AI দিয়ে ছবি বানান</button></div>' +
+        '<input type="file" id="dr-file" accept="image/*" style="margin-top:8px;font-size:13px">' +
+        '<div class="msg" id="dr-imgmsg"></div></div>' +
+      area("dr-imgprompt", "ছবির বর্ণনা (ইংরেজি, AI-এর জন্য)", d.imagePrompt) +
+      area("dr-social", "সামাজিক মাধ্যমের পোস্ট (প্রকাশ হবে না, শুধু কপির জন্য)", d.socialPost) +
+      '<div class="dr-f"><label for="dr-xpost">X (টুইটার) পোস্ট — ৩-৪ লাইন, ২৮০ অক্ষরের মধ্যে</label><textarea id="dr-xpost" rows="5" style="min-height:120px">' + esc(d.xPost || "") + '</textarea><div class="dr-note" id="dr-xcount"></div>' +
+        '<div class="dr-actions"><button type="button" class="btn secondary small" data-act="xgen" id="dr-xgen">সংবাদ থেকে X পোস্ট লিখে দিন</button><button type="button" class="btn secondary small" data-act="xcopy">কপি করুন</button></div><div class="msg" id="dr-xmsg"></div></div>' +
+      "</div>";
+
+    var rep = d.report || {};
+    var findings = toArr(rep.keyFindings), unclear = toArr(rep.unclear);
+    var reportBox = (rep.summary || findings.length || rep.background)
+      ? '<div class="dr-card"><h4>রিপোর্ট' + (d.topic ? " — " + esc(d.topic) : "") + "</h4>" +
+        (rep.summary ? "<p style=\"margin:0 0 8px;line-height:1.8\">" + esc(rep.summary) + "</p>" : "") +
+        (findings.length ? "<b style=\"font-size:13.5px\">যাচাই-করা মূল তথ্য</b><ul class=\"dr-ul\">" + findings.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "") +
+        (rep.background ? "<div class=\"dr-note\" style=\"margin-top:8px\"><b>প্রেক্ষাপট:</b> " + esc(rep.background) + "</div>" : "") +
+        (unclear.length ? "<div class=\"dr-note\" style=\"margin-top:8px\"><b>যা এখনো স্পষ্ট নয়:</b><br>" + unclear.map(esc).join("<br>") + "</div>" : "") +
+        "</div>"
+      : "";
+
+    var tOpts = toArr(d.titleOptions);
+    var titleBox = tOpts.length
+      ? '<div class="dr-card"><h4>আরও ভালো শিরোনামের বিকল্প</h4>' +
+        '<div class="dr-note" style="margin-bottom:8px">যেটা ভালো লাগে চাপুন — নিচের "শিরোনাম" ঘরে বসে যাবে। না চাইলে নিজের শিরোনামই রাখুন।</div>' +
+        tOpts.map(function (o, i) {
+          return '<button type="button" class="dr-opt" data-act="pickTitle" data-i="' + i + '"><b>' + esc(o.title) + "</b>" + (o.why ? "<small>" + esc(o.why) + "</small>" : "") + "</button>";
+        }).join("") + "</div>"
+      : "";
+
+    var coverBox = d.reviewStatus === "rejected" ? "" :
+      '<div class="dr-card"><h4>কভার ছবি (লোগো + শিরোনাম)</h4>' +
+      '<div class="dr-note" style="margin-bottom:8px">শিরোনাম ও ক্যাটাগরি (বিভাগ) ঠিক করার পর এখানে কভার বানান: লোগো, ক্যাটাগরি আর শিরোনাম ছবির ওপর বসবে। তৈরি হলে ডাউনলোড করা যাবে।</div>' +
+      '<div class="dr-f"><label for="dr-coverbg">পটভূমি</label><select id="dr-coverbg">' +
+        '<option value="blue">শুধু নীল (দ্রুত, কোনো AI কল নেই)</option>' +
+        '<option value="ai">AI পটভূমি (ছবির বর্ণনা থেকে)</option>' +
+        '<option value="current">পোস্টের বর্তমান ছবি</option></select></div>' +
+      '<canvas id="dr-cover" width="1200" height="630" hidden></canvas>' +
+      '<div class="dr-actions">' +
+        '<button type="button" class="btn secondary" data-act="cover" id="dr-coverbtn">কভার তৈরি করুন</button>' +
+        '<button type="button" class="btn secondary" data-act="coverdl" id="dr-coverdl" disabled>ডাউনলোড (PNG)</button>' +
+        '<button type="button" class="btn secondary" data-act="coveruse" id="dr-coveruse" disabled>পোস্টের ছবি হিসেবে বসান</button>' +
+      '</div><div class="msg" id="dr-covermsg"></div></div>';
+
+    var delCard =
+      '<div class="dr-card"><div class="dr-actions"><button type="button" class="btn danger" data-act="delete">স্থায়ীভাবে মুছে ফেলুন</button></div>' +
+      '<div class="dr-note" style="margin-top:8px">ভুল বা অপ্রয়োজনীয় হলে মুছে দিন। ড্রাফটের রেকর্ড চিরতরে যাবে' +
+      (d.reviewStatus === "approved" ? " (আগে প্রকাশিত পোস্ট থেকে যাবে, মুছবে না)" : "") + ".</div>" +
+      '<div class="msg" id="dr-delmsg"></div></div>';
+
+    var pub =
+      done
+        ? '<div class="dr-card"><div class="dr-note">এই ড্রাফট ' + esc(REVIEW_LABEL[d.reviewStatus]) + " হয়েছে" + (d.publishedAt ? " (" + esc(fmt(d.publishedAt)) + ")" : "") + "।</div></div>"
+        : '<div class="dr-card">' +
+            '<label class="dr-chk"><input type="checkbox" id="dr-addsrc"> লেখার শেষে তথ্যসূত্রের নাম যোগ করুন</label>' +
+            '<label class="dr-chk"><input type="checkbox" id="dr-addnote" checked> "AI সহায়তায় তৈরি, সম্পাদক যাচাইকৃত" নোট যোগ করুন (AI-ছবি হলে ছবির নোটসহ)</label>' +
+            '<div class="dr-actions">' +
+              (rr ? '<button type="button" class="btn secondary" data-act="manual">নিজে লিখুন (Create ট্যাবে)</button>' : "") +
+              '<button type="button" class="btn secondary" data-act="save">সংরক্ষণ</button>' +
+              '<button type="button" class="btn" data-act="publish"' + (rr ? " disabled" : "") + ">অনুমোদন ও প্রকাশ</button>" +
+              '<button type="button" class="btn danger" data-act="reject">বাতিল (Reject)</button>' +
+            "</div>" +
+          '<div class="msg" id="dr-msg"></div></div>';
+
+    return detailFinish(id, d, form, reportBox, titleBox, coverBox, verifyBox, pub, delCard);
+  }
+
+  function bnS(x) { return bn(Math.round(Number(x) || 0)); }
+  function gateItems(d) {
+    var f = toArr(d.gateFailures), items = [];
+    function has(s) { return f.some(function (x) { return String(x).indexOf(s) >= 0; }); }
+    var st = d.verificationStatus || "unverified", ind = Number(d.independentSources) || 0;
+    items.push([st === "verified", "যাচাই-স্ট্যাটাস: " + (VERIFY_LABEL[st] || st)]);
+    items.push([ind >= 3, "স্বাধীন সূত্র " + bn(ind) + "টি (ন্যূনতম ৩)"]);
+    items.push([toArr(d.warnings).length === 0, "সূত্রে পরস্পরবিরোধী তথ্য নেই"]);
+    if (d.auto) {
+      items.push([!has("সংবেদনশীল"), "সংবেদনশীল বিষয় নয়"]);
+      items.push([!has("সংখ্যা"), "লেখার সব সংখ্যা সূত্রে পাওয়া গেছে"]);
+      if (d.qa) items.push([d.qa.approve === true && !toArr(d.qa.unsupported).length, "সম্পাদক-QA: নির্ভুলতা " + bnS(d.qa.accuracy) + ", ভাষা " + bnS(d.qa.language) + ", মৌলিকতা " + bnS(d.qa.originality)]);
+    }
+    return items;
+  }
+  function gateHtml(d) {
+    var items = gateItems(d);
+    return '<div class="dr-card"><h4>প্রকাশের গেট</h4>' +
+      items.map(function (it) {
+        return '<div class="dr-gate"><span class="dr-pill ' + (it[0] ? "p-ok" : "p-warn") + '">' + (it[0] ? "পাস" : "নজর") + "</span><span>" + esc(it[1]) + "</span></div>";
+      }).join("") +
+      (toArr(d.gateFailures).length ? '<div class="dr-warn" style="margin:10px 0 0"><b>গেটে আটকে যাওয়ার কারণ:</b><br>' + toArr(d.gateFailures).map(esc).join("<br>") + "</div>" : "") + "</div>";
+  }
+
+  function detailFinish(id, d, form, reportBox, titleBox, coverBox, verifyBox, pub, delCard) {
+    var head = '<div class="dr-top"><button type="button" class="btn ghost small" data-act="back">← তালিকা</button><h2>ড্রাফট রিভিউ</h2>' +
+      '<span><span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + '</span><span class="dr-pill">' + esc(kindLabel(d)) + '</span><span class="dr-meta">' + esc(fmt(d.createdAt)) + "</span></span></div>";
+    return head + '<div class="dr-two"><div class="dr-col">' + form + coverBox + reportBox + titleBox + '</div><div class="dr-col">' + gateHtml(d) + verifyBox + pub + delCard + "</div></div>";
+  }
+
+  function field(id, label, val) {
+    return '<div class="dr-f"><label for="' + id + '">' + esc(label) + '</label><input type="text" id="' + id + '" value="' + esc(val || "") + '"></div>';
+  }
+  function area(id, label, val) {
+    return '<div class="dr-f"><label for="' + id + '">' + esc(label) + '</label><textarea id="' + id + '">' + esc(val || "") + "</textarea></div>";
+  }
+  function val(id) { var el = $(id); return el ? el.value.trim() : ""; }
+  function setMsg(id, text, cls) { var el = $(id); if (el) { el.textContent = text; el.className = "msg" + (cls ? " " + cls : ""); } }
+
+  function updatePreview() {
+    var img = $("dr-imgprev");
+    if (!img) return;
+    var u = safeUrl(val("dr-image"));
+    if (!u) { img.hidden = true; return; }
+    img.onload = function () { img.hidden = false; };
+    img.onerror = function () { img.hidden = true; };
+    img.src = u;
+  }
+
+  function readForm() {
+    var cur = drafts[openId] || {};
+    return {
+      title: val("dr-title"),
+      category: val("dr-category") || "সাধারণ",
+      summary: val("dr-summary"),
+      content: val("dr-content"),
+      seoTitle: cur.seoTitle || val("dr-title"),
+      metaDescription: val("dr-meta"),
+      keywords: toArr(cur.keywords),
+      slug: cur.slug || ("news-" + Date.now().toString(36)),
+      imageUrl: safeUrl(val("dr-image")),
+      imagePrompt: val("dr-imgprompt"),
+      socialPost: val("dr-social"),
+      xPost: val("dr-xpost"),
+    };
+  }
+
+  /* ---------- Worker ও ImgBB ---------- */
+  function getToken() {
+    var u = window.firebase && window.firebase.auth && window.firebase.auth().currentUser;
+    if (!u) return Promise.reject(new Error("লগইন পাওয়া যায়নি"));
+    return u.getIdToken();
+  }
+  // অ্যাডমিন প্যানেল GitHub Pages-এ, তাই Worker-এর পূর্ণ ঠিকানা লাগে (ডোমেইন Worker-এ নিলে "https://arnews.info" দিন)
+  var WORKER_BASE = "https://ar-news.abdulrohimrire019.workers.dev";
+
+  function callWorker(path, body) {
+    return getToken().then(function (token) {
+      return fetch(WORKER_BASE + path, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: "Bearer " + token },
+        body: JSON.stringify(body || {}),
+      });
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || "সার্ভার ত্রুটি " + res.status);
+        return data;
+      });
+    });
+  }
+  function uploadToImgbb(form) {
+    return fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_API_KEY, { method: "POST", body: form })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.success || !data.data || !data.data.url) throw new Error((data && data.error && data.error.message) || "আপলোড ব্যর্থ");
+        return data.data.url;
+      });
+  }
+
+  function genImage() {
+    var prompt = val("dr-imgprompt");
+    if (!prompt) { setMsg("dr-imgmsg", "আগে ছবির বর্ণনা (ইংরেজি) লিখুন।", "bad"); return; }
+    var btn = $("dr-genimg");
+    btn.disabled = true;
+    setMsg("dr-imgmsg", "ছবি বানানো হচ্ছে…", "");
+    callWorker("/api/ai/image", { prompt: prompt })
+      .then(function (r) {
+        var b64 = String(r.image || "").split(",")[1];
+        if (!b64) throw new Error("ছবি পাওয়া যায়নি");
+        setMsg("dr-imgmsg", "আপলোড হচ্ছে…", "");
+        var fd = new FormData();
+        fd.append("image", b64);
+        return uploadToImgbb(fd);
+      })
+      .then(function (url) {
+        $("dr-image").value = url;
+        imageAi = true;
+        updatePreview();
+        setMsg("dr-imgmsg", "✓ AI-নির্মিত ছবি বসেছে। প্রকাশের নোটে এটা উল্লেখ থাকবে।", "ok");
+      })
+      .catch(function (e) { setMsg("dr-imgmsg", "ছবি তৈরি হয়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-genimg"); if (b) b.disabled = false; });
+  }
+
+  function uploadFile(input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    if (!file.type || file.type.indexOf("image/") !== 0) { setMsg("dr-imgmsg", "শুধু ছবি ফাইল দিন।", "bad"); input.value = ""; return; }
+    setMsg("dr-imgmsg", "আপলোড হচ্ছে…", "");
+    var fd = new FormData();
+    fd.append("image", file);
+    uploadToImgbb(fd)
+      .then(function (url) {
+        $("dr-image").value = url;
+        imageAi = false;
+        updatePreview();
+        setMsg("dr-imgmsg", "✓ ছবি আপলোড হয়েছে।", "ok");
+      })
+      .catch(function (e) { setMsg("dr-imgmsg", "আপলোড হয়নি: " + e.message, "bad"); })
+      .then(function () { input.value = ""; });
+  }
+
+  /* ---------- নতুন রিপোর্ট (শিরোনাম থেকে) ---------- */
+  var REPORT_CATS = ["জাতীয়", "আন্তর্জাতিক", "রাজনীতি", "অর্থনীতি", "খেলা", "বিনোদন", "প্রযুক্তি", "শিক্ষা", "স্বাস্থ্য", "সাধারণ"];
+  var pendingOpen = null;
+
+  function openPending() {
+    if (pendingOpen && drafts[pendingOpen]) {
+      openId = pendingOpen;
+      pendingOpen = null;
+      render();
+    }
+  }
+
+  function runReport() {
+    var title = val("dr-newtitle");
+    var cat = val("dr-newcat");
+    if (title.length < 8) { setMsg("dr-reportmsg", "শিরোনাম বা বিষয়টি একটু বিস্তারিত লিখুন (কমপক্ষে ৮ অক্ষর)।", "bad"); return; }
+    var btn = $("dr-reportbtn");
+    if (btn) btn.disabled = true;
+    setMsg("dr-reportmsg", "গবেষণা ও যাচাই চলছে… (সর্বোচ্চ ১০ মিনিট; পেজ বন্ধ করবেন না)", "");
+    callWorker("/api/ai/report", { title: title, category: cat, url: val("dr-newurl"), text: val("dr-newtext") })
+      .then(function (r) {
+        pendingOpen = r.draftId;
+        setMsg("dr-reportmsg", r.cached ? "আগের তৈরি রিপোর্ট খোলা হচ্ছে (নতুন করে AI চলেনি)।" : "✓ রিপোর্ট তৈরি হয়েছে, খোলা হচ্ছে…", "ok");
+        openPending(); // ড্রাফট এখনো না এলে নিচের লিসেনার খুলবে
+      })
+      .catch(function (e) { setMsg("dr-reportmsg", "রিপোর্ট তৈরি হয়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-reportbtn"); if (b) b.disabled = false; loadStatus(); });
+  }
+
+  function pickTitle(i) {
+    var o = toArr(drafts[openId] && drafts[openId].titleOptions)[i];
+    if (!o) return;
+    $("dr-title").value = o.title;
+    var btns = document.querySelectorAll("#ar-drafts-overlay .dr-opt");
+    for (var k = 0; k < btns.length; k++) btns[k].classList.toggle("on", k === Number(i));
+    setMsg("dr-msg", "শিরোনাম বসেছে — সংরক্ষণ করতে ভুলবেন না।", "ok");
+    if ($("dr-title").scrollIntoView) $("dr-title").scrollIntoView({ block: "center" });
+  }
+
+  /* ---------- কভার ছবি: লোগো + ক্যাটাগরি + শিরোনাম (ব্রাউজারেই আঁকা, ডাউনলোডযোগ্য) ---------- */
+  var coverAi = { prompt: "", img: null };
+
+  function loadImg(src, cors) {
+    return new Promise(function (resolve, reject) {
+      var im = new Image();
+      if (cors) im.crossOrigin = "anonymous";
+      im.onload = function () { resolve(im); };
+      im.onerror = function () { reject(new Error("ছবি লোড হয়নি")); };
+      im.src = src;
+    });
+  }
+
+  function coverBackground(mode) {
+    if (mode === "ai") {
+      var prompt = val("dr-imgprompt");
+      if (!prompt) return Promise.reject(new Error("AI পটভূমির জন্য আগে ছবির বর্ণনা (ইংরেজি) লিখুন।"));
+      if (coverAi.img && coverAi.prompt === prompt) return Promise.resolve(coverAi.img); // একই বর্ণনায় আবার AI চালানো হয় না
+      return callWorker("/api/ai/image", { prompt: prompt })
+        .then(function (r) { return loadImg(r.image, false); })
+        .then(function (im) { coverAi = { prompt: prompt, img: im }; return im; });
+    }
+    if (mode === "current") {
+      var u = safeUrl(val("dr-image"));
+      if (!u) return Promise.reject(new Error("পোস্টে এখনো ছবির লিংক নেই।"));
+      return loadImg(u, true);
+    }
+    return Promise.resolve(null);
+  }
+
+  function wrapText(ctx, text, maxW) {
+    var words = String(text).split(/\s+/).filter(Boolean), lines = [], cur = "";
+    words.forEach(function (w) {
+      var t = cur ? cur + " " + w : w;
+      if (ctx.measureText(t).width <= maxW || !cur) { cur = t; }
+      else { lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  function drawLogo(ctx, cx, cy, r) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = "#8fd8cf"; ctx.stroke();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0b3d91"; ctx.font = "800 " + Math.round(r * 0.82) + 'px Arial, Helvetica, sans-serif';
+    ctx.fillText("AR", cx, cy - r * 0.16);
+    ctx.fillStyle = "#0f766e"; ctx.font = "700 " + Math.round(r * 0.26) + 'px Arial, Helvetica, sans-serif';
+    ctx.fillText("NEWS", cx, cy + r * 0.52);
+    ctx.restore();
+  }
+
+  function drawCover(canvas, bg, title, cat) {
+    var W = 1200, H = 630, ctx = canvas.getContext("2d"), F = '"Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#0b3d91"; ctx.fillRect(0, 0, W, H);
+    if (bg) {
+      var sc = Math.max(W / bg.width, H / bg.height), w = bg.width * sc, h = bg.height * sc;
+      ctx.drawImage(bg, (W - w) / 2, (H - h) / 2, w, h);
+    }
+    var g = ctx.createLinearGradient(0, 0, 0, H); // লেখা পড়ার জন্য গাঢ় আবরণ
+    g.addColorStop(0, bg ? "rgba(6,20,58,0.55)" : "rgba(6,20,58,0)"); g.addColorStop(1, "rgba(6,20,58,0.88)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    drawLogo(ctx, 104, 96, 44);
+    ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = "#ffffff"; ctx.font = "700 36px " + F;
+    ctx.fillText("AR News", 164, 96);
+
+    ctx.font = "700 28px " + F;
+    var cw = ctx.measureText(cat).width + 44;
+    ctx.fillStyle = "#0f766e"; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(64, 172, cw, 52, 26); else ctx.rect(64, 172, cw, 52);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.fillText(cat, 86, 199);
+
+    var size = 72, lines;
+    for (;;) {
+      ctx.font = "700 " + size + "px " + F;
+      lines = wrapText(ctx, title, W - 128);
+      if ((lines.length <= 4 && lines.length * size * 1.32 <= 330) || size <= 34) break;
+      size -= 4;
+    }
+    ctx.textBaseline = "alphabetic"; ctx.fillStyle = "#ffffff";
+    lines.forEach(function (ln, i) { ctx.fillText(ln, 64, 276 + size + i * size * 1.32); });
+
+    ctx.font = "600 26px " + F; ctx.fillStyle = "#c9d8f5"; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+    ctx.fillText("arnews.info", W - 64, H - 36);
+  }
+
+  function makeCover() {
+    var title = val("dr-title"), cat = val("dr-category");
+    if (!title) { setMsg("dr-covermsg", "আগে শিরোনাম দিন (বা উপরের বিকল্প থেকে বেছে নিন)।", "bad"); return; }
+    if (!cat) { setMsg("dr-covermsg", "ক্যাটাগরি (বিভাগ) ঘরে বিভাগ লিখুন।", "bad"); return; }
+    var mode = val("dr-coverbg") || "blue";
+    var btn = $("dr-coverbtn"); btn.disabled = true;
+    setMsg("dr-covermsg", mode === "ai" ? "পটভূমি বানানো হচ্ছে…" : "কভার তৈরি হচ্ছে…", "");
+    var fonts = document.fonts && document.fonts.load
+      ? Promise.all([document.fonts.load('700 40px "Hind Siliguri"', title + cat), document.fonts.load('700 40px "Hind Siliguri"')]).catch(function () {})
+      : Promise.resolve();
+    fonts
+      .then(function () { return coverBackground(mode); })
+      .catch(function (e) {
+        if (mode === "current") { setMsg("dr-covermsg", "বর্তমান ছবি কভারে নেওয়া যায়নি (" + e.message + ") — নীল পটভূমি ব্যবহার হচ্ছে।", "bad"); return null; }
+        throw e;
+      })
+      .then(function (bg) {
+        var c = $("dr-cover");
+        drawCover(c, bg, title, cat);
+        c.hidden = false;
+        c.setAttribute("data-mode", mode);
+        $("dr-coverdl").disabled = false;
+        $("dr-coveruse").disabled = false;
+        if (!$("dr-covermsg").textContent || /হচ্ছে…$/.test($("dr-covermsg").textContent)) setMsg("dr-covermsg", "✓ কভার তৈরি। ডাউনলোড করতে পারেন।", "ok");
+      })
+      .catch(function (e) { setMsg("dr-covermsg", "কভার তৈরি হয়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-coverbtn"); if (b) b.disabled = false; });
+  }
+
+  function coverBlob(cb) {
+    var c = $("dr-cover");
+    try {
+      c.toBlob(function (b) {
+        if (!b) { setMsg("dr-covermsg", "ছবি তৈরি করা যায়নি — 'শুধু নীল' বা AI পটভূমি বেছে নিন।", "bad"); return; }
+        cb(b);
+      }, "image/png");
+    } catch (e) {
+      setMsg("dr-covermsg", "এই পটভূমির ছবি ডাউনলোডযোগ্য নয় — 'শুধু নীল' বা AI পটভূমি বেছে নিন।", "bad");
+    }
+  }
+
+  function downloadCover() {
+    coverBlob(function (b) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = "ar-news-cover" + ".png";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      setMsg("dr-covermsg", "✓ ডাউনলোড শুরু হয়েছে।", "ok");
+    });
+  }
+
+  function useCover() {
+    var mode = $("dr-cover").getAttribute("data-mode");
+    setMsg("dr-covermsg", "আপলোড হচ্ছে…", "");
+    coverBlob(function (b) {
+      var fd = new FormData();
+      fd.append("image", b, "cover.png");
+      uploadToImgbb(fd)
+        .then(function (url) {
+          $("dr-image").value = url;
+          imageAi = mode === "ai";
+          updatePreview();
+          setMsg("dr-covermsg", "✓ কভার পোস্টের ছবি হিসেবে বসেছে। সংরক্ষণ বা প্রকাশ করতে ভুলবেন না।", "ok");
+        })
+        .catch(function (e) { setMsg("dr-covermsg", "আপলোড হয়নি: " + e.message, "bad"); });
+    });
+  }
+
+  /* ---------- সংরক্ষণ / প্রকাশ / বাতিল ---------- */
+  function draftPatch(f) {
+    return {
+      title: f.title, category: f.category, summary: f.summary, content: f.content, seoTitle: f.seoTitle,
+      metaDescription: f.metaDescription, keywords: f.keywords, slug: f.slug, imageUrl: f.imageUrl,
+      imagePrompt: f.imagePrompt, socialPost: f.socialPost, xPost: f.xPost || "", imageAi: imageAi, updatedAt: Date.now(),
+    };
+  }
+
+  function saveDraft() {
+    var f = readForm();
+    window.rtdb.ref("drafts/" + openId).update(draftPatch(f))
+      .then(function () { setMsg("dr-msg", "সংরক্ষণ হয়েছে ✓", "ok"); })
+      .catch(function (e) { setMsg("dr-msg", "সংরক্ষণ করা যায়নি: " + e.message, "bad"); });
+  }
+
+  function publish() {
+    var id = openId;
+    var d = drafts[id];
+    var f = readForm();
+    if (!f.title || !f.content) { setMsg("dr-msg", "শিরোনাম ও বিস্তারিত লেখা ছাড়া প্রকাশ করা যাবে না।", "bad"); return; }
+    var st = d.verificationStatus || "unverified";
+    var q = st === "verified"
+      ? "এই খবরটি এখনই প্রকাশ করবেন?"
+      : "এই খবরের যাচাই-স্ট্যাটাস: " + (VERIFY_LABEL[st] || st) + "।\nতবুও প্রকাশ করবেন?";
+    if (!window.confirm(q)) return;
+
+    var body = f.content;
+    var srcNames = [];
+    toArr(d.sources).forEach(function (s) { if (safeUrl(s.url) && s.title && srcNames.indexOf(s.title) < 0) srcNames.push(s.title); });
+    if ($("dr-addsrc") && $("dr-addsrc").checked && srcNames.length) body += "\n\nতথ্যসূত্র: " + srcNames.slice(0, 8).join(", ");
+    if ($("dr-addnote") && $("dr-addnote").checked) {
+      body += "\n\n(এই সংবাদ AI সহায়তায় তৈরি এবং সম্পাদক কর্তৃক যাচাইকৃত।" + (imageAi && f.imageUrl ? " ছবিটি AI-নির্মিত প্রতীকী চিত্র।" : "") + ")";
+    }
+
+    var now = Date.now();
+    var postId = window.rtdb.ref("posts").push().key;
+    var post = {
+      title: f.title,
+      category: f.category,
+      description: body,
+      imageUrl: f.imageUrl,
+      status: "published",
+      authorId: user.uid,
+      authorName: user.displayName || user.email || "এডমিন",
+      createdAt: now,
+      updatedAt: now,
+      summary: f.summary,
+      seoTitle: f.seoTitle,
+      metaDescription: f.metaDescription,
+      keywords: f.keywords,
+      slug: f.slug,
+      aiGenerated: true,
+      verificationStatus: st,
+      sources: toArr(d.sources).filter(function (s) { return safeUrl(s.url); }).slice(0, 10).map(function (s) { return { title: s.title || "", url: s.url }; }),
+    };
+
+    var upd = {};
+    var patch = draftPatch(f);
+    Object.keys(patch).forEach(function (k) { upd["drafts/" + id + "/" + k] = patch[k]; });
+    upd["posts/" + postId] = post;
+    upd["drafts/" + id + "/reviewStatus"] = "approved";
+    upd["drafts/" + id + "/postId"] = postId;
+    upd["drafts/" + id + "/publishedAt"] = now;
+
+    setMsg("dr-msg", "প্রকাশ হচ্ছে…", "");
+    window.rtdb.ref().update(upd)
+      .then(function () { openId = null; render(); })
+      .catch(function (e) { setMsg("dr-msg", "প্রকাশ করা যায়নি: " + e.message, "bad"); });
+  }
+
+  function reject() {
+    if (!window.confirm("এই ড্রাফটটি বাতিল করবেন?")) return;
+    window.rtdb.ref("drafts/" + openId).update({ reviewStatus: "rejected", updatedAt: Date.now() })
+      .then(function () { openId = null; render(); })
+      .catch(function (e) { setMsg("dr-msg", "বাতিল করা যায়নি: " + e.message, "bad"); });
+  }
+
+  function deleteDraft() {
+    var id = openId;
+    var d = drafts[id];
+    if (!d) return;
+    var q = "এই ড্রাফটটি স্থায়ীভাবে মুছে ফেলবেন? আর ফেরানো যাবে না।";
+    if (d.reviewStatus === "approved") q += "\n(আগে প্রকাশিত পোস্টটি মুছবে না, শুধু এই ড্রাফটের রেকর্ড যাবে।)";
+    if (!window.confirm(q)) return;
+    setMsg("dr-delmsg", "মুছছে…", "");
+    window.rtdb.ref("drafts/" + id).remove()
+      .then(function () { openId = null; render(); })
+      .catch(function (e) { setMsg("dr-delmsg", "মোছা যায়নি: " + e.message, "bad"); });
+  }
+
+  function bulkDelete(kind) {
+    var want = kind === "rejected" ? "rejected" : "review_required";
+    var ids = Object.keys(drafts).filter(function (id) { return drafts[id].reviewStatus === want; });
+    if (!ids.length) return;
+    var label = kind === "rejected" ? "বাতিল করা" : "\"রিভিউ প্রয়োজন\"";
+    if (!window.confirm(label + " " + ids.length + "টি ড্রাফট স্থায়ীভাবে মুছে ফেলবেন? আর ফেরানো যাবে না।")) return;
+    var upd = {};
+    ids.forEach(function (id) { upd["drafts/" + id] = null; });
+    window.rtdb.ref().update(upd).catch(function (e) { setMsg("dr-runmsg", "মোছা যায়নি: " + e.message, "bad"); });
+  }
+
+  function toCreateTab() {
+    window.location.href = "./create.html";
+  }
+
+  /* ---------- X (টুইটার) পোস্ট ---------- */
+  function updateXCount() {
+    var el = $("dr-xcount"), t = $("dr-xpost");
+    if (!el || !t) return;
+    var n = t.value.length;
+    el.textContent = bn(n) + " / ২৮০ অক্ষর" + (n > 280 ? " — সীমা পেরিয়েছে, ছোট করুন" : "");
+  }
+  function xGen() {
+    var title = val("dr-title"), content = val("dr-content");
+    if (content.length < 80) { setMsg("dr-xmsg", "আগে বিস্তারিত লেখা থাকতে হবে।", "bad"); return; }
+    var btn = $("dr-xgen");
+    btn.disabled = true;
+    setMsg("dr-xmsg", "X পোস্ট লেখা হচ্ছে…", "");
+    callWorker("/api/ai/xpost", { title: title, content: content })
+      .then(function (r) {
+        $("dr-xpost").value = r.xPost || "";
+        updateXCount();
+        setMsg("dr-xmsg", "✓ লেখা হয়েছে — দেখে নিন, দরকারে বদলান, তারপর কপি করুন। (সংরক্ষণ চাপলে রেখে দেওয়া হবে)", "ok");
+      })
+      .catch(function (e) { setMsg("dr-xmsg", "লেখা যায়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-xgen"); if (b) b.disabled = false; });
+  }
+  function xCopy() {
+    var t = $("dr-xpost");
+    if (!t || !t.value.trim()) { setMsg("dr-xmsg", "কপি করার মতো কিছু নেই।", "bad"); return; }
+    var done = function () { setMsg("dr-xmsg", "✓ কপি হয়েছে — X-এ পেস্ট করুন।", "ok"); };
+    var legacy = function () { t.select(); try { document.execCommand("copy"); } catch (e) {} done(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(done, legacy);
+    else legacy();
+  }
+
+  /* ---------- ক্লিক হ্যান্ডলার ---------- */
+  function onClick(e) {
+    var el = e.target.closest && e.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act");
+    if (act === "open") { openId = el.getAttribute("data-id"); render(); }
+    else if (act === "back") { openId = null; render(); }
+    else if (act === "nav") {
+      section = el.getAttribute("data-s"); openId = null; render();
+      if (section === "status") loadStatus();
+      if (section === "newsroom") loadNr();
+    }
+    else if (act === "view") { view = el.getAttribute("data-v"); render(); }
+    else if (act === "refreshstat") loadStatus();
+    else if (act === "genimg") genImage();
+    else if (act === "report") runReport();
+    else if (act === "nrrun") runNr();
+    else if (act === "xgen") xGen();
+    else if (act === "xcopy") xCopy();
+    else if (act === "pickTitle") pickTitle(el.getAttribute("data-i"));
+    else if (act === "cover") makeCover();
+    else if (act === "coverdl") downloadCover();
+    else if (act === "coveruse") useCover();
+    else if (act === "save") saveDraft();
+    else if (act === "publish") publish();
+    else if (act === "reject") reject();
+    else if (act === "manual") toCreateTab();
+    else if (act === "delete") deleteDraft();
+    else if (act === "delrejected") bulkDelete("rejected");
+    else if (act === "delreview") bulkDelete("review");
+  }
+
+  /* ---------- শুরু ---------- */
+  var auth = window.auth;
+  if (!auth || !window.rtdb) {
+    $("ar-drafts-overlay").innerHTML = '<div class="dr-empty bad">Firebase সংযোগ পাওয়া যায়নি — config.js ঠিকভাবে লোড হয়েছে কিনা দেখুন।</div>';
+    return;
+  }
+
+  var started = false;
+  auth.onAuthStateChanged(async function (u) {
+    if (!u) { window.location.replace("./index.html"); return; }
+    try {
+      if (!(await window.isAdmin(u))) {
+        await auth.signOut();
+        alert("এই পেজ দেখার জন্য অ্যাডমিন অনুমতি প্রয়োজন।");
+        window.location.replace("./index.html");
+        return;
+      }
+    } catch (err) {
+      console.error("Admin verification error:", err);
+      $("ar-drafts-overlay").innerHTML = '<div class="dr-empty bad">অ্যাডমিন অনুমতি যাচাই করা যায়নি। Firebase Rules পরীক্ষা করুন।</div>';
+      return;
+    }
+    user = u;
+    if (started) return;
+    started = true;
+    openOverlay();
+
+    window.rtdb.ref("drafts").orderByChild("createdAt").limitToLast(100).on("value", function (snap) {
+      drafts = snap.val() || {};
+      updateBadge();
+      openPending(); // নতুন রিপোর্টের ড্রাফট এসে গেলে সরাসরি খোলে
+      if (overlay && !openId) render();
+    }, function (err) {
+      console.error(err);
+      $("dr-wrap").innerHTML = '<div class="dr-empty bad">ড্রাফট লোড করা যায়নি। Firebase Rules পরীক্ষা করুন।</div>';
+    });
+  });
+})();
+  </script>
 </body>
 </html>
-`;
-}
-
-function htmlResponse(html) {
-  return new Response(html, {
-    status: 200,
-    headers: {
-      "content-type": "text/html; charset=UTF-8",
-      "cache-control": "public, max-age=300",
-    },
-  });
-}
-
-// ============================================================
-// AI ড্রাফট সিস্টেম — শুধু অ্যাডমিনের জন্য: অ্যাডমিন শিরোনাম দিলে তবেই কাজ শুরু (অটো-পোস্ট নেই)
-// এন্ডপয়েন্ট: /api/ai/report (শিরোনাম → যাচাই → সংবাদ), /api/ai/draft, /api/ai/image (চাইলে), /api/ai/status
-// দরকারি সেটিং (Cloudflare ড্যাশবোর্ড → Worker → Settings):
-//   Secret : GEMINI_API_KEY
-//   Text   : FIREBASE_API_KEY (আপনার config.js-এর apiKey)
-//   ঐচ্ছিক : ADMIN_UIDS (UID কমা দিয়ে) — না দিলে ডাটাবেসের users/UID/role === "admin" দেখে অ্যাডমিন চেনা হয়
-//   ঐচ্ছিক : REPORT_LIMIT (দৈনিক রিপোর্ট, ডিফল্ট ১০), REPORT_TIMEOUT_MIN (মিনিট, ডিফল্ট ১০)
-//   Text   : GEMINI_MODEL (ঐচ্ছিক; কমা দিয়ে একাধিক মডেল দিলে আগেরটা না চললে পরেরটা চেষ্টা হয়)
-//   Binding: Workers AI → ভেরিয়েবল নাম AI (ছবির জন্য)
-// ============================================================
-
-const DEFAULT_CATEGORIES = [
-  "জাতীয়", "আন্তর্জাতিক", "রাজনীতি", "অর্থনীতি", "খেলা",
-  "বিনোদন", "প্রযুক্তি", "শিক্ষা", "স্বাস্থ্য", "সাধারণ",
-];
-
-const jsonRes = (obj, status = 200) =>
-  new Response(JSON.stringify(obj), {
-    status,
-    headers: { "content-type": "application/json; charset=UTF-8", "cache-control": "no-store" },
-  });
-
-// Firebase লগইন টোকেন যাচাই + অ্যাডমিন UID তালিকায় আছে কি না
-async function requireAdmin(request, env) {
-  const auth = request.headers.get("authorization") || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!token || !env.FIREBASE_API_KEY) return null;
-  const res = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ idToken: token }),
-    }
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  const u = data.users && data.users[0];
-  if (!u) return null;
-  const allowed = String(env.ADMIN_UIDS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (allowed.includes(u.localId)) return u;
-  // ADMIN_UIDS না থাকলে বা তালিকায় না মিললে: ডাটাবেসে users/UID/role === "admin" কি না দেখা (সাইটের রুলসের মতোই)
-  try {
-    if (env.FIREBASE_SA) {
-      const role = await fb(env, "GET", `users/${encodeURIComponent(u.localId)}/role`);
-      if (role === "admin") return u;
-    }
-  } catch (e) { /* অনুমতি নেই ধরা হবে */ }
-  return null;
-}
-
-// মডেল-তালিকা: আগেরটা না চললে (৪০৪ = নেই, ৪২৯ = কোটা শেষ, ৫০৩ = ব্যস্ত) পরেরটা চেষ্টা করে।
-// কোটা মডেল-ভিত্তিক, তাই এক মডেলে শেষ হলেও অন্যটায় চলতে পারে। নিজের তালিকা দিতে GEMINI_MODEL-এ কমা দিয়ে লিখুন।
-// ফ্রি-টিয়ার (AI Studio → Rate limit পেজ অনুযায়ী):
-//  • Google Search সহ কল (যাচাই/রিপোর্ট): সার্চ-গ্রাউন্ডিং শুধু Gemini 2.x-এ চলে ("Gemini 3 and newer" = 0), তাই শুধু ২.৫ মডেল।
-//    ২.৫ Flash / Flash Lite — প্রতিটি দিনে ২০টি, মিনিটে ৫/১০টি।
-//  • সার্চ ছাড়া কল (লেখা): Flash Lite-এ দিনে ৫০০টি, মিনিটে ১৫টি — তাই আগে ওগুলো।
-const WRITE_MODELS = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.6-flash"];
-
-const listFrom = (v) => String(v).split(",").map((s) => s.trim()).filter(Boolean);
-
-// ---------- ব্যবহার-হিসাব (অ্যাডমিন প্যানেলে দেখানোর জন্য): Firebase `aiStatus` ----------
-// এটা শুধু এই Worker-এর নিজের গোনা কল; Google-এর আসল কোটা দেখতে AI Studio → Rate limit পেজ।
-const GEMINI_FREE_LIMITS = {
-  "gemini-3.1-flash-lite": { rpd: 500, rpm: 15 },
-  "gemini-3.5-flash-lite": { rpd: 500, rpm: 15 },
-  "gemini-3.8-flash": { rpd: 20, rpm: 5 },
-  "gemini-3.6-flash": { rpd: 20, rpm: 5 },
-};
-let _u = { gemini: {}, workers: { ok: 0, fail: 0, inTok: 0, outTok: 0 } };
-function noteGemini(model, status, meta) {
-  const m = _u.gemini[model] || (_u.gemini[model] = { ok: 0, e429: 0, e404: 0, eOther: 0, inTok: 0, outTok: 0 });
-  if (status === "ok") {
-    m.ok += 1;
-    m.inTok += Number(meta && meta.promptTokenCount) || 0;
-    m.outTok += Number(meta && meta.candidatesTokenCount) || 0;
-  } else if (status === 429) m.e429 += 1;
-  else if (status === 404) m.e404 += 1;
-  else m.eOther += 1;
-}
-
-async function flushStatus(env, entry) {
-  try {
-    const today = dhakaDate();
-    let cur = (await fb(env, "GET", "aiStatus")) || {};
-    const oldLog = Array.isArray(cur.log) ? cur.log : Object.values(cur.log || {});
-    if (cur.date !== today) cur = { date: today, usage: {} };
-    const usage = cur.usage || {};
-    const g = usage.gemini || {};
-    for (const [model, v] of Object.entries(_u.gemini)) {
-      const o = g[model] || { ok: 0, e429: 0, e404: 0, eOther: 0, inTok: 0, outTok: 0 };
-      for (const k of Object.keys(o)) o[k] = (Number(o[k]) || 0) + (v[k] || 0);
-      g[model] = o;
-    }
-    const w = usage.workers || { ok: 0, fail: 0, inTok: 0, outTok: 0 };
-    for (const k of Object.keys(w)) w[k] = (Number(w[k]) || 0) + (_u.workers[k] || 0);
-    _u = { gemini: {}, workers: { ok: 0, fail: 0, inTok: 0, outTok: 0 } };
-    const log = entry ? [{ at: Date.now(), ...entry }, ...oldLog].slice(0, 30) : oldLog.slice(0, 30);
-    await fb(env, "PUT", "aiStatus", { date: today, usage: { gemini: g, workers: w }, log });
-  } catch (e) { /* হিসাব লেখা না গেলেও মূল কাজ চলবে */ }
-}
-
-class QuotaError extends Error {
-  constructor(msg) { super(msg); this.name = "QuotaError"; this.quota = true; }
-}
-
-async function callGemini(env, body, signal) {
-  if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY সেট করা নেই");
-  const models = env.GEMINI_MODEL ? listFrom(env.GEMINI_MODEL) : WRITE_MODELS;
-  const failed = [];
-  for (const model of models) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
-        body: JSON.stringify(body),
-        signal,
-      }
-    );
-    if (res.ok) {
-      const j = await res.json();
-      noteGemini(model, "ok", j && j.usageMetadata);
-      return j;
-    }
-    noteGemini(model, res.status);
-    const txt = await res.text();
-    const toolUnsupported = res.status === 400 && /search|grounding|tool/i.test(txt);
-    if ([404, 429, 503].includes(res.status) || toolUnsupported) {
-      failed.push(`${model}: ${res.status}`);
-      continue;
-    }
-    throw new Error(`Gemini (${model}) ${res.status}: ${txt.slice(0, 300)}`);
-  }
-  const quota = failed.some((f) => f.endsWith(": 429"));
-  const msg =
-    (quota ? "Gemini-র কোটা শেষ" : "কোনো Gemini মডেল পাওয়া যায়নি") +
-    ` (${failed.join(", ")}) — AI Studio-র Rate limit পেজ দেখুন`;
-  throw quota ? new QuotaError(msg) : new Error(msg);
-}
-
-const geminiText = (d) =>
-  ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || [])
-    .map((p) => p.text || "")
-    .join("");
-
-function parseJSONLoose(t) {
-  const s = t.replace(/```json|```/g, "").trim();
-  const a = s.indexOf("{");
-  const b = s.lastIndexOf("}");
-  if (a < 0 || b < 0) throw new Error("AI-এর উত্তর পড়া যায়নি");
-  return JSON.parse(s.slice(a, b + 1));
-}
-
-// লিংক থেকে সাদামাটা লেখা বের করা
-async function textFromUrl(u) {
-  if (!/^https?:\/\//i.test(u)) throw new Error("লিংক সঠিক নয়");
-  const res = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 ARNewsBot" }, redirect: "follow" });
-  if (!res.ok) throw new Error("লিংকটি খোলা যায়নি");
-  const html = await res.text();
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 12000);
-}
-
-// ---------- AI কল: আগে Gemini (সার্চ ছাড়া), ব্যর্থ হলে Cloudflare Workers AI ----------
-// Workers AI চালু করতে: Worker → Settings → Bindings-এ AI (আছে) + Variable AI_MODEL = মডেলের নাম (যেমন @cf/...)
-async function aiText(env, prompt, { temperature = 0.3, json = false, signal, prefer } = {}) {
-  // prefer: "workers" হলে আগে Workers AI, না পারলে নিচের স্বাভাবিক পথ (Gemini → Workers AI)
-  if (prefer === "workers" && env.AI && env.AI_MODEL) {
-    try {
-      const r0 = await env.AI.run(String(env.AI_MODEL).trim(), {
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: Number(env.AI_MAX_TOKENS || 6000),
-        temperature,
-      });
-      _u.workers.ok += 1;
-      _u.workers.inTok += Number(r0 && r0.usage && r0.usage.prompt_tokens) || 0;
-      _u.workers.outTok += Number(r0 && r0.usage && r0.usage.completion_tokens) || 0;
-      let o0 = r0 && (r0.response ?? (r0.choices && r0.choices[0] && r0.choices[0].message && r0.choices[0].message.content) ?? (r0.result && r0.result.response));
-      if (o0 && typeof o0 === "object") o0 = JSON.stringify(o0);
-      if (o0 && String(o0).trim()) return String(o0);
-    } catch (e0) {
-      _u.workers.fail += 1;
-    }
-  }
-  let gErr = null;
-  try {
-    const d = await callGemini(
-      env,
-      {
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature, ...(json ? { responseMimeType: "application/json" } : {}) },
-      },
-      signal
-    );
-    const t = geminiText(d);
-    if (t) return t;
-    gErr = new Error("Gemini খালি উত্তর দিয়েছে");
-  } catch (e) {
-    if (e && (e.name === "TimeoutError" || e.name === "AbortError")) throw e;
-    gErr = e;
-  }
-  if (env.AI && env.AI_MODEL) {
-    try {
-      const r = await env.AI.run(String(env.AI_MODEL).trim(), {
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: Number(env.AI_MAX_TOKENS || 6000),
-        temperature,
-      });
-      _u.workers.ok += 1;
-      _u.workers.inTok += Number(r && r.usage && r.usage.prompt_tokens) || 0;
-      _u.workers.outTok += Number(r && r.usage && r.usage.completion_tokens) || 0;
-      let out = r && (r.response ?? (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) ?? (r.result && r.result.response));
-      if (out && typeof out === "object") out = JSON.stringify(out);
-      if (out && String(out).trim()) return String(out);
-      throw new Error("Workers AI খালি উত্তর দিয়েছে");
-    } catch (e2) {
-      _u.workers.fail += 1;
-      const msg = `Gemini: ${(gErr && gErr.message) || gErr} | Workers AI: ${(e2 && e2.message) || e2}`;
-      throw gErr && gErr.quota ? new QuotaError(msg) : new Error(msg);
-    }
-  }
-  throw gErr;
-}
-
-async function aiJSON(env, prompt, opts = {}) {
-  const t = await aiText(env, prompt, { json: true, ...opts });
-  try {
-    return parseJSONLoose(t);
-  } catch (e) {
-    // Workers AI-এর উত্তর JSON না হলে একবার Gemini দিয়ে আবার
-    if (opts.prefer === "workers") return parseJSONLoose(await aiText(env, prompt, { json: true, ...opts, prefer: "gemini" }));
-    throw e;
-  }
-}
-
-// ---------- সূত্র সংগ্রহ (সার্চ ছাড়া): সংবাদ পেজের লেখা + শিরোনাম ----------
-async function pageText(u) {
-  try {
-    const res = await fetch(u, {
-      headers: { "user-agent": "Mozilla/5.0 ARNewsBot" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return "";
-    let host = "";
-    try { host = new URL(res.url).hostname; } catch (e) { /* ignore */ }
-    if (/(^|\.)google\.com$/.test(host)) return ""; // গুগল-নিউজের মাঝের পেজ — আসল লেখা নয়
-    const html = await res.text();
-    const paras = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
-      .map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim())
-      .filter((t) => t.length > 40);
-    const t = paras.join("\n").slice(0, 3500);
-    return t.length >= 300 ? t : "";
-  } catch (e) {
-    return "";
-  }
-}
-
-// items: [{name, title, url}] → {headlines (নম্বরসহ), pages, outlets}
-async function gatherEvidence(items, maxPages = 4) {
-  const all = items.slice(0, 12).map((it, i) => ({ ...it, n: i + 1 }));
-  const seen = new Set();
-  const uniq = [];
-  for (const it of all) {
-    const k = it.name || it.url;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    uniq.push(it);
-  }
-  const pages = (
-    await Promise.all(
-      uniq.slice(0, maxPages).map(async (it) => ({ ...it, text: await pageText(it.url) }))
-    )
-  ).filter((p) => p.text);
-  return { headlines: all, pages, outlets: uniq.length };
-}
-
-function evidenceBlock(ev, extraText = "") {
-  const h = ev.headlines.map((s) => `[${s.n}] ${s.name || "?"}: ${s.title}`).join("\n");
-  const p = ev.pages.map((s) => `[${s.n}] ${s.name || "সূত্র"} — ${s.title}\n${s.text}`).join("\n\n");
-  return (
-    `সংবাদমাধ্যমের শিরোনাম (প্রতিটির নম্বর আছে):\n${h || "নেই"}\n\n` +
-    `পেজ থেকে পড়া লেখা:\n${p || "পাওয়া যায়নি"}` +
-    (extraText ? `\n\nঅ্যাডমিনের দেওয়া তথ্য:\n${extraText}` : "")
-  );
-}
-
-// ধাপ ১: শিরোনাম + বিভাগ + বিস্তারিত + ছবির বর্ণনা
-async function writeDraft(env, source, categories) {
-  const prompt =
-    `তুমি একজন অভিজ্ঞ বাংলা নিউজ সম্পাদক। নিচের সূত্র-তথ্য থেকে একটি খবরের খসড়া লেখো।\n` +
-    `কঠোর নিয়ম:\n` +
-    `- শুধু সূত্রে থাকা তথ্য ব্যবহার করো। নিজে থেকে কোনো নাম, সংখ্যা, তারিখ বা উক্তি যোগ করবে না।\n` +
-    `- নিরপেক্ষ ভাষা; শিরোনাম ক্লিকবেইট নয়, ১২০ অক্ষরের মধ্যে।\n` +
-    `- বিভাগ (category) এই তালিকা থেকে ঠিক একটি: ${categories.join(", ")}\n` +
-    `- body: ৩ থেকে ৬ অনুচ্ছেদ, অনুচ্ছেদের মাঝে ফাঁকা লাইন।\n` +
-    `- imagePrompt: ইংরেজিতে, প্রতীকী দৃশ্যের বর্ণনা; ছবিতে কোনো লেখা বা বাস্তব ব্যক্তির মুখ থাকবে না।\n` +
-    `শুধু এই JSON দাও: {"title":"","category":"","body":"","imagePrompt":""}\n\n` +
-    `সূত্র-তথ্য:\n${source}`;
-  const draft = await aiJSON(env, prompt, { temperature: 0.3 });
-  if (!categories.includes(draft.category)) draft.category = categories[categories.length - 1];
-  return {
-    title: String(draft.title || "").trim(),
-    category: draft.category,
-    body: String(draft.body || "").trim(),
-    imagePrompt: String(draft.imagePrompt || "").trim(),
-  };
-}
-
-// ধাপ ২: খসড়ার দাবিগুলো অ্যাডমিনের দেওয়া সূত্র-তথ্যের সাথে মেলানো (ওয়েব সার্চ নয়)
-async function factCheck(env, draft, source) {
-  const prompt =
-    `তুমি একজন ফ্যাক্ট-চেকার। নিচের খসড়ার প্রতিটি মূল দাবি শুধু "সূত্র-তথ্য" দেখে মিলিয়ে দেখো; নিজের জানা বা অনুমান ব্যবহার করবে না।\n` +
-    `শুধু এই JSON দাও (বাংলায়):\n` +
-    `{"verdict":"verified|doubtful|unverified","summary":"২-৩ বাক্যে সারকথা","claims":[{"claim":"","status":"verified|doubtful|unverified","note":""}]}\n` +
-    `- verified = সূত্র-তথ্যে স্পষ্ট আছে; doubtful = সূত্রের সাথে অমিল; unverified = সূত্রে এর প্রমাণ নেই।\n` +
-    `- claims সর্বোচ্চ ৬টি।\n\n` +
-    `খসড়া শিরোনাম: ${draft.title}\n\n${draft.body}\n\n---\nসূত্র-তথ্য:\n${String(source || "").slice(0, 9000)}`;
-  const result = await aiJSON(env, prompt, { temperature: 0.1 });
-  return {
-    verdict: ["verified", "doubtful", "unverified"].includes(result.verdict) ? result.verdict : "unverified",
-    summary: String(result.summary || ""),
-    claims: Array.isArray(result.claims) ? result.claims.slice(0, 6) : [],
-    sources: [],
-  };
-}
-
-// ============================================================
-// সাধারণ সহায়ক: তারিখ, হ্যাশ, Firebase (সার্ভিস অ্যাকাউন্ট), RSS পার্সার
-// Secret FIREBASE_SA (সার্ভিস অ্যাকাউন্ট JSON) দরকার — ড্রাফট ও ব্যবহার-হিসাব রাখতে
-// ============================================================
-
-const dhakaDate = () =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-
-async function sha1(s) {
-  const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(s));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 20);
-}
-
-const b64url = (buf) =>
-  btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-
-// সার্ভিস অ্যাকাউন্ট দিয়ে Firebase Realtime Database-এর অ্যাক্সেস টোকেন (রুলস পার হয়ে লিখতে পারে)
-let _fbTok = null;
-async function fbToken(env) {
-  if (_fbTok && _fbTok.exp > Date.now() + 60000) return _fbTok.value;
-  if (!env.FIREBASE_SA) throw new Error("FIREBASE_SA সেট করা নেই");
-  const sa = JSON.parse(env.FIREBASE_SA);
-  const now = Math.floor(Date.now() / 1000);
-  const enc = (o) => b64url(new TextEncoder().encode(JSON.stringify(o)));
-  const unsigned =
-    enc({ alg: "RS256", typ: "JWT" }) +
-    "." +
-    enc({
-      iss: sa.client_email,
-      scope: "https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email",
-      aud: "https://oauth2.googleapis.com/token",
-      iat: now,
-      exp: now + 3600,
-    });
-  const b64 = sa.private_key.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
-  const bin = atob(b64);
-  const der = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) der[i] = bin.charCodeAt(i);
-  const key = await crypto.subtle.importKey("pkcs8", der.buffer, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned));
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: "grant_type=" + encodeURIComponent("urn:ietf:params:oauth:grant-type:jwt-bearer") + "&assertion=" + unsigned + "." + b64url(sig),
-  });
-  if (!res.ok) throw new Error("Firebase টোকেন পাওয়া যায়নি: " + (await res.text()).slice(0, 200));
-  const j = await res.json();
-  _fbTok = { value: j.access_token, exp: Date.now() + (j.expires_in || 3600) * 1000 };
-  return _fbTok.value;
-}
-
-async function fb(env, method, path, body, query = "") {
-  const t = await fbToken(env);
-  const res = await fetch(`${DB}/${path}.json?${query}access_token=${t}`, {
-    method,
-    headers: { "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Firebase ${method} ${path} ${res.status}`);
-  return res.json();
-}
-
-const unxml = (s) =>
-  s
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&amp;/g, "&")
-    .trim();
-
-// সাধারণ RSS পার্সার (title, link, pubDate)
-function parseFeed(xml) {
-  const items = [];
-  const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || [];
-  const pick = (blk, tag) => {
-    const m = blk.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
-    return m ? unxml(m[1]) : "";
-  };
-  for (const b of blocks) {
-    const title = pick(b, "title").replace(/\s+-\s+[^-]{2,40}$/, "").trim(); // গুগল নিউজের শেষের " - সাইটের নাম" বাদ
-    const link = pick(b, "link");
-    const t = Date.parse(pick(b, "pubDate"));
-    if (title && link) items.push({ title, link, outlet: pick(b, "source"), time: isNaN(t) ? Date.now() : t });
-  }
-  return items.sort((a, b) => b.time - a.time).slice(0, 15);
-}
-
-const V_STATUS = ["verified", "partially_verified", "unverified", "false_misleading"];
-const normStatus = (s) => (V_STATUS.includes(s) ? s : "unverified");
-const strArr = (a) => (Array.isArray(a) ? a.map((x) => String(x)).filter(Boolean).slice(0, 8) : []);
-const makeSlug = (s, id) =>
-  (String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "news") + "-" + id.slice(-5);
-
-// লেখার মতো যথেষ্ট প্রমাণ আছে কি না
-const hasEnoughEvidence = (v) =>
-  v.enough && (v.verdict === "verified" || v.verdict === "partially_verified") && (v.primarySource || v.independentSources >= 2);
-
-const reviewReason = (v) =>
-  v.verdict === "false_misleading"
-    ? "সম্ভাব্য ভুল বা বিভ্রান্তিকর খবর — সাবধানে দেখুন"
-    : v.conflicts.length
-    ? "সূত্রগুলোর মধ্যে পরস্পরবিরোধী তথ্য আছে"
-    : "যাচাইয়ের প্রমাণ অপর্যাপ্ত — লেখা তৈরি করা হয়নি";
-
-// ============================================================
-// টাইটেল থেকে গবেষণা-রিপোর্ট (/api/ai/report)
-// অ্যাডমিন একটি শিরোনাম/বিষয় দেয় (সাথে চাইলে লিংক/তথ্য: input.url, input.text) → Worker গুগল-নিউজে সূত্র খুঁজে AI মাত্র ১ বার ডাকে (সার্চ-টুল ছাড়া):
-// তথ্য সংগ্রহ + দাবি যাচাই + রিপোর্ট + আরও ভালো শিরোনামের বিকল্প + সংবাদের খসড়া।
-// ফল `drafts`-এ যায় (reviewStatus = pending_review / review_required) — অ্যাডমিন অনুমোদন ছাড়া কিছু প্রকাশ হয় না।
-// অযথা Gemini কল এড়াতে:
-//   • একই বিষয় ২৪ ঘণ্টার মধ্যে আবার দিলে আগের রিপোর্টই খোলে (নতুন কল নয়; force:true দিলে নতুন)
-//   • দৈনিক সীমা REPORT_LIMIT (ডিফল্ট ৩০)
-//   • সময়সীমা REPORT_TIMEOUT_MIN মিনিট (ডিফল্ট ১০) — এর মধ্যে না হলে বাতিল
-// ============================================================
-
-const normTopic = (s) =>
-  String(s || "").toLowerCase().replace(/[^\p{L}\p{M}\p{N}]+/gu, " ").trim();
-
-const cleanTitles = (a) =>
-  (Array.isArray(a) ? a : [])
-    .map((o) => (typeof o === "string" ? { title: o, why: "" } : { title: String((o && o.title) || ""), why: String((o && o.why) || "") }))
-    .map((o) => ({ title: o.title.trim().slice(0, 150), why: o.why.trim().slice(0, 200) }))
-    .filter((o) => o.title)
-    .slice(0, 5);
-
-async function researchReport(env, topic, categories, preferred, signal, evd, extraText, aiOpts = {}) {
-  const socialRule = aiOpts.social5 ? "socialPost ৪-৫ লাইনের (প্রতিটি লাইন আলাদা, শেষ লাইনে ২-৩টি হ্যাশট্যাগ), মোট ৪০০ অক্ষরের মধ্যে, শুধু যাচাইকৃত তথ্য" : "socialPost ২৬০ অক্ষরের মধ্যে";
-  const noSrcRule = aiOpts.social5 ? "content-এর ভেতরে কোনো তথ্যসূত্র, উৎস-তালিকা, লিংক, [১]-জাতীয় চিহ্ন বা 'সূত্র:' লাইন লিখবে না (সূত্র শুধু claims-এ থাকবে)।" : "";
-  const prompt =
-    `আজকের তারিখ: ${dhakaDate()}। তুমি একজন কঠোর ফ্যাক্ট-চেকার এবং অভিজ্ঞ পেশাদার বাংলা সংবাদ-সম্পাদক।\n` +
-    `অ্যাডমিন এই শিরোনাম/বিষয়ে একটি যাচাই-করা সংবাদ চান:\n"${topic}"\n` +
-    `শিরোনামটাকে সত্য ধরে নেবে না — শিরোনামের নিজস্ব দাবিও নিচের সূত্র-তথ্যের সাথে মিলিয়ে দেখো।\n\n` +
-    `কাজ (একবারেই): সূত্র-তথ্য থেকে মূল দাবিগুলো মিলিয়ে দেখো, তারপর রিপোর্ট ও পেশাদার সংবাদ লেখো। শুধু এই সূত্র-তথ্য ব্যবহার করবে; নিজের জানা বা অনুমান থেকে নির্দিষ্ট কোনো তথ্য যোগ করবে না।\n\n` +
-    `${evidenceBlock(evd, extraText)}\n\n` +
-    `যাচাইয়ের নিয়ম:\n` +
-    `- প্রমাণ ছাড়া কোনো দাবিকে verified বলবে না। নিজের আত্মবিশ্বাস বা স্কোরকে প্রমাণ ধরবে না।\n` +
-    `- একই মূল সূত্র/সংবাদ সংস্থা থেকে নেওয়া একাধিক খবরকে একটি উৎস গণনা করো (স্বাধীন নয়)।\n` +
-    `- কোনো উৎস বিরোধিতা করলে conflicts-এ লেখো। যা নিশ্চিত নয় তা uncertainties-এ লেখো।\n` +
-    `- primarySource সবসময় false। enough: true শুধু তখনই, যখন লেখার মতো যথেষ্ট প্রমাণ আছে।\n` +
-    `- claims সর্বোচ্চ ৮টি। supportedBy ও contradictedBy-তে শুধু সূত্রের নম্বর দাও (যেমন [1,3]) — যে নম্বরগুলো উপরের [ ] ভেতরে আছে।\n` +
-    `- report.summary ৩-৪ বাক্য; keyFindings ৩-৮টি যাচাই-করা পয়েন্ট; background সংক্ষিপ্ত প্রেক্ষাপট; unclear = যা এখনো স্পষ্ট নয়।\n` +
-    `- titleOptions: ৩-৫টি পেশাদার শিরোনাম (প্রতিটি ১২০ অক্ষরের মধ্যে, তথ্যভিত্তিক, ক্লিকবেইট নয়); why-তে এক বাক্যে কেন ভালো। title হবে এদের মধ্যে সেরাটি।\n\n` +
-    `সংবাদ লেখার নিয়ম (content — enough সত্য হলে; মিথ্যা হলে content "" রাখো):\n` +
-    `- সাধারণ বাংলা অনুচ্ছেদ; মার্কডাউন, তারকাচিহ্ন বা বুলেট নয়; অনুচ্ছেদের মাঝে একটি ফাঁকা লাইন।\n` +
-    `- কাঠামো: (১) ভূমিকা, ৩-৪ বাক্য — বড় প্রেক্ষাপট বা পাঠকের চেনা দৃশ্য দিয়ে শুরু করে শেষ বাক্যে মূল খবরে আসো। এই ভূমিকায় শুধু সর্বজনবিদিত সাধারণ প্রেক্ষাপট-বাক্য চলবে; সূত্রে নেই এমন কোনো নির্দিষ্ট সংখ্যা, তারিখ, নাম বা উদ্ধৃতি নয়। (২) তারপর একটি আলাদা লাইনে শুধু: বিস্তারিত (৩) এরপর ৩-৫ অনুচ্ছেদ: ঘটনার বিবরণ, যাচাই-করা গুরুত্বপূর্ণ তথ্য, প্রয়োজনীয় প্রেক্ষাপট ও বিশ্লেষণ — সবই সূত্র-তথ্য থেকে। (৪) শেষ অনুচ্ছেদ \"তথ্যের সীমাবদ্ধতা:\" দিয়ে শুরু — যা এখনো নিশ্চিত নয়।\n` +
-    `- ভাষা: প্রমিত, সংযত, পেশাদার; নিরপেক্ষ; ক্লিকবেইট বা আবেগী অতিরঞ্জন নয়। partially_verified তথ্য \"এখনো পুরোপুরি নিশ্চিত নয়\" বলে স্পষ্ট করো।\n` +
-    `- কোনো সংবাদমাধ্যমের শিরোনাম, বাক্য বা কাঠামো নকল করবে না; শুধু শব্দ বদলানোও চলবে না। সম্পূর্ণ নিজস্ব ভাষায় লেখো।\n` +
-    `- শৈলীর উদাহরণ (শুধু ভাষা ও কাঠামো দেখার জন্য; এর কোনো বাক্য বা তথ্য ব্যবহার করবে না): \"সময়ের সঙ্গে পৃথিবীতে দেখা দিয়েছে নানা ধরনের সংক্রামক রোগ। কোনোটি সীমিত অঞ্চলে প্রাণঘাতী প্রাদুর্ভাব সৃষ্টি করেছে, আবার কোনোটি ছড়িয়ে পড়েছে সারা বিশ্বে। কয়েক বছর আগেই করোনাভাইরাসের মহামারি দেখেছে পৃথিবী, যার প্রভাব পড়েছিল কোটি কোটি মানুষের জীবনে। এবার আলোচনায় ইবোলা ভাইরাস।\"\n\n` +
-    `অন্যান্য ফিল্ড:\n` +
-    `- category: ${preferred ? `অ্যাডমিন "${preferred}" বেছেছেন, সেটাই দাও` : "এই তালিকা থেকে ঠিক একটি"} (তালিকা: ${categories.join(", ")})\n` +
-    `- summary ২০০ অক্ষরের মধ্যে; seoTitle ৬০ অক্ষরের মধ্যে; metaDescription ১৫৫ অক্ষরের মধ্যে; keywords ৫-৮টি; slug ইংরেজি ছোট হাতের অক্ষর ও হাইফেনে।\n` +
-    `- imagePrompt ইংরেজিতে, প্রতীকী দৃশ্য; ছবিতে লেখা বা বাস্তব ব্যক্তির মুখ নয়। ${socialRule}। ${noSrcRule}\n\n` +
-    `শুধু এই JSON দাও (বাংলায়; JSON-এর বাইরে কিছু নয়):\n` +
-    `{"isOld":false,"verdict":"verified|partially_verified|unverified|false_misleading","enough":false,"primarySource":false,"independentSources":0,` +
-    `"claims":[{"claim":"","status":"verified|partially_verified|unverified|false_misleading","evidence":"","supportedBy":[1],"contradictedBy":[]}],` +
-    `"conflicts":[""],"uncertainties":[""],"sharedOriginNote":"",` +
-    `"report":{"summary":"","keyFindings":[""],"background":"","unclear":[""]},` +
-    `"titleOptions":[{"title":"","why":""}],` +
-    `"title":"","summary":"","content":"","category":"","seoTitle":"","metaDescription":"","keywords":[""],"slug":"","imagePrompt":"","socialPost":""}`;
-
-  const readN = new Set(evd.pages.map((p) => p.n));
-  const byN = {};
-  for (const h of evd.headlines) byN[h.n] = h;
-  const sources = evd.headlines
-    .map((x) => ({ title: `${x.name || ""}: ${x.title}`, url: x.url, read: readN.has(x.n) }))
-    .slice(0, 12);
-
-  // সূত্র-নম্বর → নাম ও লিংক (যাচাইয়ের লিংক)
-  const refNums = (a) =>
-    [...new Set((Array.isArray(a) ? a : []).map((x) => parseInt(String(x).replace(/[^\d]/g, ""), 10)).filter((n) => byN[n]))];
-  const refNames = (a) => refNums(a).map((n) => byN[n].name || byN[n].url);
-  const refLinks = (a) => refNums(a).map((n) => ({ name: byN[n].name || "", title: byN[n].title, url: byN[n].url }));
-
-  let r;
-  try {
-    r = await aiJSON(env, prompt, { temperature: 0.25, signal, prefer: aiOpts.prefer });
-  } catch (e) {
-    if (e && (e.quota || e.name === "TimeoutError" || e.name === "AbortError")) throw e;
-    r = { uncertainties: ["AI-এর উত্তর পড়া যায়নি, আবার চেষ্টা করুন"] };
-  }
-  const rep = r.report || {};
-  return {
-    verdict: normStatus(r.verdict),
-    enough: r.enough === true && (evd.pages.length >= 2 || String(extraText || "").length >= 400),
-    primarySource: false,
-    independentSources: Math.min(evd.outlets || 0, Number(r.independentSources) || 0) || (String(extraText || "").length >= 400 ? 1 : 0),
-    claims: (Array.isArray(r.claims) ? r.claims : []).slice(0, 8).map((c) => ({
-      claim: String(c.claim || ""),
-      status: normStatus(c.status),
-      evidence: String(c.evidence || ""),
-      supportedBy: refNames(c.supportedBy),
-      contradictedBy: refNames(c.contradictedBy),
-      links: refLinks(c.supportedBy).slice(0, 4),
-    })),
-    conflicts: strArr(r.conflicts),
-    uncertainties: strArr(r.uncertainties),
-    sharedOriginNote: String(r.sharedOriginNote || ""),
-    report: {
-      summary: String(rep.summary || "").trim().slice(0, 900),
-      keyFindings: strArr(rep.keyFindings),
-      background: String(rep.background || "").trim().slice(0, 1500),
-      unclear: strArr(rep.unclear),
-    },
-    titleOptions: cleanTitles(r.titleOptions),
-    title: String(r.title || "").trim().slice(0, 180),
-    summary: String(r.summary || rep.summary || "").trim().slice(0, 300),
-    content: String(r.content || "").trim(),
-    category: categories.includes(preferred) ? preferred : categories.includes(r.category) ? r.category : categories[categories.length - 1],
-    seoTitle: String(r.seoTitle || "").trim().slice(0, 70),
-    metaDescription: String(r.metaDescription || "").trim().slice(0, 170),
-    keywords: strArr(r.keywords),
-    slug: String(r.slug || ""),
-    imagePrompt: String(r.imagePrompt || "").trim(),
-    socialPost: String(r.socialPost || "").trim().slice(0, aiOpts.social5 ? 500 : 300),
-    sources,
-  };
-}
-
-// বিষয় থেকে ছোট খোঁজ-শব্দ বানিয়ে Google News (বাংলা + ইংরেজি) ও Bing News RSS থেকে সূত্র আনা
-const realNewsUrl = (l) => {
-  try {
-    const u = new URL(l);
-    if (/(^|\.)bing\.com$/.test(u.hostname) && u.searchParams.get("url")) return u.searchParams.get("url");
-  } catch (e) { /* যেমন আছে */ }
-  return l;
-};
-
-async function findNews(topic) {
-  const clean = String(topic).replace(/[!?।,:;"“”‘’()\[\]|]/g, " ").replace(/\s+/g, " ").trim();
-  const words = clean.split(" ").filter((w) => w.length > 1);
-  const latin = (clean.match(/[A-Za-z][A-Za-z0-9.\-]*(?:\s+[A-Za-z0-9.\-]+){0,3}/g) || []).sort((a, b) => b.length - a.length)[0] || "";
-  const queries = [...new Set([latin.trim(), words.slice(0, 6).join(" "), words.slice(0, 3).join(" ")].filter((q) => q && q.length >= 4))].slice(0, 3);
-  const out = [];
-  const seen = new Set();
-  for (const q of queries) {
-    const e = encodeURIComponent(q);
-    const urls = [
-      `https://news.google.com/rss/search?q=${e}&hl=bn&gl=BD&ceid=BD:bn`,
-      `https://news.google.com/rss/search?q=${e}&hl=en&gl=BD&ceid=BD:en`,
-      `https://www.bing.com/news/search?q=${e}&format=rss`,
-    ];
-    const lists = await Promise.all(
-      urls.map(async (u) => {
-        try {
-          const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 ARNewsBot" }, signal: AbortSignal.timeout(8000) });
-          return r.ok ? parseFeed(await r.text()) : [];
-        } catch (err) {
-          return [];
-        }
-      })
-    );
-    for (const it of lists.flat()) {
-      const url = realNewsUrl(it.link);
-      if (seen.has(url)) continue;
-      seen.add(url);
-      let name = it.outlet || "";
-      if (!name) { try { name = new URL(url).hostname.replace(/^www\./, ""); } catch (err) { /* খালি */ } }
-      out.push({ name, title: it.title, url });
-    }
-    if (out.length >= 8) break;
-  }
-  return out;
-}
-
-async function createReport(env, topic, input) {
-  const categories = env.CATEGORIES
-    ? String(env.CATEGORIES).split(",").map((s) => s.trim()).filter(Boolean)
-    : DEFAULT_CATEGORIES;
-  const preferred = String(input.category || "").trim();
-  const key = "r" + (await sha1(normTopic(topic)));
-
-  // ১) আগে করা রিপোর্ট থাকলে Gemini ডাকা হয় না
-  if (!input.force) {
-    const hit = await fb(env, "GET", `reportCache/${key}`);
-    if (hit && hit.draftId && Date.now() - Number(hit.at || 0) < 24 * 3600 * 1000) {
-      const still = await fb(env, "GET", `drafts/${hit.draftId}/createdAt`);
-      if (still) return { draftId: hit.draftId, cached: true };
-    }
-  }
-
-  // ২) দৈনিক সীমা
-  const today = dhakaDate();
-  const rs = (await fb(env, "GET", "reportState")) || {};
-  const used = rs.date === today ? Number(rs.count || 0) : 0;
-  const cap = Number(env.REPORT_LIMIT || 30);
-  if (used >= cap) throw new Error(`আজকের রিপোর্টের সীমা (${cap}টি) শেষ — কাল আবার চেষ্টা করুন`);
-
-  // ৩) একবারই Gemini, সর্বোচ্চ REPORT_TIMEOUT_MIN মিনিট
-  const mins = Number(env.REPORT_TIMEOUT_MIN || 10);
-
-  // সূত্র: গুগল-নিউজে বিষয়টি খুঁজে পাওয়া সংবাদ + অ্যাডমিনের পেস্ট করা লেখা/লিংক
-  let extraText = String(input.text || "").trim().slice(0, 9000);
-  if (input.url) {
-    try { extraText += "\n" + (await textFromUrl(String(input.url).trim())); } catch (e) { /* লিংক না খুললে বাদ */ }
-  }
-  extraText = extraText.trim().slice(0, 12000);
-  const found = await findNews(topic);
-  const evd = await gatherEvidence(found, 4);
-  if (evd.headlines.length < 2 && extraText.length < 200) {
-    throw new Error(`এই বিষয়ে যথেষ্ট সূত্র পাওয়া যায়নি (খুঁজে পাওয়া: ${evd.headlines.length}টি) — নিউজের লিংক বা তথ্য সাথে দিন`);
-  }
-
-  let v;
-  try {
-    v = await researchReport(env, topic, categories, preferred, AbortSignal.timeout(mins * 60000), evd, extraText);
-  } catch (e) {
-    if (e && (e.name === "TimeoutError" || e.name === "AbortError")) {
-      throw new Error(`নির্ধারিত সময় (${mins} মিনিট) শেষ হয়ে গেছে — আবার চেষ্টা করুন`);
-    }
-    throw e;
-  }
-
-  // ৪) ড্রাফট সংরক্ষণ (অ্যাডমিন রিভিউয়ের জন্য)
-  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const enough = hasEnoughEvidence(v) && v.content;
-  const base = {
-    topic,
-    sources: v.sources,
-    claims: v.claims,
-    verificationStatus: v.verdict,
-    independentSources: v.independentSources,
-    primarySource: v.primarySource,
-    uncertainties: v.uncertainties,
-    warnings: [...v.conflicts, ...(v.sharedOriginNote ? [v.sharedOriginNote] : [])],
-    report: v.report,
-    titleOptions: v.titleOptions,
-    imagePrompt: v.imagePrompt,
-    socialPost: v.socialPost,
-    auto: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-  const doc = enough
-    ? {
-        ...base,
-        title: v.title || topic,
-        summary: v.summary,
-        content: v.content,
-        category: v.category,
-        seoTitle: v.seoTitle,
-        metaDescription: v.metaDescription,
-        keywords: v.keywords,
-        slug: makeSlug(v.slug, id),
-        reviewStatus: "pending_review",
-      }
-    : {
-        ...base,
-        title: topic,
-        category: v.category,
-        reviewStatus: "review_required",
-        reviewNote: reviewReason(v),
-      };
-  await fb(env, "PUT", `drafts/${id}`, doc);
-  await fb(env, "PUT", `reportCache/${key}`, { draftId: id, at: Date.now() });
-  await fb(env, "PUT", "reportState", { date: today, count: used + 1 });
-  return { draftId: id, cached: false, verdict: v.verdict, enough: !!enough, titleOptions: v.titleOptions.length };
-}
-
-// ---------- CORS: অ্যাডমিন প্যানেল আলাদা ঠিকানায় (GitHub Pages) থাকলে সেখান থেকে API ডাকার অনুমতি ----------
-const ALLOWED_ORIGINS = [
-  "https://arresearcherarnews.github.io", // অ্যাডমিন প্যানেল
-  "https://arnews.info",
-];
-
-function corsHeaders(request) {
-  const origin = request.headers.get("origin") || "";
-  if (!ALLOWED_ORIGINS.includes(origin)) return {};
-  return {
-    "access-control-allow-origin": origin,
-    "access-control-allow-methods": "POST, OPTIONS",
-    "access-control-allow-headers": "authorization, content-type",
-    "access-control-max-age": "86400",
-    vary: "Origin",
-  };
-}
-
-function withCors(request, res) {
-  const h = new Headers(res.headers);
-  for (const [k, v] of Object.entries(corsHeaders(request))) h.set(k, v);
-  return new Response(res.body, { status: res.status, headers: h });
-}
-
-async function handleAI(request, env, url) {
-  if (request.method !== "POST") return jsonRes({ error: "POST ব্যবহার করুন" }, 405);
-  const admin = await requireAdmin(request, env);
-  if (!admin) return jsonRes({ error: "অনুমতি নেই" }, 401);
-
-  const input = await request.json().catch(() => ({}));
-
-  try {
-    // ব্যবহার ও কার্যকলাপ (অ্যাডমিন প্যানেলের "AI অবস্থা" অংশের জন্য)
-    if (url.pathname === "/api/ai/status") {
-      const [aiStatus, reportState] = await Promise.all([
-        fb(env, "GET", "aiStatus"),
-        fb(env, "GET", "reportState"),
-      ]);
-      const today = dhakaDate();
-      const log = aiStatus && aiStatus.log ? (Array.isArray(aiStatus.log) ? aiStatus.log : Object.values(aiStatus.log)) : [];
-      return jsonRes({
-        today,
-        usage: aiStatus && aiStatus.date === today ? aiStatus.usage || {} : {},
-        log,
-        reportsToday: reportState && reportState.date === today ? Number(reportState.count || 0) : 0,
-        reportLimit: Number(env.REPORT_LIMIT || 30),
-        limits: { gemini: GEMINI_FREE_LIMITS },
-        config: {
-          geminiModels: env.GEMINI_MODEL ? listFrom(env.GEMINI_MODEL) : WRITE_MODELS,
-          workersAi: !!(env.AI && env.AI_MODEL),
-          workersAiModel: env.AI_MODEL || "",
-        },
-      });
-    }
-
-    // টাইটেল থেকে গবেষণা-রিপোর্ট
-    if (url.pathname === "/api/ai/report") {
-      const topic = String(input.title || input.topic || "").trim().replace(/\s+/g, " ").slice(0, 200);
-      if (topic.length < 8) return jsonRes({ error: "শিরোনাম বা বিষয়টি একটু বিস্তারিত লিখুন (কমপক্ষে ৮ অক্ষর)" }, 400);
-      const out = await createReport(env, topic, input);
-      await flushStatus(env, { kind: "report", ok: true, msg: topic.slice(0, 70) + (out.cached ? " (আগের রিপোর্ট খোলা হয়েছে)" : out.enough ? " — ড্রাফট তৈরি" : " — রিভিউ প্রয়োজন") });
-      return jsonRes(out);
-    }
-
-    if (url.pathname === "/api/ai/draft") {
-      let source = String(input.text || "").trim();
-      if (input.url) source += "\n" + (await textFromUrl(String(input.url).trim()));
-      source = source.trim().slice(0, 14000);
-      if (source.length < 30) return jsonRes({ error: "তথ্য বা লিংক দিন (অন্তত কয়েক বাক্য)" }, 400);
-
-      const categories =
-        Array.isArray(input.categories) && input.categories.length
-          ? input.categories.map(String).slice(0, 30)
-          : DEFAULT_CATEGORIES;
-
-      const draft = await writeDraft(env, source, categories);
-      let check;
-      try {
-        check = await factCheck(env, draft, source);
-      } catch (e) {
-        check = { verdict: "unverified", summary: "সত্যতা যাচাই করা যায়নি, নিজে দেখে নিন।", claims: [], sources: [] };
-      }
-      await flushStatus(env, { kind: "draft", ok: true, msg: String(draft.title || "").slice(0, 70) });
-      return jsonRes({ draft, factCheck: check });
-    }
-
-    // নিউজরুমের সেটিং/ম্যানুয়াল রান
-    if (url.pathname === "/api/ai/newsroom") return jsonRes(await nrHandle(env, input));
-
-    // সংবাদের অংশ থেকে X (টুইটার)-এর জন্য ৩-৪ লাইনের পোস্ট
-    if (url.pathname === "/api/ai/xpost") {
-      const xTitle = String(input.title || "").trim().slice(0, 300);
-      const xBody = String(input.content || "").trim().slice(0, 6000);
-      if (xBody.length < 80) return jsonRes({ error: "আগে বিস্তারিত লেখা দিন" }, 400);
-      try {
-        const r = await aiJSON(env,
-          `তুমি AR News-এর সোশ্যাল মিডিয়া সম্পাদক। নিচের সংবাদ থেকে X (টুইটার)-এর জন্য পোস্ট লেখো।\n` +
-          `নিয়ম: ঠিক ৩-৪ লাইন, প্রতিটি লাইন নতুন লাইনে; প্রথম লাইনে মূল খবর, পরের লাইনে সবচেয়ে গুরুত্বপূর্ণ তথ্য; শেষ লাইনে ১-২টি হ্যাশট্যাগ।\n` +
-          `শুধু সংবাদে থাকা তথ্য ব্যবহার করো — নতুন নাম, সংখ্যা, দাবি বা অনুমান যোগ করবে না। ক্লিকবেইট বা অতিরঞ্জন নয়। মোট ২৬০ অক্ষরের মধ্যে। প্রমিত বাংলা।\n\n` +
-          `শিরোনাম: ${xTitle}\n${xBody}\n\nশুধু JSON: {"xPost":""}`,
-          { temperature: 0.3, prefer: env.AI && env.AI_MODEL ? "workers" : "gemini" });
-        let x = String(r.xPost || "").replace(/\r/g, "").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 5).join("\n");
-        if (x.length > 280) x = x.slice(0, 279).replace(/\s+\S*$/, "") + "…";
-        if (!x) return jsonRes({ error: "AI পোস্ট লিখতে পারেনি, আবার চেষ্টা করুন" }, 500);
-        return jsonRes({ xPost: x });
-      } catch (e) {
-        return jsonRes({ error: String((e && e.message) || e).slice(0, 200) }, 500);
-      }
-    }
-
-    if (url.pathname === "/api/ai/image") {
-      if (!env.AI) return jsonRes({ error: "Workers AI (AI) বাইন্ডিং যোগ করা নেই" }, 500);
-      const prompt = String(input.prompt || "").trim().slice(0, 500);
-      if (!prompt) return jsonRes({ error: "ছবির বর্ণনা দিন" }, 400);
-      const r = await env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
-        prompt: prompt + ", editorial illustration, no text, no letters, no real people",
-        steps: 4,
-      });
-      if (!r || !r.image) throw new Error("ছবি তৈরি হয়নি");
-      return jsonRes({ image: "data:image/jpeg;base64," + r.image });
-    }
-  } catch (e) {
-    const em = String((e && e.message) || e);
-    if (!url.pathname.endsWith("/status")) {
-      await flushStatus(env, { kind: url.pathname.split("/").pop(), ok: false, msg: "ব্যর্থ", error: em.slice(0, 300) });
-    }
-    return jsonRes({ error: em }, 500);
-  }
-  return jsonRes({ error: "পাওয়া যায়নি" }, 404);
-}
-
-// ============================================================
-// AI নিউজরুম (স্বয়ংক্রিয়) — cron প্রতি ঘণ্টায় জাগে; অ্যাডমিন প্যানেলের সময়সূচি অনুযায়ী দরকার হলেই চলে।
-// সময়সূচি (newsroomConfig/intervalHours): ০ = দিনে ২ বার (ঢাকা সকাল ৮টা ও সন্ধ্যা ৭টা); ১/২/৩/৫ = সকাল ৮টা থেকে রাত ১১টা পর্যন্ত প্রতি N ঘণ্টায়।
-// প্রতি রানে ২টি বিষয়: ১টি নতুন খবর + ১টি পুরোনো-কিন্তু-প্রাসঙ্গিক।
-// ধাপ: বিষয় বাছাই → একাধিক সূত্র সংগ্রহ → গবেষণা/যাচাই/বাংলা রিপোর্ট (লেখক: Workers AI, ফলব্যাক Gemini) → আলাদা সম্পাদক-QA (Gemini) → কঠোর গেট
-//      → প্রমাণ কম হলে খবরটি নিজে বাতিল ও মুছে ফেলা (autoDelete) → গেট পাস + autoPublish চালু হলে প্রকাশ, নইলে ড্রাফটে।
-// নিরাপত্তা: ডিফল্টে DRY-RUN (autoPublish বন্ধ)। কিল-সুইচ: newsroomConfig/enabled = false।
-// লেখে শুধু: drafts/, posts/ (নতুন কী), newsroomRuns/, newsroomState/, newsroomConfig/ — মোছে শুধু প্রমাণ-কম অনুমোদনহীন ড্রাফট।
-// ============================================================
-const NR_SENSITIVE = /(মৃত্যু|নিহত|হত্যা|ধর্ষণ|নির্যাতন|আত্মহত্যা|সাম্প্রদায়িক|দাঙ্গা|ধর্মীয়|নির্বাচন|যুদ্ধ|হামলা|জঙ্গি|সন্ত্রাস|গ্রেফতার|গ্রেপ্তার|রায়|মামলা|অভিযোগ|চিকিৎসা|ওষুধ|টিকা|রোগ|শেয়ার|বিনিয়োগ|ডলার|গুজব|অপহরণ|শিশু|ভূমিকম্প|দুর্ঘটনা)/;
-const NR_SENSITIVE_CATS = ["রাজনীতি", "স্বাস্থ্য"];
-const enDigits = (s) => String(s).replace(/[০-৯]/g, (d) => "০১২৩৪৫৬৭৮৯".indexOf(d));
-const DAY = 86400000;
-
-async function nrRss(u) {
-  try {
-    const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 ARNewsBot" }, signal: AbortSignal.timeout(8000) });
-    return r.ok ? parseFeed(await r.text()) : [];
-  } catch (e) { return []; }
-}
-const nrGnews = (q) => `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=bn&gl=BD&ceid=BD:bn`;
-
-// অ্যাডমিন-সেটিং (ডিফল্টসহ)
-function nrCfg(raw, env) {
-  const c = raw || {};
-  const pick = (v, list, d) => (list.includes(Number(v)) ? Number(v) : d);
-  return {
-    enabled: c.enabled !== false,
-    autoPublish: c.autoPublish !== false, // ডিফল্ট চালু: গেট পাস করলে নিজে প্রকাশ
-    autoDelete: c.autoDelete !== false,
-    intervalHours: pick(c.intervalHours, [0, 1, 2, 3, 5], 1),
-    retryHours: pick(c.retryHours, [1, 2, 3, 5], 2),
-    dailyMax: pick(c.dailyMax, [2, 4, 6, 10, 20], 10),
-    minSources: pick(c.minSources, [2, 3], Number(env.MIN_SOURCES || 3) === 2 ? 2 : 3),
-    writer: c.writer === "gemini" ? "gemini" : "workers",
-  };
-}
-// সফল রানের পর interval ঘণ্টা, কিছু না পেলে retry ঘণ্টা অপেক্ষা (ঢাকার সকাল ৮টা–রাত ১১টার মধ্যে)। intervalHours = 0 হলে ৮টা ও ১৯টায়, ব্যর্থ হলে retry ঘণ্টা পর আবার।
-function nrDue(cfg, hour, last, now) {
-  if (hour < 8 || hour > 23) return false;
-  const elapsed = last && last.startedAt ? now - Number(last.startedAt) : Infinity;
-  const slack = 10 * 60000;
-  if (cfg.intervalHours) return elapsed >= (last && last.ok === false ? cfg.retryHours : cfg.intervalHours) * 3600000 - slack;
-  if (hour === 8 || hour === 19) return true;
-  return !!(last && last.ok === false && last.day === dhakaDate() && elapsed >= cfg.retryHours * 3600000 - slack);
-}
-const nrAiOpts = (cfg, env) => ({ prefer: cfg.writer === "workers" && env.AI && env.AI_MODEL ? "workers" : "gemini", social5: true });
-
-// লেখার ভেতর থেকে তথ্যসূত্র/লিংক/[১] চিহ্ন সরানো (সূত্র আলাদা ক্ষেত্রে থাকে, লেখায় নয়)
-function nrCleanContent(text) {
-  return String(text || "")
-    .replace(/\(\s*(?:তথ্য)?সূত্র[^)]*\)/g, "")
-    .replace(/\[\s*[০-৯\d]+(?:\s*[,–-]\s*[০-৯\d]+)*\s*\]/g, "")
-    .replace(/https?:\/\/\S+/g, "")
-    .split("\n")
-    .filter((l) => !/^\s*(?:তথ্যসূত্র|সূত্রসমূহ|সূত্র|উৎস|Sources?|References?)\s*[:：\-–]/i.test(l))
-    .join("\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+([।,])/g, "$1")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-// ধাপ ১: আজকের শিরোনাম দেখে ১টি fresh + ১টি evergreen বিষয়
-async function nrPickTopics(env, recent) {
-  const feeds = await Promise.all([
-    nrRss("https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn"),
-    nrRss(nrGnews("বাংলাদেশ")), nrRss(nrGnews("প্রযুক্তি বিজ্ঞান")), nrRss(nrGnews("অর্থনীতি")),
-  ]);
-  const heads = [...new Set(feeds.flat().map((x) => x.title))].slice(0, 45);
-  const r = await aiJSON(env,
-    `আজ ${dhakaDate()}। তুমি AR News-এর বার্তা-সম্পাদক। নিচের আজকের শিরোনামগুলো দেখে ঠিক দুটি বিষয় বাছো:\n` +
-    `১) fresh — আজকের সবচেয়ে গুরুত্বপূর্ণ নতুন খবর (একাধিক সংবাদমাধ্যমে এসেছে এমন)।\n` +
-    `২) evergreen — পুরোনো কিন্তু আকর্ষণীয় ও আজকের দিনে প্রাসঙ্গিক বিষয় (বিজ্ঞান, প্রযুক্তি, ইতিহাস, সমাজ, অর্থনীতির ব্যাখ্যামূলক); সময়-নির্দিষ্ট দাবি এড়িয়ে চলো।\n` +
-    `এড়াও: সদ্য-ঘটা মৃত্যু/অপরাধ/ধর্ম/গুজব/অপ্রমাণিত দাবি, এবং এই আগের বিষয়গুলো: ${recent.slice(0, 30).join(" | ") || "নেই"}\n` +
-    `প্রতিটি topic হবে নির্দিষ্ট, সার্চযোগ্য বাংলা বাক্যাংশ (২০ শব্দের মধ্যে)।\n` +
-    `একটি না পাওয়া গেলে যাতে বিকল্প থাকে, তাই fresh-এ ঠিক ৬টি এবং evergreen-এ ঠিক ৪টি আলাদা প্রার্থী দাও, সেরা আগে।\nশিরোনাম:\n${heads.join("\n")}\n\n` +
-    `শুধু JSON: {"fresh":[{"topic":"","why":""}],"evergreen":[{"topic":"","why":""}]}`,
-    { temperature: 0.4 });
-  const norm = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((v) => v && String(v.topic || "").trim().length >= 8);
-  return { fresh: norm(r.fresh), evergreen: norm(r.evergreen) };
-}
-
-// ধাপ ২: স্বাধীন সম্পাদক-QA (লেখক থেকে আলাদা মডেল-পথ: Gemini আগে; লেখককে বিশ্বাস করে না)
-async function nrEditorQA(env, v, evd) {
-  const r = await aiJSON(env,
-    `তুমি AR News-এর কঠোর চিফ সাব-এডিটর। নিচের খসড়াটি শুধু সূত্র-তথ্যের সাথে মিলিয়ে যাচাই করো; নিজের জানা ব্যবহার করবে না।\n` +
-    `খসড়া শিরোনাম: ${v.title}\n${v.content}\n\n---\n${evidenceBlock(evd)}\n\n` +
-    `মানদণ্ড (প্রতিটি ০-১০০): accuracy (সব নাম/সংখ্যা/দাবি সূত্রে আছে?), neutrality, language (প্রমিত পেশাদার বাংলা, ব্যাকরণ), originality (সূত্রের বাক্য নকল নয়), headline (সঠিক ও ক্লিকবেইট নয়)।\n` +
-    `unsupported = খসড়ার যেসব বাক্য/তথ্য সূত্রে নেই (থাকলে সব লেখো)। approve=true শুধু যদি unsupported খালি এবং কোনো মানদণ্ড ৮৫-এর নিচে নয়।\n` +
-    `শুধু JSON: {"accuracy":0,"neutrality":0,"language":0,"originality":0,"headline":0,"unsupported":[""],"issues":[""],"approve":false}`,
-    { temperature: 0.1, prefer: "gemini" });
-  const n = (x) => Math.max(0, Math.min(100, Number(x) || 0));
-  return {
-    accuracy: n(r.accuracy), neutrality: n(r.neutrality), language: n(r.language), originality: n(r.originality), headline: n(r.headline),
-    unsupported: strArr(r.unsupported), issues: strArr(r.issues), approve: r.approve === true,
-  };
-}
-
-// ধাপ ৩: কোড-নির্ধারিত গেট — ফাঁকা তালিকা = সব পাস
-function nrGate(env, cfg, v, evd, qa) {
-  const fails = [];
-  const minQa = Number(env.MIN_QA_SCORE || 85);
-  if (!v.enough || !v.content) fails.push("প্রমাণ অপর্যাপ্ত বা লেখা তৈরি হয়নি");
-  if (v.verdict !== "verified") fails.push(`যাচাই-স্ট্যাটাস: ${v.verdict}`);
-  const indep = Math.min(Number(v.independentSources) || 0, evd.outlets || 0);
-  if (indep < cfg.minSources) fails.push(`স্বাধীন সূত্র ${indep}টি (দরকার ${cfg.minSources})`);
-  if (evd.pages.length < 2) fails.push("২টির কম সূত্রের পুরো লেখা পড়া গেছে");
-  if ((v.conflicts || []).length) fails.push("সূত্রে পরস্পরবিরোধী তথ্য");
-  if (NR_SENSITIVE.test(`${v.title} ${v.content}`) || NR_SENSITIVE_CATS.includes(v.category)) fails.push("সংবেদনশীল বিষয়");
-  const tl = String(v.title || "").length;
-  if (tl < 10 || tl > 120) fails.push("শিরোনামের দৈর্ঘ্য");
-  if (String(v.content || "").length < 600) fails.push("লেখা খুব ছোট");
-  if (/[*#]|^\s*[-•]/m.test(v.content || "")) fails.push("মার্কডাউন/বুলেট আছে");
-  const evText = enDigits(evidenceBlock(evd)).replace(/,/g, "");
-  const nums = [...new Set(enDigits(`${v.title} ${v.content}`).replace(/,/g, "").match(/\d+(?:\.\d+)?/g) || [])];
-  const missing = nums.filter((n) => !evText.includes(n));
-  if (missing.length) fails.push("সূত্রে নেই এমন সংখ্যা: " + missing.slice(0, 5).join(", "));
-  if (!qa) fails.push("সম্পাদক-QA হয়নি");
-  else {
-    if (!qa.approve) fails.push("সম্পাদক অনুমোদন দেয়নি");
-    if (qa.unsupported.length) fails.push("সূত্রহীন বাক্য: " + qa.unsupported.slice(0, 2).join(" / "));
-    for (const k of ["accuracy", "neutrality", "language", "originality", "headline"]) if (qa[k] < minQa) fails.push(`${k} স্কোর ${qa[k]} < ${minQa}`);
-  }
-  return fails;
-}
-
-// ঘটনার সাথে মানানসই ছবি (Workers AI) → ImgBB-তে হোস্ট। সবসময় "AI-নির্মিত প্রতীকী চিত্র" হিসেবে চিহ্নিত; আসল ঘটনার ছবি বা বাস্তব ব্যক্তি নয়।
-async function nrImage(env, prompt) {
-  if (!env.AI || !env.IMGBB_API_KEY || !String(prompt || "").trim()) return "";
-  try {
-    const r = await env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
-      prompt: String(prompt).slice(0, 400) + ", realistic editorial photograph style, natural light, no text, no letters, no logos, no identifiable real people, no violence",
-      steps: 4,
-    });
-    if (!r || !r.image) return "";
-    const fd = new FormData();
-    fd.append("image", r.image);
-    const u = await fetch("https://api.imgbb.com/1/upload?key=" + env.IMGBB_API_KEY, { method: "POST", body: fd, signal: AbortSignal.timeout(25000) });
-    const j = await u.json();
-    return j && j.success && j.data && j.data.url ? String(j.data.url) : "";
-  } catch (e) { return ""; }
-}
-
-// আগের অনুমোদনহীন "রিভিউ প্রয়োজন" (প্রমাণ-কম) ড্রাফট ২৪ ঘণ্টা পর নিজে মোছা — প্রকাশিত/অপেক্ষমাণ কিছু ছোঁয়া হয় না
-async function nrCleanup(env) {
-  const all = (await fb(env, "GET", "drafts", undefined, 'orderBy="$key"&limitToLast=150&').catch(() => null)) || {};
-  const cutoff = Date.now() - DAY;
-  const upd = {};
-  let n = 0;
-  for (const [id, d] of Object.entries(all)) {
-    if (d && d.reviewStatus === "review_required" && Number(d.createdAt || 0) < cutoff) { upd[`drafts/${id}`] = null; n++; }
-  }
-  if (n) await fb(env, "PATCH", "", upd);
-  return n;
-}
-
-async function nrRunOne(env, cfg, kind, topic, runId, categories) {
-  const rec = { kind, topic, at: Date.now() };
-  const seenKey = "t" + (await sha1(normTopic(topic)));
-  const seen = Number(await fb(env, "GET", `newsroomState/seen/${seenKey}`)) || 0;
-  if ((seen > 0 && Date.now() - seen < 30 * DAY) || (seen < 0 && Date.now() + seen < 3 * DAY)) return { ...rec, result: "skipped_duplicate" };
-  const found = await findNews(topic);
-  const evd = await gatherEvidence(found, 5);
-  if (evd.headlines.length < 3) return { ...rec, result: "skipped_few_sources", found: evd.headlines.length };
-
-  const v = await researchReport(env, topic, categories, "", AbortSignal.timeout(8 * 60000), evd, "", nrAiOpts(cfg, env));
-  if (v.content) v.content = nrCleanContent(v.content);
-  const hasText = !!(v.enough && v.content);
-  const qa = hasText ? await nrEditorQA(env, v, evd).catch(() => null) : null;
-  const fails = nrGate(env, cfg, v, evd, qa);
-  // শুধু "সংবেদনশীল বিষয়" ছাড়া অন্য যেকোনো কারণে গেটে আটকালে (প্রমাণ কম, সূত্র কম, QA-তে ব্যর্থ) খবরটি ঝুলিয়ে না রেখে বাতিল ও মুছে ফেলা হয়।
-  // শুধু সংবেদনশীল খবরই মানুষের রিভিউয়ের জন্য ড্রাফটে থাকে।
-  const onlySensitive = fails.length > 0 && fails.every((f) => /সংবেদনশীল/.test(f));
-  const drop = !hasText || v.verdict === "false_misleading" || (fails.length > 0 && !onlySensitive);
-  if (drop && cfg.autoDelete) {
-    await fb(env, "PUT", `newsroomState/seen/${seenKey}`, -Date.now());
-    return { ...rec, result: "discarded_weak_evidence", fails: fails.slice(0, 3) };
-  }
-
-  const pass = fails.length === 0;
-  const willPublish = pass && cfg.autoPublish === true;
-  const now = Date.now();
-  const id = now.toString(36) + Math.random().toString(36).slice(2, 6);
-  const imageUrl = hasText ? await nrImage(env, v.imagePrompt) : "";
-
-  const base = {
-    topic, kind, auto: true, runId, qa: qa || null, gateFailures: fails,
-    sources: v.sources, claims: v.claims, verificationStatus: v.verdict, independentSources: v.independentSources,
-    primarySource: false, uncertainties: v.uncertainties,
-    warnings: [...v.conflicts, ...(v.sharedOriginNote ? [v.sharedOriginNote] : [])],
-    report: v.report, titleOptions: v.titleOptions, imagePrompt: v.imagePrompt, socialPost: v.socialPost,
-    imageUrl, imageAi: !!imageUrl, createdAt: now, updatedAt: now,
-  };
-  const draft = hasText
-    ? {
-        ...base, title: v.title || topic, summary: v.summary, content: v.content, category: v.category,
-        seoTitle: v.seoTitle, metaDescription: v.metaDescription, keywords: v.keywords, slug: makeSlug(v.slug, id),
-        reviewStatus: willPublish ? "approved" : "pending_review",
-        reviewNote: pass ? (willPublish ? "" : "সব গেট পাস — DRY-RUN, অ্যাডমিন অনুমোদন দিন") : fails.join(" | "),
-      }
-    : { ...base, title: topic, category: v.category, reviewStatus: "review_required", reviewNote: reviewReason(v) };
-
-  let postId = null;
-  if (willPublish) {
-    const body = v.content +
-      "\n\n(এই সংবাদ AI সহায়তায় তৈরি এবং একাধিক সূত্রের সাথে স্বয়ংক্রিয়ভাবে যাচাই করা হয়েছে।" + (imageUrl ? " ছবিটি AI-নির্মিত প্রতীকী চিত্র, ঘটনাস্থলের আসল ছবি নয়।" : "") + ")";
-    const created = await fb(env, "POST", "posts", {
-      title: draft.title, category: draft.category, description: body, imageUrl, status: "published",
-      authorId: "ai-newsroom", authorName: "AR News ডেস্ক", createdAt: now, updatedAt: now,
-      summary: draft.summary, seoTitle: draft.seoTitle, metaDescription: draft.metaDescription,
-      keywords: draft.keywords, slug: draft.slug, aiGenerated: true, verificationStatus: "verified",
-      sources: v.sources.filter((s) => /^https?:\/\//i.test(s.url)).slice(0, 10).map((s) => ({ title: s.title || "", url: s.url })),
-    });
-    postId = created && created.name;
-    if (postId) { draft.postId = postId; draft.publishedAt = now; } else draft.reviewStatus = "pending_review";
-  }
-  await fb(env, "PATCH", "", { [`drafts/${id}`]: draft, [`newsroomState/seen/${seenKey}`]: now });
-  return { ...rec, result: postId ? "published" : pass ? "draft_dry_run" : hasText ? "held_for_review" : "insufficient", draftId: id, postId, fails, image: !!imageUrl };
-}
-
-const NR_KEPT = ["published", "draft_dry_run", "held_for_review"];
-
-async function runNewsroom(env, opts = {}) {
-  const cfg = nrCfg(await fb(env, "GET", "newsroomConfig"), env);
-  const today = dhakaDate();
-  const t0 = Date.now();
-  if (!opts.manual) {
-    if (!cfg.enabled) return { skipped: "newsroomConfig/enabled = false" };
-    const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", hour: "2-digit", hour12: false }).format(new Date()));
-    const last = await fb(env, "GET", "newsroomState/last").catch(() => null);
-    if (!nrDue(cfg, hour, last, t0)) return { skipped: "এখন নির্ধারিত সময় নয়" };
-    const slot = `${today}-h${hour}`;
-    if (await fb(env, "GET", `newsroomState/slots/${slot}`)) return { skipped: "এই ঘণ্টার রান আগেই হয়েছে" };
-    await fb(env, "PUT", `newsroomState/slots/${slot}`, t0);
-  }
-  const cleaned = cfg.autoDelete ? await nrCleanup(env).catch(() => 0) : 0;
-  const daily = (await fb(env, "GET", "newsroomState/daily")) || {};
-  let count = daily.date === today ? Number(daily.count || 0) : 0;
-  if (count >= cfg.dailyMax && !opts.manual) {
-    await fb(env, "PUT", "newsroomState/last", { startedAt: t0, ok: true, day: today }).catch(() => {});
-    return { skipped: `আজকের সীমা (${cfg.dailyMax}টি) শেষ` };
-  }
-  const categories = env.CATEGORIES ? listFrom(env.CATEGORIES) : DEFAULT_CATEGORIES;
-  const runId = t0.toString(36);
-  const recent = Object.values((await fb(env, "GET", "newsroomRuns", undefined, 'orderBy="$key"&limitToLast=8&').catch(() => null)) || {})
-    .flatMap((r) => (Array.isArray(r.items) ? r.items : []).map((i) => i.topic)).filter(Boolean);
-
-  const results = [];
-  const budget = (opts.manual ? 4 : 10) * 60000; // নতুন প্রার্থী ধরার সময়সীমা
-  let kinds, cands;
-  if (opts.topic) {
-    const k = opts.kind === "evergreen" ? "evergreen" : "fresh";
-    kinds = [k];
-    cands = { [k]: [{ topic: String(opts.topic).trim().slice(0, 200) }] };
-  } else {
-    // ঘণ্টা-ভিত্তিক মোডে প্রতি রানে ১টি (নতুন ও পুরোনো পালাক্রমে); দিনে ২ বার মোডে ২টি
-    kinds = cfg.intervalHours ? [count % 2 === 0 ? "fresh" : "evergreen"] : ["fresh", "evergreen"];
-    try { cands = await nrPickTopics(env, recent); }
-    catch (e) {
-      try { cands = await nrPickTopics(env, recent); } // একবার আবার চেষ্টা
-      catch (e2) { cands = { fresh: [], evergreen: [] }; results.push({ result: "pick_failed", error: String((e2 && e2.message) || e2).slice(0, 200) }); }
-    }
-  }
-
-  // একটি খবর না পেলে (সূত্র কম / যাচাই ব্যর্থ / ত্রুটি) পরের প্রার্থী চেষ্টা — সর্বোচ্চ ৫টি
-  let kept = 0;
-  for (const want of kinds) {
-    // নির্ধারিত ধরনের প্রার্থী আগে, ফুরিয়ে গেলে অন্য ধরনের প্রার্থীও চেষ্টা (শুধু নিজে-বাছা বিষয়ে; ব্যবহারকারীর দেওয়া বিষয়ে নয়)
-    const other = want === "fresh" ? "evergreen" : "fresh";
-    const pool = [...(cands[want] || []).map((x) => [want, x]), ...(opts.topic ? [] : (cands[other] || []).map((x) => [other, x]))].slice(0, 6);
-    for (const [kind, t] of pool) {
-      if (Date.now() - t0 > budget) { results.push({ kind, topic: t.topic, result: "time_budget" }); break; }
-      if (count >= cfg.dailyMax && !opts.manual) { results.push({ kind, topic: t.topic, result: "daily_limit" }); break; }
-      let r;
-      try { r = await nrRunOne(env, cfg, kind, String(t.topic).trim(), runId, categories); }
-      catch (e) { r = { kind, topic: t.topic, result: "error", error: String((e && e.message) || e).slice(0, 200) }; }
-      results.push(r);
-      if (NR_KEPT.includes(r.result)) { count += 1; kept += 1; break; }
-    }
-  }
-  await fb(env, "PUT", "newsroomState/daily", { date: today, count }).catch(() => {});
-  if (!opts.manual) await fb(env, "PUT", "newsroomState/last", { startedAt: t0, ok: kept > 0, day: today }).catch(() => {});
-  const run = { at: Date.now(), date: today, manual: !!opts.manual, dryRun: !cfg.autoPublish, cleaned, kept, items: results.slice(0, 16) };
-  await fb(env, "PUT", `newsroomRuns/${runId}`, run).catch(() => {});
-  const pub = results.filter((r) => r.result === "published").length;
-  const del = results.filter((r) => r.result === "discarded_weak_evidence").length;
-  await flushStatus(env, { kind: "newsroom", ok: kept > 0, msg: `নিউজরুম: ${kept}টি খবর পাওয়া গেছে (প্রকাশ ${pub}টি), ${del}টি যাচাইয়ে বাদ${run.dryRun ? ", অটো-প্রকাশ বন্ধ" : ""}` });
-  return { runId, ...run };
-}
-
-// অ্যাডমিন প্যানেলের জন্য: সেটিং পড়া/বদলানো/ম্যানুয়াল রান
-async function nrHandle(env, input) {
-  const action = String(input.action || "get");
-  if (action === "set") {
-    const patch = {};
-    for (const k of ["enabled", "autoPublish", "autoDelete"]) if (typeof input[k] === "boolean") patch[k] = input[k];
-    if ([0, 1, 2, 3, 5].includes(Number(input.intervalHours)) && input.intervalHours !== undefined) patch.intervalHours = Number(input.intervalHours);
-    if ([1, 2, 3, 5].includes(Number(input.retryHours))) patch.retryHours = Number(input.retryHours);
-    if ([2, 4, 6, 10, 20].includes(Number(input.dailyMax))) patch.dailyMax = Number(input.dailyMax);
-    if ([2, 3].includes(Number(input.minSources))) patch.minSources = Number(input.minSources);
-    if (input.writer === "workers" || input.writer === "gemini") patch.writer = input.writer;
-    if (Object.keys(patch).length) await fb(env, "PATCH", "newsroomConfig", patch);
-  }
-  if (action === "run") {
-    const out = await runNewsroom(env, { manual: true, topic: input.topic, kind: input.kind });
-    return { ...out, config: nrCfg(await fb(env, "GET", "newsroomConfig"), env) };
-  }
-  const cfg = nrCfg(await fb(env, "GET", "newsroomConfig"), env);
-  const runsObj = (await fb(env, "GET", "newsroomRuns", undefined, 'orderBy="$key"&limitToLast=5&').catch(() => null)) || {};
-  const runs = Object.keys(runsObj).sort().reverse().map((k) => ({ id: k, ...runsObj[k] }));
-  return { config: cfg, runs, caps: { workersAi: !!(env.AI && env.AI_MODEL), image: !!(env.AI && env.IMGBB_API_KEY) } };
-}
-
-export default {
-  // cron: নিউজরুম (wrangler-এ triggers.crons যোগ করতে হবে)
-  async scheduled(event, env, ctx) {
-    ctx.waitUntil(runNewsroom(env).catch((e) => flushStatus(env, { kind: "newsroom", ok: false, msg: "ব্যর্থ", error: String((e && e.message) || e).slice(0, 300) })));
-  },
-
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    // AI অ্যাডমিন API (লগইন করা অ্যাডমিন ছাড়া কাজ করে না)
-    if (url.pathname.startsWith("/api/ai/")) {
-      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(request) });
-      return withCors(request, await handleAI(request, env, url));
-    }
-
-    // পুরোনো শেয়ার লিংক: /feed.html?post=ID → আসল নিউজ পেজে (301)
-    const postId = url.pathname === "/feed.html" ? url.searchParams.get("post") : null;
-    if (postId && /^[\w-]+$/.test(postId)) {
-      return Response.redirect(`${SITE}/news/${postId}.html`, 301);
-    }
-
-    // /news/ID  বা  /news/ID.html — সবার জন্য একই
-    const m = url.pathname.match(/^\/news\/([\w-]+?)(?:\.html)?\/?$/);
-    if (m) {
-      const res = await env.ASSETS.fetch(request);
-      if (res.status !== 404) return res;
-      try {
-        const post = await getPost(m[1]);
-        if (post) return htmlResponse(pageHTML(m[1], post));
-      } catch (e) {
-        // Firebase সমস্যা হলে আসল ৪০৪ই যাবে
-      }
-      return res;
-    }
-
-    return env.ASSETS.fetch(request);
-  },
-};
