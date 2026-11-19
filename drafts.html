@@ -170,7 +170,7 @@
   var RESULT_LABEL = {
     published: "প্রকাশিত", draft_dry_run: "ড্রাফট (DRY-RUN)", held_for_review: "গেটে আটকা — রিভিউ লাগবে",
     insufficient: "প্রমাণ অপর্যাপ্ত", skipped_duplicate: "আগেই করা হয়েছে", skipped_few_sources: "সূত্র কম",
-    daily_limit: "দৈনিক সীমা", error: "ত্রুটি", pick_failed: "বিষয় বাছা যায়নি",
+    daily_limit: "দৈনিক সীমা", discarded_weak_evidence: "প্রমাণ কম — বাতিল ও মুছে ফেলা হয়েছে", error: "ত্রুটি", pick_failed: "বিষয় বাছা যায়নি",
   };
 
   var user = null;
@@ -251,7 +251,10 @@
       var t = e.target;
       if (!t) return;
       if (t.id === "dr-file") uploadFile(t);
-      else if (t.getAttribute && t.getAttribute("data-act") === "nrset") setNr(t.getAttribute("data-k"), t.checked, t);
+      else if (t.getAttribute && t.getAttribute("data-act") === "nrset") {
+        var isSel = t.tagName === "SELECT", v = isSel ? (t.getAttribute("data-str") ? t.value : Number(t.value)) : t.checked;
+        setNr(t.getAttribute("data-k"), v, t);
+      }
     });
     return overlay;
   }
@@ -396,13 +399,13 @@
       .then(refreshNr);
   }
   function setNr(key, on, box) {
-    if (key === "autoPublish" && on && !window.confirm("অটো-প্রকাশ চালু করলে সব গেট পাস করা খবর নিজে থেকে সাইটে প্রকাশ হবে। চালু করবেন?")) { box.checked = false; return; }
+    if (key === "autoPublish" && on === true && !window.confirm("অটো-প্রকাশ চালু করলে সব গেট পাস করা খবর নিজে থেকে সাইটে প্রকাশ হবে। চালু করবেন?")) { box.checked = false; return; }
     var body = { action: "set" };
     body[key] = on;
     setMsg("dr-nrmsg", "সংরক্ষণ হচ্ছে…", "");
     callWorker("/api/ai/newsroom", body)
-      .then(function (r) { nr = r; setMsg("dr-nrmsg", "✓ সংরক্ষণ হয়েছে", "ok"); refreshNr(); })
-      .catch(function (e) { box.checked = !on; setMsg("dr-nrmsg", "সংরক্ষণ হয়নি: " + e.message, "bad"); });
+      .then(function (r) { nr = r; refreshNr(); setMsg("dr-nrmsg", "✓ সংরক্ষণ হয়েছে", "ok"); })
+      .catch(function (e) { refreshNr(); setMsg("dr-nrmsg", "সংরক্ষণ হয়নি: " + e.message, "bad"); });
   }
   function runNr() {
     var btn = $("dr-nrrun");
@@ -422,16 +425,30 @@
     if (!nr) return '<div class="dr-card"><div class="dr-note">লোড হচ্ছে…</div></div>';
     var c = nr.config || {};
     var runs = toArr(nr.runs).map(function (r) {
-      return '<div class="dr-lg"><time>' + esc(fmt(r.at)) + "</time><b>" + (r.manual ? "ম্যানুয়াল" : "স্বয়ংক্রিয়") + (r.dryRun ? " · DRY-RUN" : "") + "</b>" +
+      return '<div class="dr-lg"><time>' + esc(fmt(r.at)) + "</time><b>" + (r.manual ? "ম্যানুয়াল" : "স্বয়ংক্রিয়") + (r.dryRun ? " · DRY-RUN" : "") + (r.cleaned ? " · পুরোনো " + bn(r.cleaned) + "টি ড্রাফট মোছা হয়েছে" : "") + "</b>" +
         toArr(r.items).map(function (i) {
           return "<small style=\"color:#4A5568\">" + esc(i.kind === "evergreen" ? "পুরোনো-প্রাসঙ্গিক" : "নতুন") + ": " + esc(i.topic || "") + " — <b>" + esc(RESULT_LABEL[i.result] || i.result || "") + "</b>" +
             (toArr(i.fails).length ? " (" + esc(toArr(i.fails).slice(0, 2).join("; ")) + ")" : "") + (i.error ? " " + esc(i.error) : "") + "</small>";
         }).join("") + "</div>";
     }).join("");
+    function sel(key, label, opts, cur, str) {
+      return '<div class="dr-f"><label for="dr-s-' + key + '">' + label + '</label><select id="dr-s-' + key + '" data-act="nrset" data-k="' + key + '"' + (str ? ' data-str="1"' : "") + ">" +
+        opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(cur) ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></div>";
+    }
+    var caps = nr.caps || {};
+    var capWarn = (!caps.workersAi ? "<br>⚠ Workers AI চালু নয় (AI বাইন্ডিং ও AI_MODEL সেট করুন) — এখন Gemini লিখছে।" : "") +
+      (!caps.image ? "<br>⚠ ছবি তৈরি বন্ধ: Worker-এ AI বাইন্ডিং ও IMGBB_API_KEY (secret) দরকার।" : "");
     return '<div class="dr-card"><h4>স্বয়ংক্রিয় নিউজরুম</h4>' +
-      '<div class="dr-note" style="margin-bottom:8px">প্রতিদিন ঢাকার সময় সকাল ৮:০০ ও সন্ধ্যা ৭:০০-তে একটি নতুন খবর ও একটি পুরোনো-কিন্তু-প্রাসঙ্গিক বিষয় খোঁজা হয়। সংবেদনশীল বা পর্যাপ্ত যাচাই না হওয়া খবর কখনো নিজে প্রকাশ হয় না।</div>' +
+      '<div class="dr-note" style="margin-bottom:8px">প্রতি রানে ২টি খবর: একটি নতুন ও একটি পুরোনো-কিন্তু-প্রাসঙ্গিক। সংবেদনশীল বা পর্যাপ্ত যাচাই না হওয়া খবর কখনো নিজে প্রকাশ হয় না।' + capWarn + "</div>" +
       '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="enabled"' + (c.enabled !== false ? " checked" : "") + "> নিউজরুম চালু (বন্ধ করলে নির্ধারিত রান হবে না)</label>" +
       '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="autoPublish"' + (c.autoPublish ? " checked" : "") + "> অটো-প্রকাশ (বন্ধ থাকলে DRY-RUN: সব ড্রাফটে যাবে, আপনি অনুমোদন দিলে প্রকাশ হবে)</label>" +
+      '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="autoDelete"' + (c.autoDelete !== false ? " checked" : "") + "> প্রমাণ কম থাকলে খবরটি নিজে বাতিল ও মুছে ফেলুক (পুরোনো \"রিভিউ প্রয়োজন\" ড্রাফটও ২৪ ঘণ্টা পর মুছবে)</label>" +
+      '<div style="height:8px"></div>' +
+      sel("intervalHours", "কত পর পর চলবে", [[0, "দিনে ২ বার — সকাল ৮টা ও সন্ধ্যা ৭টা"], [1, "প্রতি ১ ঘণ্টা পর পর"], [2, "প্রতি ২ ঘণ্টা পর পর"], [3, "প্রতি ৩ ঘণ্টা পর পর"], [5, "প্রতি ৫ ঘণ্টা পর পর"]], c.intervalHours) +
+      '<div class="dr-note" style="margin:-6px 0 12px">ঘণ্টা-ভিত্তিক হলে ঢাকার সকাল ৮টা থেকে রাত ১১টা পর্যন্ত চলবে।</div>' +
+      sel("dailyMax", "দিনে সর্বোচ্চ কতটি খবর", [[2, "২টি"], [4, "৪টি"], [6, "৬টি"], [10, "১০টি"], [20, "২০টি"]], c.dailyMax) +
+      sel("minSources", "ন্যূনতম স্বাধীন সূত্র (যাচাই)", [[2, "২টি মাধ্যম"], [3, "৩টি মাধ্যম (বেশি নিরাপদ)"]], c.minSources) +
+      sel("writer", "লেখক (শিরোনাম, বিস্তারিত, বিভাগ, সামাজিক পোস্ট)", [["workers", "Workers AI (ব্যর্থ হলে Gemini)"], ["gemini", "Gemini"]], c.writer, true) +
       '<div class="msg" id="dr-nrmsg"></div></div>' +
       '<div class="dr-card" style="margin-top:16px"><h4>এখনই চালান</h4>' +
       '<div class="dr-f"><label for="dr-nrtopic">বিষয় (ঐচ্ছিক — ফাঁকা রাখলে AI নিজে বাছবে)</label><input type="text" id="dr-nrtopic" placeholder="যেমন: কোনো নির্দিষ্ট খবরের বিষয়"></div>' +
