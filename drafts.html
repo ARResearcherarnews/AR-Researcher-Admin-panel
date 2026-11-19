@@ -390,7 +390,12 @@
   }
   function refreshNr() {
     var el = $("dr-nrbox");
-    if (el) el.innerHTML = nrInner();
+    if (el) {
+      var m0 = $("dr-nrmsg"), mt = m0 ? m0.textContent : "", mc = m0 ? m0.className : "";
+      el.innerHTML = nrInner();
+      var m1 = $("dr-nrmsg");
+      if (m1 && mt) { m1.textContent = mt; m1.className = mc; }
+    }
     var p = $("dr-nrpill"), i = nrPill();
     if (p) { p.className = "dr-pill " + i.cls; p.textContent = i.text; }
   }
@@ -412,11 +417,22 @@
   function runNr() {
     var btn = $("dr-nrrun");
     if (btn) btn.disabled = true;
-    setMsg("dr-nrmsg", "নিউজরুম চলছে… একটি খবর না পেলে নিজে অন্য বিষয় চেষ্টা করবে (৪ মিনিট পর্যন্ত লাগতে পারে; পেজ বন্ধ করবেন না)", "");
-    callWorker("/api/ai/newsroom", { action: "run", topic: val("dr-nrtopic") })
+    var topic = val("dr-nrtopic"), step = 0, MAXSTEP = 14;
+    function wait(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+    function one() {
+      step += 1;
+      setMsg("dr-nrmsg", "নিউজরুম চলছে… ধাপ " + bn(step) + " — একটি খবর না পেলে নিজে অন্য বিষয় চেষ্টা করছে (পেজ বন্ধ করবেন না)", "");
+      return callWorker("/api/ai/newsroom", { action: "run", topic: topic }).then(function (r) {
+        if (r.pending && step < MAXSTEP) return wait(r.busy ? 15000 : 500).then(one);
+        return r;
+      });
+    }
+    one()
       .then(function (r) {
         var n = toArr(r.items).length;
-        if (r.kept) setMsg("dr-nrmsg", "✓ " + bn(r.kept) + "টি খবর পাওয়া গেছে (" + bn(n) + "টি বিষয় চেষ্টা হয়েছে)। ড্রাফট/প্রকাশিত তালিকা দেখুন।", "ok");
+        if (r.pending) setMsg("dr-nrmsg", "কাজ এখনো চলছে (পরের ধাপগুলো নিজে চলবে)। কিছুক্ষণ পর রান-লগ দেখুন।", "");
+        else if (r.skipped) setMsg("dr-nrmsg", "রান হয়নি: " + r.skipped, "bad");
+        else if (r.kept) setMsg("dr-nrmsg", "✓ " + bn(r.kept) + "টি খবর পাওয়া গেছে (" + bn(n) + "টি বিষয় চেষ্টা হয়েছে)। ড্রাফট/প্রকাশিত তালিকা দেখুন।", "ok");
         else setMsg("dr-nrmsg", "এবার যাচাই-উত্তীর্ণ কোনো খবর পাওয়া যায়নি (" + bn(n) + "টি বিষয় চেষ্টা হয়েছে)। নিচের রান-লগে কারণ দেখুন; সময়সূচি অনুযায়ী আবার চেষ্টা হবে।", "bad");
         return loadNr();
       })
