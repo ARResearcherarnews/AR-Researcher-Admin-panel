@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#ffffff">
-  <title>AI ড্রাফট | AR News</title>
+  <meta name="theme-color" content="#0F1B2D">
+  <title>AI নিউজরুম | AR News</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- কভার ছবিতে বাংলা লেখা আঁকতে Hind Siliguri লাগে -->
-  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
@@ -19,108 +19,122 @@
       --shadow: none;
       --font-display: system-ui, -apple-system, "Noto Sans Bengali", "Hind Siliguri", sans-serif;
     }
-    body {
-      font-family: system-ui, -apple-system, "Noto Sans Bengali", "Hind Siliguri", sans-serif;
-      color: var(--ink); background: var(--bg); padding-bottom: 85px;
-    }
+    body { font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif; color: #0F1B2D; background: #F3F5F8; padding-bottom: 85px; }
     button, input, select, textarea { font: inherit; }
     button { cursor: pointer; }
-    .main { max-width: 820px; margin: 0 auto; padding: 23px 15px; }
-
-    /* বাটন ও বার্তা (পোস্ট পেজের স্টাইলে) */
-    .btn {
-      border: 0; border-radius: 10px; background: var(--brand); color: #fff;
-      padding: 11px 15px; font-weight: 650; display: inline-flex; align-items: center; justify-content: center;
-    }
-    .btn:hover { background: var(--brand-ink); }
-    .btn:disabled { opacity: .55; cursor: not-allowed; }
-    .btn.secondary { background: var(--brand-soft); color: var(--brand-ink); }
-    .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
-    .btn.danger { background: var(--danger-soft); color: var(--danger); }
-    .btn.small { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+    .main { max-width: none; margin: 0; padding: 0; }
     .msg { margin-top: 10px; font-size: 13.5px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
     .msg:empty { display: none; }
-    .msg.ok { color: #166534; }
-    .msg.bad { color: var(--danger); }
 
-    #ar-drafts-overlay { position: static; }
-
-    /* ===== ড্রাফট রিভিউ (drafts.js থেকে) ===== */
-    #ar-drafts-overlay .dr-wrap{max-width:780px;margin:0 auto}
-      #ar-drafts-overlay .dr-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-      #ar-drafts-overlay .dr-top h2{flex:1;margin:0;font-family:var(--font-display,Georgia,serif);font-weight:400;font-size:22px}
-      #ar-drafts-overlay .dr-stats{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:10px}
-      #ar-drafts-overlay .dr-err{background:var(--danger-soft);color:var(--danger);border-radius:10px;padding:8px 11px;font-size:12.5px;margin-bottom:10px;line-height:1.6;overflow-wrap:anywhere}
-      #ar-drafts-overlay .dr-seg{display:flex;gap:8px;margin:10px 0 12px}
-      #ar-drafts-overlay .dr-seg button{flex:1;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-weight:600;font-size:13.5px;cursor:pointer}
-      #ar-drafts-overlay .dr-seg button.on{background:var(--brand-soft);color:var(--brand-ink);border-color:var(--brand)}
-      #ar-drafts-overlay .dr-list{display:grid;gap:10px}
-      #ar-drafts-overlay .dr-item{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
-        background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px;box-shadow:var(--shadow)}
-      #ar-drafts-overlay .dr-item.rr{border-left:4px solid var(--warn)}
-      #ar-drafts-overlay .dr-item h3{margin:7px 0 5px;font-size:15.5px;line-height:1.5;font-weight:600;overflow-wrap:anywhere}
-      #ar-drafts-overlay .dr-meta{font-size:12px;color:var(--muted);line-height:1.6}
-      #ar-drafts-overlay .dr-pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 10px;border-radius:999px;margin-right:6px;background:var(--brand-soft);color:var(--brand-ink)}
-      #ar-drafts-overlay .st-verified{background:#dcfce7;color:#166534}
-      #ar-drafts-overlay .st-partially_verified{background:var(--warn-soft);color:var(--warn)}
-      #ar-drafts-overlay .st-unverified{background:var(--line);color:var(--muted)}
-      #ar-drafts-overlay .st-false_misleading,#ar-drafts-overlay .rv-review_required{background:var(--danger-soft);color:var(--danger)}
-      :root[data-theme="dark"] #ar-drafts-overlay .st-verified{background:#123a2c;color:#86efac}
-      #ar-drafts-overlay .dr-claim a{color:var(--brand-ink);text-decoration:underline;overflow-wrap:anywhere}
-      #ar-drafts-overlay .dr-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
-      #ar-drafts-overlay .dr-card h4{margin:0 0 8px;font-size:14px}
-      #ar-drafts-overlay .dr-warn{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:9px 11px;font-size:13px;line-height:1.6;margin-bottom:10px}
-      #ar-drafts-overlay .dr-claim{border-top:1px solid var(--line);padding:9px 0;font-size:13.5px;line-height:1.6;overflow-wrap:anywhere}
-      #ar-drafts-overlay .dr-claim:first-of-type{border-top:0}
-      #ar-drafts-overlay .dr-claim small,#ar-drafts-overlay .dr-note{display:block;color:var(--muted);font-size:12.5px;line-height:1.6}
-      #ar-drafts-overlay ul.dr-links{margin:0;padding-left:18px;font-size:13px;line-height:1.8}
-      #ar-drafts-overlay ul.dr-links a{color:var(--brand-ink);overflow-wrap:anywhere}
-      #ar-drafts-overlay .dr-f{margin-bottom:12px}
-      #ar-drafts-overlay .dr-f label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:5px}
-      #ar-drafts-overlay .dr-f input[type=text],#ar-drafts-overlay .dr-f textarea{width:100%;box-sizing:border-box;font:inherit;font-size:16px;
-        padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
-      #ar-drafts-overlay .dr-f textarea{line-height:1.7;min-height:90px;resize:vertical}
-      #ar-drafts-overlay #dr-content{min-height:280px}
-      #ar-drafts-overlay .dr-chk{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin:6px 0;line-height:1.5}
-      #ar-drafts-overlay .dr-imgprev{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--line);margin-top:8px}
-      #ar-drafts-overlay .dr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-      #ar-drafts-overlay .dr-actions .btn{flex:1 1 auto;min-height:46px}
-      #ar-drafts-overlay .dr-empty{color:var(--muted);text-align:center;padding:34px 12px;font-size:13.5px;border:1px dashed var(--line);border-radius:14px}
-      #ar-drafts-overlay .dr-f select{width:100%;box-sizing:border-box;font:inherit;font-size:16px;min-height:46px;padding:0 12px;
-        border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
-      #ar-drafts-overlay .dr-opt{display:block;width:100%;text-align:left;margin:0 0 8px;padding:12px 14px;border:1px solid var(--line);
-        border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
-      #ar-drafts-overlay .dr-opt b{display:block;font-size:15px;line-height:1.5;font-weight:600}
-      #ar-drafts-overlay .dr-opt small{display:block;margin-top:2px;color:var(--muted);font-size:12.5px;line-height:1.5}
-      #ar-drafts-overlay .dr-opt:hover,#ar-drafts-overlay .dr-opt:focus-visible{border-color:var(--brand);outline:none}
-      #ar-drafts-overlay .dr-opt.on{border-color:var(--brand);background:var(--brand-soft)}
-      #ar-drafts-overlay .dr-ul{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.7}
-      #ar-drafts-overlay #dr-cover{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line);margin:8px 0}
-      #ar-drafts-overlay #dr-cover[hidden]{display:none}
-      #ar-drafts-overlay .dr-sthead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-      #ar-drafts-overlay .dr-sthead h4{flex:1;margin:0}
-      #ar-drafts-overlay .dr-mrow{padding:8px 0;border-top:1px solid var(--line)}
-      #ar-drafts-overlay .dr-mrow:first-of-type{border-top:0}
-      #ar-drafts-overlay .dr-mname{display:flex;justify-content:space-between;gap:8px;font-size:13px;align-items:baseline}
-      #ar-drafts-overlay .dr-mname span{color:var(--muted);font-size:12.5px;white-space:nowrap}
-      #ar-drafts-overlay .dr-mrow small{display:block;color:var(--muted);font-size:12px;line-height:1.6;margin-top:3px}
-      #ar-drafts-overlay .dr-bar{height:7px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:5px}
-      #ar-drafts-overlay .dr-bar i{display:block;height:100%;background:var(--brand);border-radius:99px}
-      #ar-drafts-overlay .dr-bar i.hi{background:var(--danger,#b42318)}
-      #ar-drafts-overlay .dr-sum{font-size:13px;line-height:1.8;margin:8px 0 2px}
-      #ar-drafts-overlay .bad{color:var(--danger,#b42318)}
-      #ar-drafts-overlay .dr-lg{font-size:12.5px;line-height:1.6;padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
-      #ar-drafts-overlay .dr-lg time{color:var(--muted);margin-right:6px}
-      #ar-drafts-overlay .dr-lg.bad b{color:var(--danger,#b42318)}
-      #ar-drafts-overlay .dr-lg small{display:block;color:var(--danger,#b42318)}
-  
-    [hidden]{display:none !important}
-    .dr-tabs{display:flex;gap:8px;overflow-x:auto;margin:0 0 12px;padding:2px 0 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-    .dr-tabs::-webkit-scrollbar{display:none}
-    .dr-tab{flex:0 0 auto;min-height:40px;padding:8px 14px;border:1px solid var(--border,#e5e7eb);border-radius:999px;background:#fff;color:var(--muted,#64748b);font:inherit;font-size:13.5px;font-weight:600;white-space:nowrap;cursor:pointer}
-    .dr-tab:hover{border-color:#9db7e3}
-    .dr-tab.on{background:#eaf0fb;color:#082f73;border-color:#0b3d91}
-    .dr-tabn{display:inline-block;min-width:18px;padding:0 6px;margin-left:4px;border-radius:999px;background:#0b3d91;color:#fff;font-size:11px;line-height:18px;text-align:center}
+    /* ===== AR News — AI নিউজরুম প্যানেল (ফুল স্ক্রিন) ===== */
+    #ar-drafts-overlay { position: static; --d-ink:#0F1B2D; --d-mut:#4A5568; --d-line:#E1E5EC; --d-red:#B3122A; --d-red2:#8E0E21; --d-navy:#0F1B2D; --d-navy2:#1C2B45; --d-ok:#14703F; --d-okb:#E3F4EA; --d-warn:#8A5300; --d-warnb:#FFF1D6; --d-bad:#B3122A; --d-badb:#FDE7EA; --d-blue:#1F4E9C; --d-blueb:#E8EEF9; }
+    #ar-drafts-overlay .dr-wrap { max-width: none; }
+    #ar-drafts-overlay .dr-app { display: grid; grid-template-columns: 240px minmax(0,1fr); min-height: 100vh; }
+    #ar-drafts-overlay .dr-side { background: var(--d-navy); color: #fff; padding: 22px 16px; display: flex; flex-direction: column; gap: 6px; position: sticky; top: 0; height: 100vh; align-self: start; overflow-y: auto; }
+    #ar-drafts-overlay .dr-brand { padding: 4px 12px 16px; }
+    #ar-drafts-overlay .dr-brand small { display: block; font-size: 12px; color: #B8C2D6; letter-spacing: .05em; }
+    #ar-drafts-overlay .dr-brand b { font-size: 21px; font-weight: 700; }
+    #ar-drafts-overlay .dr-nav { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; border: 0; background: transparent; color: #C7D0E0; padding: 11px 12px; border-radius: 10px; font-size: 15px; min-height: 44px; }
+    #ar-drafts-overlay .dr-nav:hover { background: var(--d-navy2); }
+    #ar-drafts-overlay .dr-nav.on { background: var(--d-navy2); color: #fff; font-weight: 600; }
+    #ar-drafts-overlay .dr-content { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    #ar-drafts-overlay .dr-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    #ar-drafts-overlay .dr-top h2 { flex: 1; margin: 0; font-size: 24px; font-weight: 700; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-sub { font-size: 14px; color: var(--d-mut); margin-top: 2px; }
+    #ar-drafts-overlay .dr-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+    #ar-drafts-overlay .dr-stat { background: #fff; border: 1px solid var(--d-line); border-radius: 14px; padding: 16px; }
+    #ar-drafts-overlay .dr-stat b { display: block; font-size: 28px; line-height: 1.2; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-stat span { font-size: 13px; color: var(--d-mut); }
+    #ar-drafts-overlay .btn { border: 0; border-radius: 10px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; background: var(--d-red); color: #fff; }
+    #ar-drafts-overlay .btn:hover { background: var(--d-red2); }
+    #ar-drafts-overlay .btn:disabled { opacity: .55; cursor: not-allowed; }
+    #ar-drafts-overlay .btn.secondary, #ar-drafts-overlay .btn.ghost { background: #fff; color: var(--d-ink); border: 1px solid #CBD2DE; }
+    #ar-drafts-overlay .btn.secondary:hover, #ar-drafts-overlay .btn.ghost:hover { background: #F3F5F8; }
+    #ar-drafts-overlay .btn.danger { background: var(--d-badb); color: var(--d-bad); }
+    #ar-drafts-overlay .btn.dark { background: var(--d-navy); color: #fff; }
+    #ar-drafts-overlay .btn.small { min-height: 40px; padding: 0 14px; font-size: 14px; }
+    #ar-drafts-overlay .msg.ok { color: var(--d-ok); }
+    #ar-drafts-overlay .msg.bad { color: var(--d-bad); }
+    #ar-drafts-overlay .dr-seg { display: flex; gap: 8px; flex-wrap: wrap; }
+    #ar-drafts-overlay .dr-seg button { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CBD2DE; background: #fff; color: var(--d-ink); font-weight: 600; font-size: 14.5px; }
+    #ar-drafts-overlay .dr-seg button.on { background: var(--d-navy); color: #fff; border-color: var(--d-navy); }
+    #ar-drafts-overlay .dr-seg .gap { margin-left: auto; }
+    #ar-drafts-overlay .dr-table { background: #fff; border: 1px solid var(--d-line); border-radius: 14px; overflow: hidden; }
+    #ar-drafts-overlay .dr-row { display: grid; grid-template-columns: minmax(0,3fr) 130px 140px 70px 70px 84px; gap: 14px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--d-line); cursor: pointer; }
+    #ar-drafts-overlay .dr-row:hover { background: #F8F9FB; }
+    #ar-drafts-overlay .dr-row.hd { border-top: 0; background: #F8F9FB; font-size: 12px; font-weight: 600; color: var(--d-mut); cursor: default; }
+    #ar-drafts-overlay .dr-row .t { font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--d-ink); overflow-wrap: anywhere; }
+    #ar-drafts-overlay .dr-row .m, #ar-drafts-overlay .dr-meta { font-size: 13px; color: var(--d-mut); line-height: 1.6; }
+    #ar-drafts-overlay .dr-row .n { font-size: 14px; font-weight: 600; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-row .mob { display: none; margin-top: 4px; }
+    #ar-drafts-overlay .dr-pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; margin-right: 6px; background: var(--d-blueb); color: var(--d-blue); white-space: nowrap; }
+    #ar-drafts-overlay .st-verified, #ar-drafts-overlay .rv-approved, #ar-drafts-overlay .p-ok { background: var(--d-okb); color: var(--d-ok); }
+    #ar-drafts-overlay .st-partially_verified, #ar-drafts-overlay .p-warn { background: var(--d-warnb); color: var(--d-warn); }
+    #ar-drafts-overlay .st-unverified, #ar-drafts-overlay .rv-pending_review { background: #EEF0F4; color: #3B4557; }
+    #ar-drafts-overlay .st-false_misleading, #ar-drafts-overlay .rv-review_required, #ar-drafts-overlay .rv-rejected, #ar-drafts-overlay .p-bad { background: var(--d-badb); color: var(--d-bad); }
+    #ar-drafts-overlay .dr-two { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 18px; align-items: start; }
+    #ar-drafts-overlay .dr-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    #ar-drafts-overlay .dr-card { background: #fff; border: 1px solid var(--d-line); border-radius: 14px; padding: 16px; }
+    #ar-drafts-overlay .dr-card h4 { margin: 0 0 10px; font-size: 16px; font-weight: 700; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-warn { background: var(--d-warnb); color: var(--d-warn); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; line-height: 1.6; margin-bottom: 10px; }
+    #ar-drafts-overlay .dr-claim { border-top: 1px solid var(--d-line); padding: 10px 0; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+    #ar-drafts-overlay .dr-claim:first-of-type { border-top: 0; }
+    #ar-drafts-overlay .dr-claim small, #ar-drafts-overlay .dr-note { display: block; color: var(--d-mut); font-size: 13px; line-height: 1.6; }
+    #ar-drafts-overlay .dr-claim a, #ar-drafts-overlay ul.dr-links a { color: var(--d-blue); text-decoration: underline; overflow-wrap: anywhere; }
+    #ar-drafts-overlay ul.dr-links { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; }
+    #ar-drafts-overlay .dr-gate { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.6; padding: 4px 0; }
+    #ar-drafts-overlay .dr-gate .dr-pill { min-width: 48px; text-align: center; margin-right: 0; }
+    #ar-drafts-overlay .dr-f { margin-bottom: 12px; }
+    #ar-drafts-overlay .dr-f label { display: block; font-size: 13px; font-weight: 600; color: var(--d-mut); margin-bottom: 5px; }
+    #ar-drafts-overlay .dr-f input[type=text], #ar-drafts-overlay .dr-f textarea, #ar-drafts-overlay .dr-f select { width: 100%; font-size: 16px; padding: 10px 12px; border: 1px solid #CBD2DE; border-radius: 10px; background: #fff; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-f select { min-height: 46px; padding: 0 12px; }
+    #ar-drafts-overlay .dr-f textarea { line-height: 1.8; min-height: 90px; resize: vertical; }
+    #ar-drafts-overlay #dr-content { min-height: 320px; font-size: 17px; }
+    #ar-drafts-overlay #dr-title { font-size: 19px; font-weight: 700; }
+    #ar-drafts-overlay .dr-f input:focus, #ar-drafts-overlay .dr-f textarea:focus, #ar-drafts-overlay .dr-f select:focus { outline: 2px solid var(--d-blue); outline-offset: 1px; }
+    #ar-drafts-overlay .dr-chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin: 8px 0; line-height: 1.6; }
+    #ar-drafts-overlay .dr-chk input { margin-top: 5px; width: 18px; height: 18px; }
+    #ar-drafts-overlay .dr-imgprev { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; border: 1px solid var(--d-line); margin-top: 8px; }
+    #ar-drafts-overlay .dr-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    #ar-drafts-overlay .dr-actions .btn { flex: 1 1 auto; }
+    #ar-drafts-overlay .dr-empty { color: var(--d-mut); text-align: center; padding: 34px 12px; font-size: 14px; border: 1px dashed #CBD2DE; border-radius: 14px; background: #fff; }
+    #ar-drafts-overlay .dr-opt { display: block; width: 100%; text-align: left; margin: 0 0 8px; padding: 12px 14px; border: 1px solid #CBD2DE; border-radius: 12px; background: #fff; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-opt b { display: block; font-size: 15px; line-height: 1.5; font-weight: 600; }
+    #ar-drafts-overlay .dr-opt small { display: block; margin-top: 2px; color: var(--d-mut); font-size: 13px; line-height: 1.5; }
+    #ar-drafts-overlay .dr-opt:hover { border-color: var(--d-blue); }
+    #ar-drafts-overlay .dr-opt.on { border-color: var(--d-blue); background: var(--d-blueb); }
+    #ar-drafts-overlay .dr-ul { margin: 6px 0 0; padding-left: 20px; font-size: 14.5px; line-height: 1.8; }
+    #ar-drafts-overlay #dr-cover { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--d-line); margin: 8px 0; }
+    #ar-drafts-overlay .dr-sthead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #ar-drafts-overlay .dr-sthead h4 { flex: 1; margin: 0; }
+    #ar-drafts-overlay .dr-mrow { padding: 10px 0; border-top: 1px solid var(--d-line); }
+    #ar-drafts-overlay .dr-mrow:first-of-type { border-top: 0; }
+    #ar-drafts-overlay .dr-mname { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; align-items: baseline; }
+    #ar-drafts-overlay .dr-mname span { color: var(--d-mut); font-size: 13px; white-space: nowrap; }
+    #ar-drafts-overlay .dr-mrow small { display: block; color: var(--d-mut); font-size: 12.5px; line-height: 1.6; margin-top: 3px; }
+    #ar-drafts-overlay .dr-bar { height: 7px; border-radius: 99px; background: var(--d-line); overflow: hidden; margin-top: 5px; }
+    #ar-drafts-overlay .dr-bar i { display: block; height: 100%; background: var(--d-navy); border-radius: 99px; }
+    #ar-drafts-overlay .dr-bar i.hi { background: var(--d-bad); }
+    #ar-drafts-overlay .dr-sum { font-size: 14px; line-height: 1.8; margin: 8px 0 2px; }
+    #ar-drafts-overlay .bad { color: var(--d-bad); }
+    #ar-drafts-overlay .dr-lg { font-size: 13px; line-height: 1.6; padding: 7px 0; border-top: 1px solid var(--d-line); overflow-wrap: anywhere; }
+    #ar-drafts-overlay .dr-lg time { color: var(--d-mut); margin-right: 6px; }
+    #ar-drafts-overlay .dr-lg.bad b { color: var(--d-bad); }
+    #ar-drafts-overlay .dr-lg small { display: block; color: var(--d-bad); }
+    #ar-drafts-overlay .dr-tabn { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: var(--d-red); color: #fff; font-size: 11.5px; line-height: 20px; text-align: center; }
+    @media (max-width: 900px) {
+      #ar-drafts-overlay .dr-app { grid-template-columns: minmax(0,1fr); }
+      #ar-drafts-overlay .dr-side { position: static; height: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 12px; gap: 4px; }
+      #ar-drafts-overlay .dr-brand { display: none; }
+      #ar-drafts-overlay .dr-nav { white-space: nowrap; width: auto; flex: 0 0 auto; }
+      #ar-drafts-overlay .dr-content { padding: 16px; }
+      #ar-drafts-overlay .dr-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      #ar-drafts-overlay .dr-row { grid-template-columns: minmax(0,1fr) auto; }
+      #ar-drafts-overlay .dr-row .hide, #ar-drafts-overlay .dr-row.hd { display: none; }
+      #ar-drafts-overlay .dr-row .mob { display: block; }
+      #ar-drafts-overlay .dr-two { grid-template-columns: minmax(0,1fr); }
+      #ar-drafts-overlay .dr-seg .gap { margin-left: 0; }
+    }
   </style>
 </head>
 <body>
@@ -153,19 +167,25 @@
     approved: "প্রকাশিত",
     rejected: "বাতিল",
   };
+  var RESULT_LABEL = {
+    published: "প্রকাশিত", draft_dry_run: "ড্রাফট (DRY-RUN)", held_for_review: "গেটে আটকা — রিভিউ লাগবে",
+    insufficient: "প্রমাণ অপর্যাপ্ত", skipped_duplicate: "আগেই করা হয়েছে", skipped_few_sources: "সূত্র কম",
+    daily_limit: "দৈনিক সীমা", error: "ত্রুটি", pick_failed: "বিষয় বাছা যায়নি",
+  };
 
   var user = null;
   var drafts = {};
   var aiStat = null;
   var statErr = "";
   var statBusy = false;
-  var view = "pending"; // pending | archive
+  var nr = null;
+  var nrErr = "";
+  var view = "pending"; // pending | held | published | rejected
+  var section = "drafts"; // drafts | report | status | newsroom
   var openId = null;
-  var listPane = ""; // "" | report | status
-  var detailTab = "verify";
   var imageAi = false;
   var overlay = null;
-  
+
   /* ---------- ছোট সহায়ক ---------- */
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
@@ -199,6 +219,26 @@
     b.textContent = n > 99 ? "99+" : String(n);
     b.hidden = n === 0;
   }
+
+  var BN = "০১২৩৪৫৬৭৮৯";
+  function bn(n) { return String(n).replace(/\d/g, function (d) { return BN.charAt(d); }); }
+  function dayKey(ms) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(new Date(ms)); }
+  function isHeld(d) { return d.reviewStatus === "review_required" || (isPending(d) && toArr(d.gateFailures).length > 0); }
+  function qaScore(d) {
+    var q = d.qa;
+    if (!q) return null;
+    var k = ["accuracy", "neutrality", "language", "originality", "headline"], s = 0, n = 0;
+    k.forEach(function (x) { if (typeof q[x] === "number") { s += q[x]; n++; } });
+    return n ? Math.round(s / n) : null;
+  }
+  function kindLabel(d) { return d.kind === "evergreen" ? "পুরোনো-প্রাসঙ্গিক" : d.kind === "fresh" ? "নতুন খবর" : "ম্যানুয়াল"; }
+  function inView(d) {
+    if (view === "pending") return d.reviewStatus === "pending_review" && !isHeld(d);
+    if (view === "held") return isHeld(d);
+    if (view === "published") return d.reviewStatus === "approved";
+    return d.reviewStatus === "rejected";
+  }
+
   /* ---------- ওভারলে ---------- */
   function ensureOverlay() {
     if (overlay) return overlay;
@@ -208,14 +248,27 @@
       if (e.target && e.target.id === "dr-image") { imageAi = false; updatePreview(); }
     });
     overlay.addEventListener("change", function (e) {
-      if (e.target && e.target.id === "dr-file") uploadFile(e.target);
+      var t = e.target;
+      if (!t) return;
+      if (t.id === "dr-file") uploadFile(t);
+      else if (t.getAttribute && t.getAttribute("data-act") === "nrset") setNr(t.getAttribute("data-k"), t.checked, t);
     });
     return overlay;
   }
   function openOverlay() {
     setTimeout(loadStatus, 0);
+    setTimeout(loadNr, 0);
     ensureOverlay();
     render();
+  }
+
+  var NAV = [["drafts", "ড্রাফট ও রিভিউ"], ["report", "নতুন রিপোর্ট"], ["status", "AI অবস্থা"], ["newsroom", "নিউজরুম সেটিং"]];
+  function shell(inner) {
+    return '<div class="dr-app"><aside class="dr-side"><div class="dr-brand"><small>AR NEWS</small><b>AI নিউজরুম</b></div>' +
+      NAV.map(function (n) {
+        var cnt = n[0] === "drafts" && pendingCount() ? '<span class="dr-tabn">' + bn(pendingCount()) + "</span>" : "";
+        return '<button type="button" class="dr-nav' + (n[0] === section ? " on" : "") + '" data-act="nav" data-s="' + n[0] + '"><span>' + esc(n[1]) + "</span>" + cnt + "</button>";
+      }).join("") + '</aside><main class="dr-content">' + inner + "</main></div>";
   }
 
   function render() {
@@ -223,8 +276,7 @@
     var wrap = $("dr-wrap");
     if (openId && drafts[openId]) {
       if (wrap.getAttribute("data-open") !== openId) {
-        detailTab = "verify";
-        wrap.innerHTML = detailHtml(openId, drafts[openId]);
+        wrap.innerHTML = shell(detailHtml(openId, drafts[openId]));
         wrap.setAttribute("data-open", openId);
         imageAi = !!drafts[openId].imageAi;
         updatePreview();
@@ -234,17 +286,24 @@
     }
     openId = null;
     wrap.removeAttribute("data-open");
-    var keepT = val("dr-newtitle"), keepC = val("dr-newcat"), keepU = val("dr-newurl"), keepX = val("dr-newtext");
-    wrap.innerHTML = listHtml();
+    var keepT = val("dr-newtitle"), keepC = val("dr-newcat"), keepU = val("dr-newurl"), keepX = val("dr-newtext"), keepN = val("dr-nrtopic");
+    wrap.innerHTML = shell(sectionHtml());
     if (keepT && $("dr-newtitle")) $("dr-newtitle").value = keepT;
     if (keepC && $("dr-newcat")) $("dr-newcat").value = keepC;
     if (keepU && $("dr-newurl")) $("dr-newurl").value = keepU;
     if (keepX && $("dr-newtext")) $("dr-newtext").value = keepX;
+    if (keepN && $("dr-nrtopic")) $("dr-nrtopic").value = keepN;
   }
 
-  /* ---------- তালিকা ---------- */
+  function sectionHtml() {
+    if (section === "report") return reportHtml();
+    if (section === "status") return '<div class="dr-top"><h2>AI অবস্থা ও ব্যবহার</h2></div>' + statusHtml();
+    if (section === "newsroom") return '<div class="dr-top"><h2>নিউজরুম সেটিং</h2></div><div id="dr-nrbox">' + nrInner() + "</div>";
+    return dashHtml();
+  }
+
   /* ---------- AI অবস্থা ও ব্যবহার (Worker থেকে) ---------- */
-  var KIND_LABEL = { report: "রিপোর্ট", draft: "ড্রাফট", image: "ছবি", status: "অবস্থা" };
+  var KIND_LABEL = { report: "রিপোর্ট", draft: "ড্রাফট", image: "ছবি", status: "অবস্থা", newsroom: "নিউজরুম" };
 
   function pct(a, b) { return b > 0 ? Math.min(100, Math.round((a * 100) / b)) : 0; }
   function bar(a, b) {
@@ -318,67 +377,136 @@
       });
   }
 
-  // গুচ্ছ-মোছা: "প্রকাশিত / বাতিল" ট্যাবে বাতিলগুলো, "অপেক্ষমাণ" ট্যাবে "রিভিউ প্রয়োজন"গুলো
+  /* ---------- নিউজরুম সেটিং (Worker: /api/ai/newsroom) ---------- */
+  function nrPill() {
+    if (!nr) return { cls: "p-warn", text: "অবস্থা লোড হচ্ছে…" };
+    if (nr.config.enabled === false) return { cls: "p-bad", text: "নিউজরুম বন্ধ" };
+    return nr.config.autoPublish ? { cls: "p-ok", text: "অটো-প্রকাশ চালু" } : { cls: "p-warn", text: "DRY-RUN চালু — অটো-প্রকাশ বন্ধ" };
+  }
+  function refreshNr() {
+    var el = $("dr-nrbox");
+    if (el) el.innerHTML = nrInner();
+    var p = $("dr-nrpill"), i = nrPill();
+    if (p) { p.className = "dr-pill " + i.cls; p.textContent = i.text; }
+  }
+  function loadNr() {
+    return callWorker("/api/ai/newsroom", { action: "get" })
+      .then(function (r) { nr = r; nrErr = ""; })
+      .catch(function (e) { nrErr = e.message; })
+      .then(refreshNr);
+  }
+  function setNr(key, on, box) {
+    if (key === "autoPublish" && on && !window.confirm("অটো-প্রকাশ চালু করলে সব গেট পাস করা খবর নিজে থেকে সাইটে প্রকাশ হবে। চালু করবেন?")) { box.checked = false; return; }
+    var body = { action: "set" };
+    body[key] = on;
+    setMsg("dr-nrmsg", "সংরক্ষণ হচ্ছে…", "");
+    callWorker("/api/ai/newsroom", body)
+      .then(function (r) { nr = r; setMsg("dr-nrmsg", "✓ সংরক্ষণ হয়েছে", "ok"); refreshNr(); })
+      .catch(function (e) { box.checked = !on; setMsg("dr-nrmsg", "সংরক্ষণ হয়নি: " + e.message, "bad"); });
+  }
+  function runNr() {
+    var btn = $("dr-nrrun");
+    if (btn) btn.disabled = true;
+    setMsg("dr-nrmsg", "নিউজরুম চলছে… (কয়েক মিনিট লাগতে পারে; পেজ বন্ধ করবেন না)", "");
+    callWorker("/api/ai/newsroom", { action: "run", topic: val("dr-nrtopic") })
+      .then(function (r) {
+        var n = toArr(r.items).length;
+        setMsg("dr-nrmsg", "✓ রান শেষ — " + bn(n) + "টি বিষয় প্রক্রিয়া হয়েছে। ড্রাফট তালিকা দেখুন।", "ok");
+        return loadNr();
+      })
+      .catch(function (e) { setMsg("dr-nrmsg", "রান হয়নি: " + e.message, "bad"); })
+      .then(function () { var b = $("dr-nrrun"); if (b) b.disabled = false; loadStatus(); });
+  }
+  function nrInner() {
+    if (nrErr && !nr) return '<div class="dr-card"><div class="dr-note">লোড করা যায়নি: ' + esc(nrErr) + "</div></div>";
+    if (!nr) return '<div class="dr-card"><div class="dr-note">লোড হচ্ছে…</div></div>';
+    var c = nr.config || {};
+    var runs = toArr(nr.runs).map(function (r) {
+      return '<div class="dr-lg"><time>' + esc(fmt(r.at)) + "</time><b>" + (r.manual ? "ম্যানুয়াল" : "স্বয়ংক্রিয়") + (r.dryRun ? " · DRY-RUN" : "") + "</b>" +
+        toArr(r.items).map(function (i) {
+          return "<small style=\"color:#4A5568\">" + esc(i.kind === "evergreen" ? "পুরোনো-প্রাসঙ্গিক" : "নতুন") + ": " + esc(i.topic || "") + " — <b>" + esc(RESULT_LABEL[i.result] || i.result || "") + "</b>" +
+            (toArr(i.fails).length ? " (" + esc(toArr(i.fails).slice(0, 2).join("; ")) + ")" : "") + (i.error ? " " + esc(i.error) : "") + "</small>";
+        }).join("") + "</div>";
+    }).join("");
+    return '<div class="dr-card"><h4>স্বয়ংক্রিয় নিউজরুম</h4>' +
+      '<div class="dr-note" style="margin-bottom:8px">প্রতিদিন ঢাকার সময় সকাল ৮:০০ ও সন্ধ্যা ৭:০০-তে একটি নতুন খবর ও একটি পুরোনো-কিন্তু-প্রাসঙ্গিক বিষয় খোঁজা হয়। সংবেদনশীল বা পর্যাপ্ত যাচাই না হওয়া খবর কখনো নিজে প্রকাশ হয় না।</div>' +
+      '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="enabled"' + (c.enabled !== false ? " checked" : "") + "> নিউজরুম চালু (বন্ধ করলে নির্ধারিত রান হবে না)</label>" +
+      '<label class="dr-chk"><input type="checkbox" data-act="nrset" data-k="autoPublish"' + (c.autoPublish ? " checked" : "") + "> অটো-প্রকাশ (বন্ধ থাকলে DRY-RUN: সব ড্রাফটে যাবে, আপনি অনুমোদন দিলে প্রকাশ হবে)</label>" +
+      '<div class="msg" id="dr-nrmsg"></div></div>' +
+      '<div class="dr-card" style="margin-top:16px"><h4>এখনই চালান</h4>' +
+      '<div class="dr-f"><label for="dr-nrtopic">বিষয় (ঐচ্ছিক — ফাঁকা রাখলে AI নিজে বাছবে)</label><input type="text" id="dr-nrtopic" placeholder="যেমন: কোনো নির্দিষ্ট খবরের বিষয়"></div>' +
+      '<div class="dr-actions"><button type="button" class="btn" data-act="nrrun" id="dr-nrrun">নিউজরুম চালান</button></div></div>' +
+      '<div class="dr-card" style="margin-top:16px"><h4>সাম্প্রতিক রান</h4>' + (runs || '<div class="dr-note">এখনো কোনো রান নেই।</div>') + "</div>";
+  }
+
+  /* ---------- ড্যাশবোর্ড ও তালিকা ---------- */
+  function nextRunText() {
+    var p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()).split(":");
+    var m = Number(p[0]) * 60 + Number(p[1]);
+    return m < 480 ? "আজ সকাল ৮:০০" : m < 1140 ? "আজ সন্ধ্যা ৭:০০" : "আগামীকাল সকাল ৮:০০";
+  }
   function countBy(status) {
     return Object.keys(drafts).filter(function (k) { return drafts[k].reviewStatus === status; }).length;
   }
   function bulkHtml() {
-    var n = view === "archive" ? countBy("rejected") : countBy("review_required");
+    var isRej = view === "rejected";
+    if (!isRej && view !== "held") return "";
+    var n = isRej ? countBy("rejected") : countBy("review_required");
     if (!n) return "";
-    return (
-      '<div class="dr-actions" style="margin:-4px 0 12px"><button type="button" class="btn danger small" data-act="' +
-      (view === "archive" ? "delrejected" : "delreview") + '">' +
-      (view === "archive" ? "বাতিল করা সব (" + n + "টি) মুছুন" : "\"রিভিউ প্রয়োজন\" সব (" + n + "টি) মুছুন") +
-      "</button></div>"
-    );
+    return '<div class="dr-actions" style="margin:0"><button type="button" class="btn danger small" data-act="' + (isRej ? "delrejected" : "delreview") + '" style="flex:0 0 auto">' +
+      (isRej ? "বাতিল করা সব (" + bn(n) + "টি) মুছুন" : "\"রিভিউ প্রয়োজন\" সব (" + bn(n) + "টি) মুছুন") + "</button></div>";
   }
 
-  function tabBtn(act, key, label, on, count) {
-    return '<button type="button" class="dr-tab' + (on ? " on" : "") + '" data-act="' + act + '" data-p="' + key + '">' + esc(label) + (count ? ' <span class="dr-tabn">' + count + "</span>" : "") + "</button>";
-  }
+  function dashHtml() {
+    var all = Object.keys(drafts), today = dayKey(Date.now());
+    var pubToday = all.filter(function (k) { var d = drafts[k]; return d.reviewStatus === "approved" && d.publishedAt && dayKey(d.publishedAt) === today; }).length;
+    var pend = all.filter(function (k) { return drafts[k].reviewStatus === "pending_review" && !isHeld(drafts[k]); }).length;
+    var held = all.filter(function (k) { return isHeld(drafts[k]); }).length;
+    var qs = all.map(function (k) { return qaScore(drafts[k]); }).filter(function (x) { return x != null; });
+    var avg = qs.length ? bn(Math.round(qs.reduce(function (a, b) { return a + b; }, 0) / qs.length)) : "—";
+    var pill = nrPill();
 
-  function listHtml() {
-    var ids = Object.keys(drafts)
-      .filter(function (id) { return view === "pending" ? isPending(drafts[id]) : !isPending(drafts[id]); })
+    var ids = all.filter(function (id) { return inView(drafts[id]); })
       .sort(function (a, b) { return (drafts[b].createdAt || 0) - (drafts[a].createdAt || 0); });
-
-    var items = ids.map(function (id) {
-      var d = drafts[id];
-      var rr = d.reviewStatus === "review_required";
-      return (
-        '<button type="button" class="dr-item' + (rr ? " rr" : "") + '" data-act="open" data-id="' + esc(id) + '">' +
-          '<span class="dr-pill st-' + esc(d.verificationStatus || "unverified") + '">' + esc(VERIFY_LABEL[d.verificationStatus] || "অযাচাইকৃত") + "</span>" +
-          '<span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + "</span>" +
-          "<h3>" + esc(d.title || "(শিরোনাম নেই)") + "</h3>" +
-          '<div class="dr-meta">' + esc(d.category || "") + (d.category ? " · " : "") + esc(fmt(d.createdAt)) +
-            " · উৎস " + toArr(d.event && d.event.outlets).length + "টি</div>" +
-        "</button>"
-      );
+    var rows = ids.map(function (id) {
+      var d = drafts[id], st = d.verificationStatus || "unverified", q = qaScore(d);
+      var vp = '<span class="dr-pill st-' + esc(st) + '">' + esc(VERIFY_LABEL[st] || "অযাচাইকৃত") + "</span>";
+      var why = isHeld(d) && toArr(d.gateFailures).length ? " · কারণ: " + esc(toArr(d.gateFailures)[0]) : (d.reviewStatus === "review_required" && d.reviewNote ? " · " + esc(d.reviewNote) : "");
+      return '<div class="dr-row" data-act="open" data-id="' + esc(id) + '">' +
+        '<div><div class="t">' + esc(d.title || "(শিরোনাম নেই)") + '</div><div class="m">' + esc(d.category || "") + (d.category ? " · " : "") + esc(fmt(d.createdAt)) + why + "</div>" +
+        '<div class="mob">' + vp + '<span class="dr-pill">' + esc(kindLabel(d)) + "</span></div></div>" +
+        '<div class="hide"><span class="dr-pill">' + esc(kindLabel(d)) + "</span></div>" +
+        '<div class="hide">' + vp + "</div>" +
+        '<div class="hide n">' + bn(Number(d.independentSources) || toArr(d.sources).length) + "</div>" +
+        '<div class="hide n">' + (q == null ? "—" : bn(q)) + "</div>" +
+        '<button type="button" class="btn dark small" data-act="open" data-id="' + esc(id) + '">খুলুন</button></div>';
     }).join("");
 
+    function seg(v, label, n) { return '<button type="button" data-act="view" data-v="' + v + '" class="' + (view === v ? "on" : "") + '">' + label + (n ? " (" + bn(n) + ")" : "") + "</button>"; }
+    return '<div class="dr-top"><div style="flex:1"><h2>আজকের নিউজরুম</h2><div class="dr-sub">পরবর্তী রান: ' + nextRunText() + '</div></div>' +
+        '<span class="dr-pill ' + pill.cls + '" id="dr-nrpill" style="font-size:13px;padding:6px 14px;margin:0">' + esc(pill.text) + "</span></div>" +
+      '<div class="dr-stats"><div class="dr-stat"><b>' + bn(pubToday) + "</b><span>আজ প্রকাশিত</span></div>" +
+        '<div class="dr-stat"><b>' + bn(pend) + "</b><span>রিভিউ অপেক্ষায়</span></div>" +
+        '<div class="dr-stat"><b>' + bn(held) + "</b><span>গেটে আটকা</span></div>" +
+        '<div class="dr-stat"><b>' + avg + "</b><span>গড় QA স্কোর</span></div></div>" +
+      '<div class="dr-seg">' + seg("pending", "অপেক্ষায়", pend) + seg("held", "আটকা", held) + seg("published", "প্রকাশিত", 0) + seg("rejected", "বাতিল", 0) +
+        '<button type="button" class="btn gap" data-act="nav" data-s="report">নতুন রিপোর্ট</button></div>' +
+      '<div class="msg" id="dr-runmsg" style="margin:0"></div>' + bulkHtml() +
+      (rows ? '<div class="dr-table"><div class="dr-row hd"><div>শিরোনাম</div><div>ধরন</div><div>যাচাই</div><div>সূত্র</div><div>QA</div><div></div></div>' + rows + "</div>"
+            : '<div class="dr-empty">এখানে কিছু নেই।</div>');
+  }
+
+  function reportHtml() {
     var catOpts = '<option value="">AI ঠিক করুক</option>' + REPORT_CATS.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("");
-    var reportForm =
-      '<div class="dr-card" id="dr-newreport"><h4>নতুন রিপোর্ট (শিরোনাম থেকে)</h4>' +
-      '<div class="dr-note" style="margin-bottom:8px">একটি শিরোনাম বা বিষয় লিখুন। সূত্র খুঁজে AI একবার তথ্য মিলিয়ে রিপোর্ট ও আরও ভালো শিরোনামের বিকল্প দেবে (ওয়েব-সার্চ নয়; খবরের লিংক বা তথ্য সাথে দিলে ফল ভালো হয়)। একই বিষয় আবার দিলে আগের রিপোর্টই খুলবে, নতুন করে AI চলবে না।</div>' +
+    return '<div class="dr-top"><h2>নতুন রিপোর্ট (শিরোনাম থেকে)</h2></div>' +
+      '<div class="dr-card" id="dr-newreport" style="max-width:760px">' +
+      '<div class="dr-note" style="margin-bottom:10px">একটি শিরোনাম বা বিষয় লিখুন। সূত্র খুঁজে AI একবার তথ্য মিলিয়ে রিপোর্ট ও আরও ভালো শিরোনামের বিকল্প দেবে (ওয়েব-সার্চ নয়; খবরের লিংক বা তথ্য সাথে দিলে আরও নির্ভুল হয়)। প্রকাশ হবে শুধু আপনার অনুমোদনে।</div>' +
       '<div class="dr-f"><label for="dr-newtitle">শিরোনাম / বিষয়</label><input type="text" id="dr-newtitle" placeholder="যেমন: পিএইচপিতে নতুন নিরাপত্তাত্রুটি"></div>' +
       '<div class="dr-f"><label for="dr-newurl">খবরের লিংক (ঐচ্ছিক)</label><input type="text" id="dr-newurl" placeholder="https://…"></div>' +
       '<div class="dr-f"><label for="dr-newtext">অতিরিক্ত তথ্য / পেস্ট করা লেখা (ঐচ্ছিক)</label><textarea id="dr-newtext" placeholder="খবরের লেখা বা নিশ্চিত তথ্য এখানে দিন"></textarea></div>' +
       '<div class="dr-f"><label for="dr-newcat">বিভাগ</label><select id="dr-newcat">' + catOpts + "</select></div>" +
       '<div class="dr-actions"><button type="button" class="btn" data-act="report" id="dr-reportbtn">রিপোর্ট তৈরি করুন</button></div>' +
       '<div class="msg" id="dr-reportmsg"></div></div>';
-
-    return (
-      '<div class="dr-top"><h2>AI ড্রাফট</h2>' +
-        '</div>' +
-      '<div class="dr-tabs">' + tabBtn("ltab", "report", "＋ নতুন রিপোর্ট", listPane === "report") + tabBtn("ltab", "status", "AI অবস্থা ও ব্যবহার", listPane === "status") + "</div>" +
-      '<div data-lpane="status"' + (listPane === "status" ? "" : " hidden") + ">" + statusHtml() + "</div>" +
-      '<div data-lpane="report"' + (listPane === "report" ? "" : " hidden") + ">" + reportForm + "</div>" +
-      '<div class="msg" id="dr-runmsg" style="margin:0 0 6px"></div>' +
-      '<div class="dr-seg"><button type="button" data-act="view" data-v="pending" class="' + (view === "pending" ? "on" : "") + '">অপেক্ষমাণ (' + pendingCount() + ')</button>' +
-      '<button type="button" data-act="view" data-v="archive" class="' + (view === "archive" ? "on" : "") + '">প্রকাশিত / বাতিল</button></div>' +
-      bulkHtml() +
-      (items ? '<div class="dr-list">' + items + "</div>" : '<div class="dr-empty">এখানে কিছু নেই।</div>')
-    );
   }
 
   /* ---------- বিস্তারিত ---------- */
@@ -502,41 +630,37 @@
             "</div>" +
           '<div class="msg" id="dr-msg"></div></div>';
 
-    return (
-      '<div class="dr-top"><button type="button" class="btn ghost small" data-act="back">← তালিকা</button><h2>ড্রাফট রিভিউ</h2></div>' +
-      '<div><span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + "</span>" +
-      '<span class="dr-meta">' + esc(fmt(d.createdAt)) + "</span></div><div style=\"height:10px\"></div>" +
-      detailPanes([
-        ["verify", "যাচাই ও সূত্র", verifyBox, claims.length + sources.length + outlets.length],
-        ["report", "রিপোর্ট ও শিরোনাম", reportBox + titleBox, tOpts.length],
-        ["edit", "সংবাদ সম্পাদনা", form],
-        ["cover", "কভার ছবি", coverBox],
-        ["pub", "প্রকাশ ও মোছা", pub + delCard]
-      ])
-    );
+    return detailFinish(id, d, form, reportBox, titleBox, coverBox, verifyBox, pub, delCard);
   }
 
-  function detailPanes(list) {
-    list = list.filter(function (p) { return p[2]; });
-    if (!list.some(function (p) { return p[0] === detailTab; })) detailTab = list[0][0];
-    return '<div class="dr-tabs" id="dr-dtabs">' + list.map(function (p) { return tabBtn("dtab", p[0], p[1], p[0] === detailTab, p[3]); }).join("") + "</div>" +
-      list.map(function (p) { return '<div data-dpane="' + p[0] + '"' + (p[0] === detailTab ? "" : " hidden") + ">" + p[2] + "</div>"; }).join("");
+  function bnS(x) { return bn(Math.round(Number(x) || 0)); }
+  function gateItems(d) {
+    var f = toArr(d.gateFailures), items = [];
+    function has(s) { return f.some(function (x) { return String(x).indexOf(s) >= 0; }); }
+    var st = d.verificationStatus || "unverified", ind = Number(d.independentSources) || 0;
+    items.push([st === "verified", "যাচাই-স্ট্যাটাস: " + (VERIFY_LABEL[st] || st)]);
+    items.push([ind >= 3, "স্বাধীন সূত্র " + bn(ind) + "টি (ন্যূনতম ৩)"]);
+    items.push([toArr(d.warnings).length === 0, "সূত্রে পরস্পরবিরোধী তথ্য নেই"]);
+    if (d.auto) {
+      items.push([!has("সংবেদনশীল"), "সংবেদনশীল বিষয় নয়"]);
+      items.push([!has("সংখ্যা"), "লেখার সব সংখ্যা সূত্রে পাওয়া গেছে"]);
+      if (d.qa) items.push([d.qa.approve === true && !toArr(d.qa.unsupported).length, "সম্পাদক-QA: নির্ভুলতা " + bnS(d.qa.accuracy) + ", ভাষা " + bnS(d.qa.language) + ", মৌলিকতা " + bnS(d.qa.originality)]);
+    }
+    return items;
   }
-  function setDetailTab(k) {
-    detailTab = k;
-    var i, els = document.querySelectorAll("[data-dpane]");
-    for (i = 0; i < els.length; i++) els[i].hidden = els[i].getAttribute("data-dpane") !== k;
-    els = document.querySelectorAll("#dr-dtabs .dr-tab");
-    for (i = 0; i < els.length; i++) els[i].classList.toggle("on", els[i].getAttribute("data-p") === k);
-    window.scrollTo(0, 0);
+  function gateHtml(d) {
+    var items = gateItems(d);
+    return '<div class="dr-card"><h4>প্রকাশের গেট</h4>' +
+      items.map(function (it) {
+        return '<div class="dr-gate"><span class="dr-pill ' + (it[0] ? "p-ok" : "p-warn") + '">' + (it[0] ? "পাস" : "নজর") + "</span><span>" + esc(it[1]) + "</span></div>";
+      }).join("") +
+      (toArr(d.gateFailures).length ? '<div class="dr-warn" style="margin:10px 0 0"><b>গেটে আটকে যাওয়ার কারণ:</b><br>' + toArr(d.gateFailures).map(esc).join("<br>") + "</div>" : "") + "</div>";
   }
-  function setListPane(k) {
-    listPane = listPane === k ? "" : k;
-    var i, els = document.querySelectorAll("[data-lpane]");
-    for (i = 0; i < els.length; i++) els[i].hidden = els[i].getAttribute("data-lpane") !== listPane;
-    els = document.querySelectorAll(".dr-tabs .dr-tab[data-act=ltab]");
-    for (i = 0; i < els.length; i++) els[i].classList.toggle("on", els[i].getAttribute("data-p") === listPane);
-    if (listPane === "status") loadStatus();
+
+  function detailFinish(id, d, form, reportBox, titleBox, coverBox, verifyBox, pub, delCard) {
+    var head = '<div class="dr-top"><button type="button" class="btn ghost small" data-act="back">← তালিকা</button><h2>ড্রাফট রিভিউ</h2>' +
+      '<span><span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + '</span><span class="dr-pill">' + esc(kindLabel(d)) + '</span><span class="dr-meta">' + esc(fmt(d.createdAt)) + "</span></span></div>";
+    return head + '<div class="dr-two"><div class="dr-col">' + form + coverBox + reportBox + titleBox + '</div><div class="dr-col">' + gateHtml(d) + verifyBox + pub + delCard + "</div></div>";
   }
 
   function field(id, label, val) {
@@ -649,7 +773,6 @@
       .then(function () { input.value = ""; });
   }
 
-
   /* ---------- নতুন রিপোর্ট (শিরোনাম থেকে) ---------- */
   var REPORT_CATS = ["জাতীয়", "আন্তর্জাতিক", "রাজনীতি", "অর্থনীতি", "খেলা", "বিনোদন", "প্রযুক্তি", "শিক্ষা", "স্বাস্থ্য", "সাধারণ"];
   var pendingOpen = null;
@@ -686,6 +809,7 @@
     var btns = document.querySelectorAll("#ar-drafts-overlay .dr-opt");
     for (var k = 0; k < btns.length; k++) btns[k].classList.toggle("on", k === Number(i));
     setMsg("dr-msg", "শিরোনাম বসেছে — সংরক্ষণ করতে ভুলবেন না।", "ok");
+    if ($("dr-title").scrollIntoView) $("dr-title").scrollIntoView({ block: "center" });
   }
 
   /* ---------- কভার ছবি: লোগো + ক্যাটাগরি + শিরোনাম (ব্রাউজারেই আঁকা, ডাউনলোডযোগ্য) ---------- */
@@ -961,13 +1085,17 @@
     var act = el.getAttribute("data-act");
     if (act === "open") { openId = el.getAttribute("data-id"); render(); }
     else if (act === "back") { openId = null; render(); }
+    else if (act === "nav") {
+      section = el.getAttribute("data-s"); openId = null; render();
+      if (section === "status") loadStatus();
+      if (section === "newsroom") loadNr();
+    }
     else if (act === "view") { view = el.getAttribute("data-v"); render(); }
     else if (act === "refreshstat") loadStatus();
     else if (act === "genimg") genImage();
     else if (act === "report") runReport();
-    else if (act === "pickTitle") { pickTitle(el.getAttribute("data-i")); setDetailTab("edit"); }
-    else if (act === "dtab") setDetailTab(el.getAttribute("data-p"));
-    else if (act === "ltab") setListPane(el.getAttribute("data-p"));
+    else if (act === "nrrun") runNr();
+    else if (act === "pickTitle") pickTitle(el.getAttribute("data-i"));
     else if (act === "cover") makeCover();
     else if (act === "coverdl") downloadCover();
     else if (act === "coveruse") useCover();
