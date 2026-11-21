@@ -162,6 +162,66 @@
       #ar-drafts-overlay .dr-content { padding: 14px; }
       #ar-drafts-overlay .dr-grid { grid-template-columns: minmax(0,1fr); }
     }
+
+    /* ===== ফুল স্ক্রিন: কার্ড নয়, পুরো প্রস্থের সারি ===== */
+    #ar-drafts-overlay .dr-content { padding: 0; max-width: none; }
+    #ar-drafts-overlay .dr-content > .dr-top { padding: 14px 16px 6px; margin: 0; }
+    #ar-drafts-overlay .dr-content > .dr-sub { padding: 8px 16px; margin: 0; }
+    #ar-drafts-overlay .dr-content > .msg { padding: 0 16px; margin: 0; }
+    #ar-drafts-overlay .dr-content > .dr-empty { margin: 16px; }
+    #ar-drafts-overlay .dr-content > .dr-actions { padding: 0 16px; }
+    #ar-drafts-overlay .dr-content .dr-card { border-radius: 0; border-width: 1px 0; margin: 0; }
+    #ar-drafts-overlay #dr-newreport { max-width: none !important; }
+    #ar-drafts-overlay .dr-stats3 { gap: 0; border-bottom: 1px solid var(--d-line); background: #fff; }
+    #ar-drafts-overlay .dr-stats3 .dr-stat { border: 0; border-right: 1px solid var(--d-line); border-radius: 0; background: #fff; }
+    #ar-drafts-overlay .dr-stats3 .dr-stat:last-child { border-right: 0; }
+    #ar-drafts-overlay .dr-seg { gap: 0; flex-wrap: nowrap; border-bottom: 1px solid var(--d-line); background: #fff; }
+    #ar-drafts-overlay .dr-seg button { flex: 1; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: #fff; color: var(--d-mut); padding: 0 4px; font-size: 14px; }
+    #ar-drafts-overlay .dr-seg button.on { background: #fff; color: var(--d-red); border-bottom-color: var(--d-red); }
+    #ar-drafts-overlay .dr-grid { gap: 0; grid-template-columns: repeat(auto-fill,minmax(380px,1fr)); background: #fff; }
+    #ar-drafts-overlay .dr-it { border: 0; border-bottom: 1px solid var(--d-line); border-right: 1px solid var(--d-line); border-radius: 0; }
+    #ar-drafts-overlay .dr-more { width: 100%; border: 0; border-bottom: 1px solid var(--d-line); border-radius: 0; }
+    #ar-drafts-overlay .dr-ico { position: relative; display: inline-flex; }
+    #ar-drafts-overlay .dr-ico .dr-tabn { position: absolute; top: -4px; right: -12px; min-width: 16px; height: 16px; line-height: 16px; font-size: 10.5px; padding: 0 4px; margin: 0; }
+    #ar-drafts-overlay .dr-pane { display: none; flex: 1; min-height: 0; overflow-y: auto; flex-direction: column; }
+    #ar-drafts-overlay .dr-pane.on { display: flex; }
+    /* এডিটর: পুরো স্ক্রিন */
+    #ar-drafts-overlay .dr-ed { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: #fff; }
+    #ar-drafts-overlay .dr-edtop { background: var(--d-navy); color: #fff; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 6px; min-height: 52px; flex: none; }
+    #ar-drafts-overlay .dr-edtop b { flex: 1; font-size: 17px; font-weight: 700; }
+    #ar-drafts-overlay .dr-edtop .dr-pill { margin: 0; }
+    #ar-drafts-overlay .dr-edback { border: 0; background: transparent; color: #fff; font-size: 30px; min-width: 44px; min-height: 44px; line-height: 1; }
+    #ar-drafts-overlay .dr-edtabs { display: flex; border-bottom: 1px solid var(--d-line); flex: none; }
+    #ar-drafts-overlay .dr-edtab { flex: 1; min-height: 46px; border: 0; border-bottom: 3px solid transparent; background: #fff; font-weight: 600; font-size: 14.5px; color: var(--d-mut); }
+    #ar-drafts-overlay .dr-edtab.on { color: var(--d-red); border-bottom-color: var(--d-red); }
+    #ar-drafts-overlay .dr-ed .dr-f { margin: 0; padding: 10px 16px; border-bottom: 1px solid #EEF0F4; }
+    #ar-drafts-overlay .dr-ed .dr-f label { margin-bottom: 2px; }
+    #ar-drafts-overlay .dr-ed .dr-f input[type=text], #ar-drafts-overlay .dr-ed .dr-f textarea, #ar-drafts-overlay .dr-ed .dr-f select { border: 0; border-radius: 0; padding: 4px 0; background: transparent; }
+    #ar-drafts-overlay .dr-ed .dr-f input:focus, #ar-drafts-overlay .dr-ed .dr-f textarea:focus { outline: 0; box-shadow: inset 0 -2px 0 var(--d-blue); }
+    #ar-drafts-overlay .dr-ed .dr-grow { flex: 1; display: flex; flex-direction: column; min-height: 200px; border-bottom: 1px solid #EEF0F4; }
+    #ar-drafts-overlay .dr-ed .dr-grow textarea { flex: 1; line-height: 1.9; }
+    #ar-drafts-overlay .dr-ed #dr-content { min-height: 160px; font-size: 17px; }
+    #ar-drafts-overlay .dr-ed #dr-summary { min-height: 56px; }
+    #ar-drafts-overlay .dr-ed .dr-card { border: 0; border-bottom: 1px solid #EEF0F4; border-radius: 0; padding: 12px 16px; margin: 0; }
+    #ar-drafts-overlay .dr-ed .dr-imgprev { border: 0; border-radius: 0; margin: 0; }
+    #ar-drafts-overlay .dr-ed #dr-cover { border-radius: 0; }
+    #ar-drafts-overlay .dr-actbar { flex: none; border-top: 1px solid var(--d-line); background: #fff; padding: 8px 12px calc(10px + env(safe-area-inset-bottom,0px)); position: relative; }
+    #ar-drafts-overlay .dr-actrow { display: flex; gap: 8px; }
+    #ar-drafts-overlay .dr-actbar .msg { margin: 0 0 6px; padding: 0 4px; }
+    #ar-drafts-overlay .dr-menu { position: absolute; right: 12px; bottom: calc(100% + 4px); background: #fff; border: 1px solid var(--d-line); border-radius: 12px; box-shadow: 0 8px 24px rgba(15,27,45,.18); min-width: 250px; padding: 6px; z-index: 10; }
+    #ar-drafts-overlay .dr-menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 12px; font-size: 15px; border-radius: 8px; color: var(--d-ink); }
+    #ar-drafts-overlay .dr-menu button.bad { color: var(--d-bad); }
+    #ar-drafts-overlay .dr-menu button:hover { background: #F3F5F8; }
+
+    /* ===== এডিটর: ছোট বাটন + একটি-খোলা-অন্যটি-বন্ধ অংশ ===== */
+    #ar-drafts-overlay .dr-chips { display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--d-line); overflow-x: auto; flex: none; background: #fff; }
+    #ar-drafts-overlay .dr-chip { flex: none; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid #CBD2DE; background: #fff; color: var(--d-ink); font-weight: 600; font-size: 13.5px; }
+    #ar-drafts-overlay .dr-chip.on { background: var(--d-navy); color: #fff; border-color: var(--d-navy); }
+    #ar-drafts-overlay .dr-chip.on::after { content: " \25B4"; }
+    #ar-drafts-overlay .dr-panel { background: #F8F9FB; border-bottom: 1px solid var(--d-line); max-height: 50vh; max-height: 50dvh; overflow-y: auto; flex: none; }
+    #ar-drafts-overlay .dr-panel .dr-f { background: transparent; }
+    #ar-drafts-overlay .dr-main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+    #ar-drafts-overlay .dr-pnpad { padding: 10px 16px; }
   </style>
 </head>
 <body>
@@ -305,8 +365,8 @@
     return '<div class="dr-app"><header class="dr-hd"><a href="./index.html">‹ অ্যাডমিন</a><b>AR নিউজরুম</b><span class="dr-pill ' + pill.cls + '" id="dr-nrpill">' + esc(pill.text) + "</span></header>" +
       '<main class="dr-content">' + inner + "</main>" +
       '<nav class="dr-bnav">' + NAV.map(function (n) {
-        var cnt = n[0] === "home" && pendingCount() ? '<span class="dr-tabn" style="margin:0">' + bn(pendingCount()) + "</span>" : "";
-        return '<button type="button" class="dr-nv' + (n[0] === cur ? " on" : "") + '" data-act="nav" data-s="' + n[0] + '">' + n[2] + "<span>" + esc(n[1]) + cnt + "</span></button>";
+        var cnt = n[0] === "home" && pendingCount() ? '<span class="dr-tabn">' + bn(pendingCount()) + "</span>" : "";
+        return '<button type="button" class="dr-nv' + (n[0] === cur ? " on" : "") + '" data-act="nav" data-s="' + n[0] + '"><span class="dr-ico">' + n[2] + cnt + "</span><span>" + esc(n[1]) + "</span></button>";
       }).join("") + "</nav></div>";
   }
 
@@ -315,7 +375,7 @@
     var wrap = $("dr-wrap");
     if (openId && drafts[openId]) {
       if (wrap.getAttribute("data-open") !== openId) {
-        wrap.innerHTML = shell(detailHtml(openId, drafts[openId]));
+        wrap.innerHTML = detailHtml(openId, drafts[openId]); // পুরো স্ক্রিন, হেডার/নিচের বার ছাড়া
         wrap.setAttribute("data-open", openId);
         imageAi = !!drafts[openId].imageAi;
         updatePreview();
@@ -634,26 +694,27 @@
       (unc.length ? '<div class="dr-note" style="margin-top:10px"><b>অনিশ্চিত বিষয়:</b><br>' + unc.map(esc).join("<br>") + "</div>" : "") +
       "</div>" +
       (claimsHtml ? '<div class="dr-card"><h4>গুরুত্বপূর্ণ দাবি ও প্রমাণ</h4>' + claimsHtml + "</div>" : "") +
-      (sources.length ? '<div class="dr-card"><h4>যাচাইয়ে পাওয়া সূত্র</h4>' + linkList(sources) + "</div>" : "") +
-      (outlets.length ? '<div class="dr-card"><h4>মূল উৎস (শুধু দেখার জন্য — কপি করা যাবে না)</h4>' + linkList(outlets) + "</div>" : "");
+      "";
 
-    var form =
-      '<div class="dr-card"><h4>' + (rr ? "কোনো লেখা তৈরি হয়নি" : "সংবাদ (সম্পাদনা করা যায়)") + "</h4>" +
+    var mainFields =
       field("dr-title", "শিরোনাম", d.title) +
-      field("dr-category", "ক্যাটাগরি", d.category) +
-      area("dr-summary", "সারসংক্ষেপ", d.summary) +
-      area("dr-content", "বিস্তারিত লেখা", d.content) +
-      area("dr-meta", "মেটা বিবরণ", d.metaDescription) +
-      '<div class="dr-f"><label for="dr-image">ছবির লিংক</label><input type="text" id="dr-image" inputmode="url" value="' + esc(d.imageUrl || "") + '">' +
-        '<img class="dr-imgprev" id="dr-imgprev" alt="" hidden>' +
-        '<div class="dr-actions" style="margin-top:8px"><button type="button" class="btn secondary small" data-act="genimg" id="dr-genimg">AI দিয়ে ছবি বানান</button></div>' +
-        '<input type="file" id="dr-file" accept="image/*" style="margin-top:8px;font-size:13px">' +
-        '<div class="msg" id="dr-imgmsg"></div></div>' +
-      area("dr-imgprompt", "ছবির বর্ণনা (ইংরেজি, AI-এর জন্য)", d.imagePrompt) +
-      area("dr-social", "সামাজিক মাধ্যমের পোস্ট (প্রকাশ হবে না, শুধু কপির জন্য)", d.socialPost) +
+      field("dr-category", "বিভাগ (ক্যাটাগরি)", d.category) +
+      '<div class="dr-f dr-grow"><label for="dr-content">বিস্তারিত লেখা</label><textarea id="dr-content">' + esc(d.content || "") + "</textarea></div>";
+    var imgPart =
+      '<div class="dr-f"><label for="dr-image">ছবির লিংক</label><input type="text" id="dr-image" inputmode="url" value="' + esc(d.imageUrl || "") + '"></div>' +
+      '<img class="dr-imgprev" id="dr-imgprev" alt="" hidden>' +
+      '<div class="dr-f"><div class="dr-actions" style="margin:0"><button type="button" class="btn secondary small" data-act="genimg" id="dr-genimg">AI দিয়ে ছবি বানান</button></div>' +
+        '<input type="file" id="dr-file" accept="image/*" style="margin-top:8px;font-size:13px"><div class="msg" id="dr-imgmsg"></div></div>' +
+      area("dr-imgprompt", "ছবির বর্ণনা (ইংরেজি, AI-এর জন্য)", d.imagePrompt);
+    var xPart =
       '<div class="dr-f"><label for="dr-xpost">X (টুইটার) পোস্ট — ৩-৪ লাইন, ২৮০ অক্ষরের মধ্যে</label><textarea id="dr-xpost" rows="5" style="min-height:120px">' + esc(d.xPost || "") + '</textarea><div class="dr-note" id="dr-xcount"></div>' +
         '<div class="dr-actions"><button type="button" class="btn secondary small" data-act="xgen" id="dr-xgen">সংবাদ থেকে X পোস্ট লিখে দিন</button><button type="button" class="btn secondary small" data-act="xcopy">কপি করুন</button></div><div class="msg" id="dr-xmsg"></div></div>' +
-      "</div>";
+      area("dr-social", "সামাজিক মাধ্যমের পোস্ট (প্রকাশ হবে না, শুধু কপির জন্য)", d.socialPost);
+    var metaPart =
+      area("dr-summary", "সারসংক্ষেপ", d.summary) +
+      area("dr-meta", "মেটা বিবরণ", d.metaDescription);
+    var srcPanel = '<div class="dr-pnpad">' + (sources.length ? linkList(sources) : '<div class="dr-note">যাচাইয়ে কোনো সূত্র পাওয়া যায়নি।</div>') +
+      (outlets.length ? '<div class="dr-note" style="margin:10px 0 4px"><b>মূল উৎস (শুধু দেখার জন্য — কপি করা যাবে না)</b></div>' + linkList(outlets) : "") + "</div>";
 
     var rep = d.report || {};
     var findings = toArr(rep.keyFindings), unclear = toArr(rep.unclear);
@@ -689,27 +750,21 @@
         '<button type="button" class="btn secondary" data-act="coveruse" id="dr-coveruse" disabled>পোস্টের ছবি হিসেবে বসান</button>' +
       '</div><div class="msg" id="dr-covermsg"></div></div>';
 
-    var delCard =
-      '<div class="dr-card"><div class="dr-actions"><button type="button" class="btn danger" data-act="delete">স্থায়ীভাবে মুছে ফেলুন</button></div>' +
-      '<div class="dr-note" style="margin-top:8px">ভুল বা অপ্রয়োজনীয় হলে মুছে দিন। ড্রাফটের রেকর্ড চিরতরে যাবে' +
-      (d.reviewStatus === "approved" ? " (আগে প্রকাশিত পোস্ট থেকে যাবে, মুছবে না)" : "") + ".</div>" +
-      '<div class="msg" id="dr-delmsg"></div></div>';
-
-    var pub =
-      done
-        ? '<div class="dr-card"><div class="dr-note">এই ড্রাফট ' + esc(REVIEW_LABEL[d.reviewStatus]) + " হয়েছে" + (d.publishedAt ? " (" + esc(fmt(d.publishedAt)) + ")" : "") + "।</div></div>"
-        : '<div class="dr-card">' +
-            '<label class="dr-chk"><input type="checkbox" id="dr-addsrc"> লেখার শেষে তথ্যসূত্রের নাম যোগ করুন</label>' +
-            '<label class="dr-chk"><input type="checkbox" id="dr-addnote" checked> "AI সহায়তায় তৈরি, সম্পাদক যাচাইকৃত" নোট যোগ করুন (AI-ছবি হলে ছবির নোটসহ)</label>' +
-            '<div class="dr-actions">' +
-              (rr ? '<button type="button" class="btn secondary" data-act="manual">নিজে লিখুন (Create ট্যাবে)</button>' : "") +
-              '<button type="button" class="btn secondary" data-act="save">সংরক্ষণ</button>' +
-              '<button type="button" class="btn" data-act="publish"' + (rr ? " disabled" : "") + ">অনুমোদন ও প্রকাশ</button>" +
-              '<button type="button" class="btn danger" data-act="reject">বাতিল (Reject)</button>' +
-            "</div>" +
-          '<div class="msg" id="dr-msg"></div></div>';
-
-    return detailFinish(id, d, form, reportBox, titleBox, coverBox, verifyBox, pub, delCard);
+    var menuHtml = '<div class="dr-menu" id="dr-menu" hidden>' +
+      (rr ? '<button type="button" data-act="manual">নিজে লিখুন (Create ট্যাবে)</button>' : "") +
+      (done ? "" : '<button type="button" class="bad" data-act="reject">বাতিল (Reject)</button>') +
+      '<button type="button" class="bad" data-act="delete">স্থায়ীভাবে মুছে ফেলুন</button>' +
+      '<div class="dr-note" style="padding:2px 12px 8px">ভুল বা অপ্রয়োজনীয় হলে মুছে দিন; ড্রাফটের রেকর্ড চিরতরে যাবে' + (d.reviewStatus === "approved" ? " (আগে প্রকাশিত পোস্ট থেকে যাবে, মুছবে না)" : "") + '।</div><div class="msg" id="dr-delmsg" style="padding:0 12px"></div></div>';
+    var options = done
+      ? '<div class="dr-card"><div class="dr-note">এই ড্রাফট ' + esc(REVIEW_LABEL[d.reviewStatus]) + " হয়েছে" + (d.publishedAt ? " (" + esc(fmt(d.publishedAt)) + ")" : "") + "।</div></div>"
+      : '<div class="dr-card"><h4>প্রকাশের বিকল্প</h4>' +
+          '<label class="dr-chk"><input type="checkbox" id="dr-addsrc"> লেখার শেষে তথ্যসূত্রের নাম যোগ করুন</label>' +
+          '<label class="dr-chk"><input type="checkbox" id="dr-addnote" checked> "AI সহায়তায় তৈরি, সম্পাদক যাচাইকৃত" নোট যোগ করুন (AI-ছবি হলে ছবির নোটসহ)</label></div>';
+    var actbar = '<div class="dr-actbar">' + menuHtml + '<div class="msg" id="dr-msg"></div><div class="dr-actrow">' +
+      '<button type="button" class="btn secondary" data-act="save" style="flex:1">সংরক্ষণ</button>' +
+      (done ? "" : '<button type="button" class="btn" data-act="publish" style="flex:2"' + (rr ? " disabled" : "") + ">অনুমোদন ও প্রকাশ</button>") +
+      '<button type="button" class="btn secondary" data-act="menu" aria-label="আরও" style="width:48px;padding:0">⋯</button></div></div>';
+    return detailFinish(d, mainFields, imgPart, coverBox, xPart, titleBox, metaPart, verifyBox, reportBox, options, actbar, srcPanel, sources.length + outlets.length);
   }
 
   function bnS(x) { return bn(Math.round(Number(x) || 0)); }
@@ -736,10 +791,27 @@
       (toArr(d.gateFailures).length ? '<div class="dr-warn" style="margin:10px 0 0"><b>গেটে আটকে যাওয়ার কারণ:</b><br>' + toArr(d.gateFailures).map(esc).join("<br>") + "</div>" : "") + "</div>";
   }
 
-  function detailFinish(id, d, form, reportBox, titleBox, coverBox, verifyBox, pub, delCard) {
-    var head = '<div class="dr-top"><button type="button" class="btn ghost small" data-act="back">← তালিকা</button><h2>ড্রাফট রিভিউ</h2>' +
-      '<span><span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + '</span><span class="dr-pill">' + esc(kindLabel(d)) + '</span><span class="dr-meta">' + esc(fmt(d.createdAt)) + "</span></span></div>";
-    return head + '<div class="dr-two"><div class="dr-col">' + form + coverBox + reportBox + titleBox + '</div><div class="dr-col">' + gateHtml(d) + verifyBox + pub + delCard + "</div></div>";
+  function detailFinish(d, mainFields, imgPart, coverBox, xPart, titleBox, metaPart, verifyBox, reportBox, options, actbar, srcPanel, srcCount) {
+    var head = '<div class="dr-edtop"><button type="button" class="dr-edback" data-act="back" aria-label="ফিরুন">‹</button><b>ড্রাফট রিভিউ</b>' +
+      '<span class="dr-pill rv-' + esc(d.reviewStatus) + '">' + esc(REVIEW_LABEL[d.reviewStatus] || d.reviewStatus) + "</span></div>";
+    var warn = gateItems(d).some(function (it) { return !it[0]; });
+    var chips = [["src", "সূত্র" + (srcCount ? " (" + bn(srcCount) + ")" : "")], ["titles", "শিরোনাম বিকল্প"], ["x", "X পোস্ট"], ["img", "ছবি"], ["check", "যাচাই" + (warn ? " !" : "")]];
+    var panels = {
+      src: srcPanel,
+      titles: titleBox || '<div class="dr-pnpad"><div class="dr-note">কোনো বিকল্প শিরোনাম নেই।</div></div>',
+      x: xPart,
+      img: imgPart + coverBox,
+      check: gateHtml(d) + verifyBox + reportBox + metaPart + options,
+    };
+    return '<div class="dr-ed">' + head +
+      '<div class="dr-chips">' + chips.map(function (c) { return '<button type="button" class="dr-chip" data-act="chip" data-t="' + c[0] + '">' + c[1] + "</button>"; }).join("") + "</div>" +
+      chips.map(function (c) { return '<div class="dr-panel" id="dr-pn-' + c[0] + '" hidden>' + panels[c[0]] + "</div>"; }).join("") +
+      '<div class="dr-main">' + mainFields + "</div>" + actbar + "</div>";
+  }
+  function closeChips() {
+    var cs = document.querySelectorAll("#ar-drafts-overlay .dr-chip"), ps = document.querySelectorAll("#ar-drafts-overlay .dr-panel");
+    for (var i = 0; i < cs.length; i++) cs[i].classList.remove("on");
+    for (var j = 0; j < ps.length; j++) ps[j].hidden = true;
   }
 
   function field(id, label, val) {
@@ -889,6 +961,7 @@
     $("dr-title").value = o.title;
     var btns = document.querySelectorAll("#ar-drafts-overlay .dr-opt");
     for (var k = 0; k < btns.length; k++) btns[k].classList.toggle("on", k === Number(i));
+    closeChips();
     setMsg("dr-msg", "শিরোনাম বসেছে — সংরক্ষণ করতে ভুলবেন না।", "ok");
     if ($("dr-title").scrollIntoView) $("dr-title").scrollIntoView({ block: "center" });
   }
@@ -1206,9 +1279,16 @@
     var el = e.target.closest && e.target.closest("[data-act]");
     if (!el) return;
     var act = el.getAttribute("data-act");
+    if (act !== "menu") { var mm = $("dr-menu"); if (mm) mm.hidden = true; }
     if (act === "open") { backTo = section === "list" ? "list" : "home"; openId = el.getAttribute("data-id"); render(); }
     else if (act === "back") { openId = null; section = backTo || "home"; render(); }
     else if (act === "gotolist") { view = el.getAttribute("data-v") || view; section = "list"; openId = null; render(); window.scrollTo(0, 0); }
+    else if (act === "chip") {
+      var tt = el.getAttribute("data-t"), wasOn = el.classList.contains("on");
+      closeChips();
+      if (!wasOn) { el.classList.add("on"); var pn = $("dr-pn-" + tt); if (pn) pn.hidden = false; }
+    }
+    else if (act === "menu") { var mn = $("dr-menu"); if (mn) mn.hidden = !mn.hidden; }
     else if (act === "gotohome") { section = "home"; openId = null; render(); }
     else if (act === "nav") {
       section = el.getAttribute("data-s"); openId = null; render(); window.scrollTo(0, 0);
